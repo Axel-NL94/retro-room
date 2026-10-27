@@ -1,0 +1,17 @@
+{
+  "name": "retro-room",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Oude games. Samen opnieuw. Browser NES netplay met ROM-overdracht en rollback.",
+  "engines": { "node": ">=22" },
+  "packageManager": "pnpm@10.20.0",
+  "scripts": {
+    "dev": "node server/index.js",
+    "start": "node server/index.js",
+    "build": "node scripts/build.js",
+    "test": "node --test test/*.test.js",
+    "check": "node scripts/check.js"
+  },
+  "dependencies": { "jsnes": "2.1.0", "ws": "8.22.0" }
+}
