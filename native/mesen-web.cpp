@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Single-threaded browser frontend for the pinned MesenCE Libretro core.
 #include "Libretro/libretro.cpp"
+#include "Core/NES/BaseNesPpu.h"
+#include "Core/SNES/SnesMemoryManager.h"
 #include <emscripten/emscripten.h>
 #include <unordered_map>
 
@@ -80,8 +82,11 @@ EMSCRIPTEN_KEEPALIVE int rr_init() {
     retro_set_input_poll(rr_poll); retro_set_input_state(rr_input); retro_init(); return 1;
   } catch(const std::exception& e) { rr_error=e.what(); return 0; }
 }
-EMSCRIPTEN_KEEPALIVE int rr_load(const uint8_t* data, size_t size, const char* path) {
+EMSCRIPTEN_KEEPALIVE int rr_load(const uint8_t* data, size_t size, const char* path, unsigned overclock) {
   try {
+    if(overclock < 100 || overclock > 300 || overclock % 25) {
+      rr_error="Kies een CPU-overclock van 100% tot 300%, in stappen van 25%."; return 0;
+    }
     if(rr_loaded) retro_unload_game();
     rr_loaded=false; rr_buttons[0]=rr_buttons[1]=0; rr_samples.clear(); rr_pixels.clear();
     // Desktop Mesen randomizes SNES RAM by default. Both online players must
@@ -89,10 +94,26 @@ EMSCRIPTEN_KEEPALIVE int rr_load(const uint8_t* data, size_t size, const char* p
     SnesConfig snes = _emu->GetSettings()->GetSnesConfig();
     snes.RamPowerOnState = RamState::AllZeros;
     snes.EnableRandomPowerOnState = false;
+    snes.PpuExtraScanlinesBeforeNmi = snes.PpuExtraScanlinesAfterNmi = 0;
     _emu->GetSettings()->SetSnesConfig(snes);
     retro_game_info game={path,data,size,nullptr};
     rr_loaded=retro_load_game(&game);
     if(!rr_loaded) { rr_error="Mesen kon deze ROM niet laden."; return 0; }
+    // Extra CPU time per video frame, using Mesen's before-NMI overclock.
+    // Video cadence and the APU retain their normal speed. This is an
+    // approximate CPU-time percentage, not a literal hardware MHz multiplier.
+    unsigned baseLines = _emu->GetRegion() == ConsoleRegion::Ntsc ? 262 : 312;
+    unsigned extraLines = (baseLines * (overclock - 100) + 50) / 100;
+    if(auto nes = std::dynamic_pointer_cast<NesConsole>(_emu->GetConsole())) {
+      NesConfig config = _emu->GetSettings()->GetNesConfig();
+      config.PpuExtraScanlinesBeforeNmi = extraLines; config.PpuExtraScanlinesAfterNmi = 0;
+      _emu->GetSettings()->SetNesConfig(config);
+      nes->GetPpu()->UpdateTimings(_emu->GetRegion());
+    } else if(std::dynamic_pointer_cast<SnesConsole>(_emu->GetConsole())) {
+      snes = _emu->GetSettings()->GetSnesConfig();
+      snes.PpuExtraScanlinesBeforeNmi = extraLines; snes.PpuExtraScanlinesAfterNmi = 0;
+      _emu->GetSettings()->SetSnesConfig(snes);
+    }
     retro_system_av_info info={}; retro_get_system_av_info(&info); rr_fps=info.timing.fps;
     return 1;
   } catch(const std::exception& e) { rr_error=e.what(); return 0; }
@@ -119,6 +140,9 @@ EMSCRIPTEN_KEEPALIVE unsigned rr_video_height() { return rr_height; }
 EMSCRIPTEN_KEEPALIVE const int16_t* rr_audio_ptr() { return rr_samples.data(); }
 EMSCRIPTEN_KEEPALIVE unsigned rr_audio_count() { return rr_samples.size(); }
 EMSCRIPTEN_KEEPALIVE double rr_frame_rate() { return rr_fps; }
-EMSCRIPTEN_KEEPALIVE const uint8_t* rr_ram_ptr() { return (const uint8_t*)retro_get_memory_data(RETRO_MEMORY_SYSTEM_RAM); }
+EMSCRIPTEN_KEEPALIVE const uint8_t* rr_ram_ptr() {
+  if(auto snes = std::dynamic_pointer_cast<SnesConsole>(_emu->GetConsole())) return snes->GetMemoryManager()->DebugGetWorkRam();
+  return (const uint8_t*)retro_get_memory_data(RETRO_MEMORY_SYSTEM_RAM);
+}
 EMSCRIPTEN_KEEPALIVE const char* rr_error_ptr() { return rr_error.c_str(); }
 }
