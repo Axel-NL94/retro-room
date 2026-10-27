@@ -138,3 +138,14 @@ en `web/assets/mesen-build.json` voor herkomst en checksums.
 De overige eigen projectcode en de originele demo zijn MIT, zie `LICENSE`.
 De bewaarde JSNES-afhankelijkheid is Apache-2.0; PeerJS en ws zijn MIT.
 Google Fonts zijn optioneel met systeemfonts als terugval.
+
+### CPU-overclock voor ROM-hacks
+
+De host kan bij het maken van een kamer en onder **Emulator** 100–300% kiezen
+(in stappen van 25%). 100% is standaard. Mesen geeft de virtuele CPU extra tijd
+per beeldframe; de game en audio blijven op normale snelheid. Het percentage is
+een benadering van de beschikbare CPU-tijd, geen exacte MHz-vermenigvuldiging.
+Speler 2 neemt dezelfde waarde over. Zodra een gast verbindt staat de instelling
+vast; aanpassen zonder gast begint de game opnieuw. Niet iedere ROM-hack is
+compatibel en hogere waarden vragen meer rekenkracht. SNES-coprocessors zoals
+Super FX worden hiermee niet afzonderlijk overclockt.
