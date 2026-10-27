@@ -74,7 +74,7 @@ test('reject malformed ROMs and input packets', async () => {
   assert.throws(() => validateRom(rom.subarray(0, 100)));
   const s = new RollbackSession(core());
   assert.throws(() => s.receive(-1, 0));
-  assert.throws(() => s.receive(2, 256));
+  assert.throws(() => s.receive(2, 4096));
   assert.throws(() => s.receive(10000, 0));
   assert.equal((await romHash(rom)).length, 64);
 });
