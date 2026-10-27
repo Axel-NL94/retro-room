@@ -1,7 +1,7 @@
 # Gratis spelen met uitnodigingslinks
 
 De site staat op https://axel-nl94.github.io/retro-room/.
-De huidige versie werkt met **privékamers en uitnodigingslinks**.
+De huidige versie gebruikt Mesen-emulatie voor NES en SNES (beta), met **privékamers en uitnodigingslinks**.
 Je hoeft geen eigen server te draaien en geen Render- of TURN-account aan te maken.
 
 | Onderdeel | Huidige oplossing |
@@ -21,7 +21,7 @@ de gebruikslimieten van GitHub Pages.
 ## Gebruik
 
 1. Open de site en kies **Maak een kamer**.
-2. Selecteer een NES-ROM of de meegeleverde Room Rally-demo.
+2. Selecteer een NES- of SNES-ROM of de meegeleverde Room Rally-demo.
 3. Kopieer de uitnodigingslink en deel die met je vriend. Houd je kamer open.
 4. Je vriend opent de link, vult een naam in en klikt op **Speel mee**.
 5. De ROM gaat automatisch naar de andere browser. De gast klikt op **Ik ben klaar**;

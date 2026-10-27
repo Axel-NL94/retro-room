@@ -1,158 +1,140 @@
 # RetroRoom
 
-**Oude games. Samen opnieuw.** NES-games samen spelen in de browser, voorlopig
-alleen via **uitnodigingslinks**. De site staat op
-https://axel-nl94.github.io/retro-room/ en de bron op
-https://github.com/Axel-NL94/retro-room.
+**Oude games. Samen opnieuw.** NES en SNES samen spelen in de browser via
+uitnodigingslinks. De site staat op https://axel-nl94.github.io/retro-room/ en de
+bron op https://github.com/Axel-NL94/retro-room.
 
-De host kiest een lokale ROM. De gast ontvangt die rechtstreeks via WebRTC en
-speelt in dezelfde emulator op het eigen apparaat. Tijdens het spelen worden
-controllerinvoer en controlehashes uitgewisseld. ROMs worden niet door een
-spelserver opgeslagen of doorgestuurd. De demo **Room Rally** is origineel en
-vrij meegeleverd; er zitten geen commerciële ROMs in het project.
+De emulator is **MesenCE**, een moderne Mesen-core die naar WebAssembly is
+gecompileerd. NES is beschikbaar; SNES is een eerste **beta**. De host kiest een
+lokale ROM. De gast ontvangt dezelfde bytes rechtstreeks via WebRTC en speelt
+in een eigen emulator op het eigen apparaat. Tijdens het spelen worden kleine
+controllerberichten en controlehashes uitgewisseld.
 
 ## Samen spelen
 
-1. Kies **Maak een kamer** en selecteer een NES-ROM of de demo.
-2. Deel de uitnodigingslink met je vriend en houd de kamer open.
+1. Kies **Maak een kamer** en selecteer `.nes`, `.sfc` of `.smc`, of gebruik de demo.
+2. Deel de uitnodigingslink en houd de kamer open.
 3. De gast opent de link, vult een naam in en kiest **Speel mee**.
 4. Na automatische ROM-overdracht en SHA-256-controle kiest de gast **Ik ben klaar**.
 5. De host kiest **Start samen**.
 
-Er is plek voor twee spelers. De kamer verschijnt nergens in een openbare lijst.
+Een kamer heeft plek voor twee spelers en staat niet in een openbare lijst.
 Wie de link heeft, kan proberen mee te doen. De link vervalt zodra de host de
 kamer verlaat, de pagina vernieuwt of de browser sluit. Een nieuwe kamer krijgt
-een nieuwe willekeurige UUID-link.
+een nieuwe willekeurige link.
 
-Er is **geen eigen server of account nodig**. PeerJS Cloud verzorgt de signalering;
-Google STUN helpt de browsers een directe verbinding te vinden. TURN is expliciet
-uitgeschakeld: er is dus geen relay-databundel, maar sommige netwerken kunnen
-niet rechtstreeks verbinden. Probeer dan een ander netwerk. Beschikbaarheid en
-onbeperkt gratis gebruik van externe diensten zijn niet gegarandeerd. Zie
-[GRATIS-HOSTING.md](GRATIS-HOSTING.md) voor de opzet en officiële bronnen.
+Er is geen eigen server of gebruikersaccount nodig. PeerJS Cloud verzorgt de
+signalering; Google STUN helpt een directe verbinding vinden. TURN is uitgeschakeld:
+er is geen relay-databundel, maar sommige netwerken kunnen niet rechtstreeks
+verbinden. Probeer dan een ander netwerk. Externe diensten hebben geen garantie
+op beschikbaarheid of onbeperkt gratis gebruik. Zie [GRATIS-HOSTING.md](GRATIS-HOSTING.md).
 
-## Wat deze alpha bevat
+## Emulator en mogelijkheden
 
-- Vastgezette JSNES 2.1.0 voor echte NES-emulatie en PeerJS 1.5.5 voor signalering.
-- Privékamers, uitnodigingslinks en automatische ROM-overdracht in blokken van 16 KiB.
-- iNES- en NES 2.0-bestanden met ondersteunde mappers. NES 2.0-headers blijven
-  intact; de controle leest ook uitgebreide ROM-groottes en eventuele trainerdata.
-- Lokale emulatie met 2 frames invoervertraging, maximaal 12 voorspellingsframes
-  en rollback bij vertraagde invoer.
-- Controles op afwijkende toestanden, samen pauzeren en hervatten door de host.
-- Toetsenbord, standaardgamepads, aanraakknoppen, geluid en volledig scherm.
-- Werkelijke ping, verbindingsroute, fps en rollback-teller.
-- GitHub Actions voor tests, build en Pages-publicatie.
+- Moderne MesenCE-core, vastgezet op `4c4e069f16a8ad6ed79e046046c56d51558c7daf`.
+- NES met iNES/NES 2.0 en SNES met `.sfc`/`.smc`; maximaal 8 MB per ROM.
+- Gamebytes blijven intact en gaan rechtstreeks tussen browsers. Mesen laadt ze
+  in tijdelijk WebAssembly-geheugen; er worden geen ROMs naar een spelserver geüpload.
+- Twee lokale emulatorinstanties, 2 frames invoervertraging en maximaal 12
+  voorspellingsframes. Vertraagde invoer leidt tot rollback.
+- Native Mesen-snapshots; controlehashes stoppen de game als de toestanden afwijken.
+- Dezelfde startinstellingen bij beide spelers, waaronder deterministische NES/SNES-RAM.
+- Toetsenbord, gamepads, aanraakknoppen, geluid, volledig scherm en samen pauzeren.
+- Speltiming volgt de FPS van de geladen Mesen-core.
+- De originele, vrij meegeleverde NES-homebrew **Room Rally**. Geen commerciële ROMs
+  of BIOS-bestanden worden meegeleverd.
 
-NES-compatibiliteit verschilt per game en mapper. De alpha gebruikt NTSC-timing
-(60 fps). Er zijn nog geen blijvende saves, accounts, wachtwoorden, toeschouwers
-of sessieherstel na verbindingsverlies. Alleen onze eigen demo is tot nu toe als
-game getest. Power Blade (NES 2.0, mapper 4) is aanvullend lokaal getest op
-opstarten en deterministisch toestandsherstel, niet op volledige gamecompatibiliteit.
-Twee browservensters zijn samen getest; verschillende huishoudens
-moeten nog in de praktijk worden getest.
+De eerste emulator-download is ongeveer 5,8 MB. Mesen begint met 96 MiB Wasm-geheugen
+per browser en kan groeien. Prestaties op telefoons en oudere apparaten moeten
+in de praktijk worden getest. Er zijn nog geen blijvende saves, accounts,
+wachtwoorden, toeschouwers, automatisch sessieherstel of automatische hersynchronisatie.
 
-SNES, Sega en PlayStation staan op de roadmap. Iedere console vereist een eigen
-deterministische emulatorintegratie en hersteltests. PS1 vereist ook ondersteuning
-voor grotere gamebestanden en eventuele BIOS-invoer. Een openbare lobby kan later
-worden toegevoegd; de huidige versie werkt uitsluitend via uitnodigingen.
+De browser- en automatische tests gebruiken eigen NES- en SNES-homebrew. Power Blade
+is aanvullend lokaal getest op opstarten, beeld, geluid, invoer en toestandsherstel;
+volledige gamecompatibiliteit is daarmee niet bewezen. SNES is beperkt getest en
+blijft beta. Andere Mesen-systemen zijn niet in de website ontsloten. Sega Mega Drive
+of PlayStation vereisen later andere emulatorcores.
 
 ## Bediening
 
-| Actie | Eigen speler | Speler 2 lokaal, bij solo |
+| Actie | Eigen speler | Tweede speler lokaal bij solo |
 |---|---|---|
-| Richtingen | Pijltjestoetsen | WASD |
+| Richtingen | Pijlen | WASD |
 | A / B | X / Z | G / F |
 | Start / Select | Enter / Shift | T / R |
+| SNES X / Y | C / V | Y / H |
+| SNES L / R | Q / E | 1 / 2 |
 
-In Room Rally tik je herhaaldelijk op A om naar de finish te racen. Start reset
-de race. Beide controllerpoorten werken ook bij solo op hetzelfde toetsenbord.
-Een standaardgamepad wordt automatisch opgepikt; daadwerkelijke ondersteuning
-hangt af van de combinatie van controller en browser.
+Bij een standaardgamepad gebruikt SNES de gebruikelijke fysieke posities:
+B onder, A rechts, Y links en X boven. NES gebruikt de onderste knop voor A.
+Werkelijke gamepadondersteuning hangt af van controller en browser. In Room Rally
+tik je op A om te racen; Start reset de race. De game zelf moet multiplayer
+ondersteunen om een tweede speler te kunnen gebruiken.
 
-## Lokaal ontwikkelen
+## Lokaal ontwikkelen en publiceren
 
 Installeer Node.js 24 en pnpm 10.20.0:
 
 ```sh
 pnpm install --frozen-lockfile --ignore-scripts
+pnpm check
+pnpm test
 pnpm build
 pnpm dev
 ```
 
-Open `http://localhost:4173`. De lokale server is alleen nodig als ontwikkelpreview;
-spelers gebruiken de GitHub Pages-site. Signaalverbindingen gaan ook in de preview
-via PeerJS Cloud. Bouw opnieuw na bronwijzigingen. Solo werkt zonder PeerJS,
-maar voor uitnodigingen is een internetverbinding nodig.
+Open `http://localhost:4173`. De server is een ontwikkelpreview; spelers gebruiken
+GitHub Pages. Ook in de preview lopen uitnodigingen via PeerJS Cloud. Bouw opnieuw
+na bronwijzigingen. Solo heeft na het laden van de website geen PeerJS nodig.
 
-## GitHub Pages
-
-De bestaande workflow **Test and deploy GitHub Pages** publiceert iedere push naar
-`main`. Kies onder **Settings → Pages → Source** voor **GitHub Actions**. Er hoeven
-geen serveradres, API-sleutels of geheimen voor de uitnodigingsversie te worden ingesteld.
-De eerdere variabele `RETROROOM_SERVER_URL` wordt niet door de frontend gebruikt.
-
-Alle module- en assetpaden zijn relatief, zodat de site onder `/retro-room/` werkt.
-Buildversies krijgen cachemarkeringen om gemengde versies te voorkomen. De enige
-opgeslagen gebruikersinstelling is de naam in localStorage. ROM-bytes en gamesessies
-worden alleen in het geheugen geladen.
+De workflow **Test and deploy GitHub Pages** test en publiceert iedere push naar
+`main`. Onder **Settings → Pages → Source** staat **GitHub Actions**. Er zijn geen
+serveradressen, API-sleutels of geheimen nodig. Oude `RETROROOM_SERVER_URL`-instellingen
+worden door deze frontend niet gebruikt. Alle paden werken onder `/retro-room/`.
+Buildmarkeringen voorkomen gemengde gecachte versies. Beide spelers moeten na
+een emulatorupdate de pagina vernieuwen; verschillende netplayversies worden geweigerd.
 
 ## Technische indeling
 
 ```text
-web/                    Statische frontend voor GitHub Pages
-  src/connection.js     PeerJS-uitnodigingen, WebRTC-kanalen, ROM-overdracht
-  src/app.js            Kamerinterface, invoer en spelverloop
-  src/emulator.js       NES-adapter en exacte toestandsherstel
-  src/rollback.js       Invoer per frame, voorspelling en rollback
-  src/audio*.js         Web Audio; replay-audio wordt gedempt
-scripts/demo-rom.js     Broncode van de originele Room Rally-ROM
-scripts/build.js        Statische build, vendorlicenties en cachemarkeringen
-test/                   Uitnodigings-, emulatie- en oudere servertests
-server/index.js         Lokale preview en eerdere lobbyimplementatie
+web/src/mesen.js         WebAssembly-adapter, ROM-validatie en native snapshots
+web/assets/mesen-*      Core, complete bijbehorende broncode en buildmetadata
+native/mesen-web.cpp    Libretro-frontend voor framebesturing, video, audio en input
+scripts/build-mesen.py  Native build met vastgezette Emscripten-toolchain
+web/src/rollback.js     Invoer per frame, voorspelling, rollback en hashes
+web/src/connection.js   PeerJS-uitnodigingen en WebRTC-datakanalen
+web/src/app.js          Kamerinterface, invoer en spelverloop
+web/src/audio*.js       Web Audio-uitvoer op 48 kHz
+scripts/demo-rom.js     Originele Room Rally-ROM
+server/index.js         Ontwikkelpreview en eerdere lobbyimplementatie
+test/                   Native Mesen-, invoer-, formaat- en netwerktests
 ```
 
-De Node-lobbyserver en Render/Docker-bestanden zijn bewaard als voorbereidend werk
-voor een latere uitbreiding. De huidige frontend gebruikt geen `/ws`, publieke
-kamerlijst of serverconfiguratie. Uitrollen van die oudere server is niet nodig.
+De normale websitebuild gebruikt de meegeleverde, gecontroleerde Wasm-binary.
+Een native rebuild staat beschreven in [native/README.md](native/README.md).
+De code vereist geen SharedArrayBuffer, desktopinstallatie of bijzondere
+COOP/COEP-headers. Daardoor kan de statische frontend op GitHub Pages draaien.
 
-PeerJS beheert de initiële betrouwbare JSON-controlverbinding. Twee extra native
-RTCDataChannels voor ROM en ongeordende betrouwbare inputs gebruiken dezelfde
-RTCPeerConnection. Er wordt dus maar één directe verbinding per spelerspaar opgezet.
-De gast start pas na een kamerhandshake die bij de uitnodiging past; de host
-reserveert maar één gastplek. De ICE-configuratie bevat uitsluitend STUN.
+PeerJS beheert het betrouwbare JSON-controlkanaal. ROM en ongeordende betrouwbare
+inputs hebben aparte kanalen op dezelfde RTCPeerConnection. De ROM wordt vooraf
+verstuurd, in blokken van 16 KiB. De gast start pas na een passende kamerhandshake.
+Iedere 120 frames wordt een bevestigde snapshot beschikbaar voor hashcontrole.
+De host verstuurt ongeveer iedere twee seconden een hash. Bij een afwijking stopt
+de game; hashes zijn een synchronisatiecontrole, geen anti-cheatmechanisme.
 
-De upstream JSON-savefunctie van JSNES bewaart niet alle tijdelijke toestand die
-rollback nodig heeft. De adapter bewaart daarom de volledige interne objectgraaf,
-inclusief typed arrays en verwijzingen tussen mapper- en tile-objecten. Herstel
-gebeurt in dezelfde objecten, zodat bankverwijzingen intact blijven. Dit is bewust
-gekoppeld aan JSNES 2.1.0; een emulatorupdate vereist opnieuw determinismetests.
-
-Inputs lopen over een betrouwbaar, ongeordend datakanaal; ROM-overdracht en
-sessiecommando's hebben aparte kanalen. De ROM wordt vóór het starten overgedragen.
-Na maximaal 12 onbevestigde frames wacht de game op invoer. Iedere 120 frames is
-een toestand beschikbaar voor controle; de host verstuurt ongeveer iedere twee
-seconden een bevestigde controlehash. Bij afwijkingen stopt de game met een melding.
-Er is nog geen automatische hersynchronisatie. Hashes zijn controles, geen
-anti-cheatmechanisme.
-
-## Valideren
-
-```sh
-pnpm check
-pnpm test
-pnpm build
-```
-
-De tests controleren iNES/NES 2.0-lengtes, uitgebreide en exponentiële ROM-groottes,
-trainerdata, onvolledige bestanden, uitnodigingsvalidatie, gastcapaciteit, verlopen kamers,
-hergebruik na een mislukte uitnodiging, echte emulatie, beide controllerpoorten,
-exact herstel en convergentie na vertraagde/anders geordende invoer. De eerdere
-WebSocket-lobbytests blijven als regressietests voor de bewaarde servercode.
-De browsercontrole test ook de echte PeerJS-dienst en WebRTC-datakanalen.
+De oudere JSNES-adapter en tests blijven beschikbaar voor regressiecontrole;
+de website voert de game uit met Mesen. Ook de oudere Node-lobby en Render/Docker-
+bestanden blijven bewaard voor mogelijke latere uitbreiding. Ze worden niet
+gebruikt voor de huidige uitnodigingslinks en hoeven niet te worden uitgerold.
 
 ## Licenties
 
-Eigen projectcode en de originele demo: MIT, zie `LICENSE`.
-JSNES: Apache-2.0. PeerJS en ws: MIT. De build neemt de JSNES- en PeerJS-licenties
-op onder `dist/vendor/`. Google Fonts zijn optioneel, met systeemfonts als terugval.
+De MesenCE-core en de gekoppelde native browserfrontend zijn GPL-3.0-or-later.
+De complete bijbehorende broncode, inclusief afhankelijkheden, patches, frontend
+ en buildscript, staat naast de binary in `web/assets/mesen-source.tar.gz`.
+Zie [native/MESEN-LICENSE.txt](native/MESEN-LICENSE.txt), de upstream bronheaders
+en `web/assets/mesen-build.json` voor herkomst en checksums.
+
+De overige eigen projectcode en de originele demo zijn MIT, zie `LICENSE`.
+De bewaarde JSNES-afhankelijkheid is Apache-2.0; PeerJS en ws zijn MIT.
+Google Fonts zijn optioneel met systeemfonts als terugval.
