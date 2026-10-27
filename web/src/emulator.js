@@ -8,7 +8,7 @@ export class NesCore {
       onAudioSample: (l, r) => { if (!this.silent) onAudio(l, r); },
     });
   }
-  load(bytes) { this.nes.loadROM(bytes); }
+  load(bytes) { validateRom(bytes); this.nes.loadROM(bytes); }
   run(p1, p2, replay = false) {
     this.silent = replay;
     for (let b = 0; b < 8; b++) {
@@ -70,9 +70,21 @@ export function validateRom(bytes) {
   if (bytes[0] !== 0x4e || bytes[1] !== 0x45 || bytes[2] !== 0x53 || bytes[3] !== 0x1a) {
     throw new Error('Dit is geen iNES-ROM (.nes). SNES, Sega en PS1 volgen later.');
   }
-  if ((bytes[7] & 0x0c) === 0x08) throw new Error('NES 2.0-ROMs worden in deze versie nog niet ondersteund.');
-  const required = 16 + ((bytes[6] & 4) ? 512 : 0) + bytes[4] * 16384 + bytes[5] * 8192;
-  if (bytes.length < required || bytes[4] === 0) throw new Error('Het ROM-bestand is onvolledig.');
+  const nes2 = (bytes[7] & 0x0c) === 0x08;
+  // NES 2.0 extends both sizes with byte 9. A high nibble of 15 instead
+  // encodes bytes as 2^exponent * (2*multiplier + 1). Keep the header intact:
+  // JSNES 2.1.0 reads its mapper, RAM and other metadata natively.
+  const size = (low, high, unit) => high === 15
+    ? 2 ** (low >> 2) * ((low & 3) * 2 + 1)
+    : ((high << 8) | low) * unit;
+  const prgSize = size(bytes[4], nes2 ? bytes[9] & 15 : 0, 16384);
+  const chrSize = size(bytes[5], nes2 ? bytes[9] >> 4 : 0, 8192);
+  const required = 16 + ((bytes[6] & 4) ? 512 : 0) + prgSize + chrSize;
+  if (!prgSize || bytes.length < required) throw new Error('Het ROM-bestand is onvolledig.');
+  // JSNES loads whole 16 KiB PRG / 4 KiB CHR banks. Odd NES 2.0 sizes
+  // would otherwise shift the CHR data when its loader rounds PRG up.
+  if (prgSize % 16384 || chrSize % 4096) throw new Error('Deze afwijkende ROM-bankgrootte wordt nog niet ondersteund.');
+  if (nes2 && (bytes[7] & 3)) throw new Error('Deze ROM is voor een ander NES-consoletype, zoals Vs. System. Dat wordt nog niet ondersteund.');
 }
 
 export async function romHash(bytes) {
