@@ -1,17 +1,17 @@
 import { NesCore, validateRom, romHash } from './emulator.js';
 import { RollbackSession, NETPLAY_VERSION } from './rollback.js';
-import { LobbyConnection, PeerConnection } from './connection.js';
+import { InviteConnection, PeerConnection, parseInvitation } from './connection.js';
 import { AudioSink } from './audio.js';
 
 const $ = id => document.getElementById(id);
-const lobby = new LobbyConnection();
+const invites = new InviteConnection();
 const audio = new AudioSink();
 const context = $('game').getContext('2d', { alpha: false });
 const image = context.createImageData(256, 240);
 let game = null, core = null, pickedGame = null, useCurrentGame = false;
 let peer = null, roomId = null, isHost = true, remoteReady = false, localReady = false;
 let mode = 'idle', pausedMode = null, session = null, epoch = null;
-let incoming = null, rooms = [], nickname = readSetting('name') || '';
+let incoming = null, nickname = readSetting('name') || '';
 let lastTime = 0, accumulator = 0, fpsCount = 0, fpsTime = 0, lastHash = -1;
 let toastTimer, peerTimeout, transferTimeout;
 const checks = new Map(), pressed = new Set(), touched = new Set();
@@ -36,7 +36,7 @@ function stop(message) {
 function report(error) {
   const message = error?.message || String(error);
   toast(message);
-  for (const [dialog, target] of [['create-dialog', 'create-error'], ['join-dialog', 'join-error'], ['settings-dialog', 'settings-error']]) {
+  for (const [dialog, target] of [['create-dialog', 'create-error'], ['join-dialog', 'join-error']]) {
     if ($(dialog).open) $(target).textContent = message;
   }
   $('create-submit').disabled = false;
@@ -45,7 +45,6 @@ function fatal(error) {
   const message = error?.message || String(error);
   stop(message); report(message);
   try { peer?.send('control', { type: 'interrupted', message, epoch }); } catch { /* Disconnected. */ }
-  if (isHost && roomId && lobby.online) lobby.send({ type: 'status', status: 'paused' });
 }
 function showRoom() {
   $('home').hidden = true; $('room-view').hidden = false;
@@ -53,15 +52,17 @@ function showRoom() {
   $('game-hint').textContent = game.demo ? 'Room Rally: tik op A (X) om te racen. Start begint opnieuw.' : 'Pijlen bewegen · X = A · Z = B · Enter = Start';
   $('player-one').textContent = isHost ? nickname || 'Jij' : $('player-one').textContent;
   $('solo-controls').hidden = !!roomId;
-  $('room-subtitle').textContent = roomId ? 'SPEELKAMER ' + roomId : 'EVEN PROEFSPELEN';
+  $('room-subtitle').textContent = roomId ? 'PRIVÉKAMER · UITNODIGING' : 'EVEN PROEFSPELEN';
   $('invite-code').hidden = !roomId;
-  $('room-code').textContent = roomId || '';
+  $('room-code').textContent = roomId ? 'Alleen via jouw link' : '';
+  $('invite-link').value = roomId ? invitationUrl() : '';
+  $('invite-link').closest('label').hidden = !roomId;
   $('publish-room-button').hidden = !!roomId || !isHost;
   $('invite-card').hidden = !isHost;
   $('invite-description').textContent = roomId ? 'Deel je kamerlink. Je vriend hoeft zelf geen ROM te selecteren.' : 'Maak een kamer om een uitnodigingslink te delen.';
   $('room-status').textContent = 'Klaar om te spelen';
   $('solo-button').textContent = 'Speel solo';
-  $('play-mode').textContent = roomId ? 'Kamer ' + roomId : 'Lokaal · solo';
+  $('play-mode').textContent = roomId ? 'Privékamer · twee spelers' : 'Lokaal · solo';
   $('route-value').textContent = roomId ? 'Verbinden…' : 'Lokaal';
   updateActions(); window.scrollTo({ top: 0, behavior: 'instant' });
 }
@@ -120,7 +121,6 @@ function beginOnline(newEpoch) {
   $('room-message').textContent = 'Jullie spelen allebei lokaal. De verbinding houdt jullie game gelijk.';
   $('play-mode').textContent = 'Samen · rollback'; $('solo-controls').hidden = true;
   $('game').focus(); updateActions();
-  if (isHost) lobby.send({ type: 'status', status: 'playing' });
 }
 function pause(send = true) {
   if (!['online', 'solo'].includes(mode)) return;
@@ -129,7 +129,6 @@ function pause(send = true) {
   overlay('Even pauze.', roomId ? 'De host kan de game weer hervatten.' : 'Klaar voor nog een ronde?');
   $('room-status').textContent = 'Gepauzeerd'; $('pause-button').textContent = 'Verder spelen';
   if (send && pausedMode === 'online') peer.send('control', { type: 'pause', epoch });
-  if (isHost && roomId) lobby.send({ type: 'status', status: 'paused' });
   updateActions();
 }
 function resume(send = true) {
@@ -140,7 +139,6 @@ function resume(send = true) {
   fpsTime = performance.now(); fpsCount = 0;
   $('screen-overlay').hidden = true; $('pause-button').textContent = 'Pauzeren';
   $('room-status').textContent = mode === 'online' ? 'Samen aan het spelen' : 'Solo aan het spelen';
-  if (isHost && roomId) lobby.send({ type: 'status', status: 'playing' });
   $('game').focus(); updateActions();
 }
 function resetPeer() {
@@ -150,7 +148,7 @@ function resetPeer() {
   $('route-value').textContent = 'Niet verbonden';
 }
 function leaveRoom() {
-  stop(); resetPeer(); if (roomId && lobby.online) lobby.send({ type: 'leave' });
+  stop(); invites.leave(); resetPeer(); connectionStatus(false);
   roomId = null; game = null; core = null; pickedGame = null; isHost = true;
   pressed.clear(); touched.clear();
   $('home').hidden = false; $('room-view').hidden = true;
@@ -162,13 +160,13 @@ function setTransfer(value, label) {
   $('transfer').hidden = false; $('transfer-progress').value = value;
   $('transfer-label').textContent = label + ' · ' + Math.round(value * 100) + '%';
 }
-function setupPeer(host) {
+function setupPeer(connection, host) {
   resetPeer();
   if (mode === 'solo') stop();
-  peer = new PeerConnection(lobby, host);
+  peer = new PeerConnection(connection, host);
   const current = peer;
   peerTimeout = setTimeout(() => {
-    if (current === peer && current.pc.connectionState !== 'connected') fatal('De directe verbinding lukt niet. Controleer of de lobbyserver TURN heeft ingesteld.');
+    if (current === peer && current.pc.connectionState !== 'connected') fatal('Rechtstreeks verbinden lukt niet op dit netwerk. Probeer een ander netwerk; deze versie heeft geen relay.');
   }, 20000);
   peer.addEventListener('open', async () => {
     if (current !== peer) return;
@@ -195,7 +193,7 @@ function setupPeer(host) {
   peer.addEventListener('error', ({ detail }) => { if (current === peer && !current.closed) fatal(detail); });
   peer.addEventListener('state', ({ detail }) => {
     if (current !== peer) return;
-    if (detail === 'failed') fatal('Verbinding mislukt. Controleer de STUN/TURN-instellingen van de server.');
+    if (detail === 'failed') fatal('Rechtstreeks verbinden lukt hier niet. Probeer een ander netwerk of vraag een nieuwe uitnodiging.');
     if (detail === 'disconnected' || detail === 'closed') {
       stop('De verbinding met de andere speler is weggevallen. Verlaat de kamer en verbind opnieuw.');
       remoteReady = false; updateActions();
@@ -317,77 +315,60 @@ function loop(time) {
 }
 requestAnimationFrame(loop);
 
-function renderRooms() {
-  $('rooms').replaceChildren();
-  const availableOnly = $('available-only').checked;
-  const shown = rooms.filter(room => !availableOnly || room.players < 2);
-  $('room-count').textContent = String(rooms.length);
-  $('lobby-empty').hidden = shown.length > 0;
-  $('lobby-empty').querySelector('h3').textContent = availableOnly && rooms.length ? 'Alle banken zijn even bezet.' : 'De eerste kamer is voor jou.';
-  for (const room of shown) {
-    const card = document.createElement('article'); card.className = 'room-card';
-    card.innerHTML = '<div class="room-card-top"><span class="badge">NES</span><small></small></div><h3></h3><p></p><div class="room-card-bottom"><span></span><button class="button outline small">Schuif aan ↗</button></div>';
-    card.querySelector('h3').textContent = room.game;
-    card.querySelector('p').textContent = room.title + ' · ' + room.host;
-    card.querySelector('small').textContent = room.status === 'playing' ? 'Aan het spelen' : room.status === 'paused' ? 'Gepauzeerd' : 'Wacht op speler';
-    card.querySelector('.room-card-bottom span').textContent = room.players + '/2 spelers';
-    const button = card.querySelector('button'); button.disabled = room.players >= 2;
-    if (room.players >= 2) button.textContent = 'Kamer vol';
-    button.onclick = () => openJoin(room.id);
-    $('rooms').append(card);
-  }
+function invitationUrl() {
+  const url = new URL(location.href);
+  url.hash = new URLSearchParams({ room: roomId }).toString();
+  return url.href;
 }
 function connectionStatus(online) {
-  const local = lobby.url && ['localhost', '127.0.0.1', '[::1]'].includes(new URL(lobby.url).hostname);
   $('connection-label').classList.toggle('offline', !online);
-  $('connection-label').lastChild.textContent = online ? (local ? ' Lokale lobby' : ' Lobby online') : ' Lobby niet verbonden';
-  $('empty-copy').innerHTML = online ? 'Kies een game en nodig iemand uit.<br>Een ouderwets goede avond begint hier.' : 'Koppel een lobbyserver via Instellingen.<br>Je kunt de demo alvast solo proberen.';
-  $('server-note').textContent = local ? 'Dit is een lokale server. Een vriend op een ander apparaat heeft een bereikbaar openbaar serveradres nodig.' : 'Voor online spelen is een bereikbare lobbyserver nodig. Solo spelen kan ook zonder verbinding.';
+  $('connection-label').lastChild.textContent = online ? ' Uitnodigingsdienst verbonden' : ' Alleen via uitnodiging';
 }
-async function ensureLobby() {
-  if (lobby.online) return;
-  const url = $('server-url').value.trim();
-  if (!url) throw new Error('Koppel eerst een lobbyserver via Instellingen. Je kunt de demo alvast solo proberen.');
-  await lobby.connect(url);
-}
-
-lobby.addEventListener('rooms', ({ detail }) => { rooms = detail.rooms; renderRooms(); });
-lobby.addEventListener('online', () => connectionStatus(true));
-lobby.addEventListener('offline', () => {
-  connectionStatus(false); rooms = []; renderRooms();
-  if (roomId) { resetPeer(); stop('De lobbyverbinding is weggevallen. Verbind opnieuw via Instellingen en maak een nieuwe kamer.'); roomId = null; updateActions(); }
+invites.addEventListener('online', () => connectionStatus(true));
+invites.addEventListener('offline', () => {
+  connectionStatus(false);
+  if (roomId) toast('De uitnodigingsdienst is even weg. Een bestaande spelverbinding blijft actief.');
 });
-lobby.addEventListener('error', ({ detail }) => report(detail.message));
-lobby.addEventListener('created', ({ detail }) => {
+invites.addEventListener('error', ({ detail }) => { resetPeer(); report(detail.message); });
+invites.addEventListener('rejected', ({ detail }) => {
+  stop(); resetPeer();
+  if (!isHost) { roomId = null; invites.room = null; $('home').hidden = false; $('room-view').hidden = true; }
+  else $('room-message').textContent = 'Verbinding mislukt. Je kunt de link opnieuw delen.';
+  report(detail.message); updateActions();
+});
+invites.addEventListener('created', ({ detail }) => {
   roomId = detail.id; isHost = true;
   $('create-dialog').close(); $('create-submit').disabled = false;
   $('player-one').textContent = nickname; showRoom();
-  $('room-message').textContent = 'Je kamer staat klaar. Deel de link of wacht tot iemand aanschuift.';
+  $('room-message').textContent = 'Je privékamer staat klaar. Deel de uitnodigingslink en houd deze pagina open.';
   $('player-two').textContent = 'Nog een plekje vrij';
 });
-lobby.addEventListener('joined', ({ detail }) => {
-  roomId = detail.id; isHost = false; game = null;
+invites.addEventListener('joining', ({ detail }) => {
+  isHost = false; game = null; roomId = null;
+  $('join-error').textContent = 'Verbinding maken met de host…';
+  setupPeer(detail.connection, false);
+});
+invites.addEventListener('joined', ({ detail }) => {
+  roomId = detail.id;
   $('join-dialog').close(); $('home').hidden = true; $('room-view').hidden = false;
   $('game-title').textContent = detail.game; $('room-subtitle').textContent = detail.title;
   $('player-one').textContent = detail.host; $('player-two').textContent = nickname;
   $('guest-detail').textContent = 'Jij · controller 2'; $('invite-card').hidden = true;
-  $('room-message').textContent = 'Verbinding maken met de host…'; $('room-status').textContent = 'Verbinden…';
+  $('room-message').textContent = 'Verbonden. De host stuurt de game naar je browser.'; $('room-status').textContent = 'Game ontvangen…';
   $('solo-controls').hidden = true; $('solo-button').hidden = true;
-  overlay('Schuif maar aan.', 'We verbinden je met de host.');
-  setupPeer(false); updateActions(); window.scrollTo({ top: 0, behavior: 'instant' });
+  overlay('Schuif maar aan.', 'De game komt rechtstreeks van de host.');
+  peer.approve(); updateActions(); window.scrollTo({ top: 0, behavior: 'instant' });
 });
-lobby.addEventListener('guest-joined', ({ detail }) => {
+invites.addEventListener('guest-joined', ({ detail }) => {
   $('player-two').textContent = detail.name; $('guest-detail').textContent = 'Gast · controller 2';
   $('room-message').textContent = detail.name + ' schuift aan. Verbinding maken…';
-  setupPeer(true).offer().catch(fatal);
+  setupPeer(detail.connection, true);
 });
-lobby.addEventListener('signal', ({ detail }) => { peer?.signal(detail.data).catch(fatal); });
-lobby.addEventListener('guest-left', () => {
+invites.addEventListener('guest-left', () => {
   stop('Speler 2 heeft de kamer verlaten. Je kunt opnieuw iemand uitnodigen.'); resetPeer();
   $('player-two').textContent = 'Nog een plekje vrij'; $('guest-detail').textContent = 'Nodig iemand uit'; updateActions();
-  if (roomId && lobby.online) lobby.send({ type: 'status', status: 'waiting' });
 });
-lobby.addEventListener('room-closed', () => { leaveRoom(); toast('De host heeft de kamer gesloten.'); });
+invites.addEventListener('room-closed', () => { leaveRoom(); toast('De host heeft de kamer gesloten. Vraag om een nieuwe uitnodiging.'); });
 
 function openCreate(current = false) {
   if (roomId) { toast('Verlaat eerst je huidige kamer.'); return; }
@@ -410,15 +391,17 @@ document.querySelectorAll('dialog').forEach(dialog => dialog.addEventListener('c
   }
 }));
 $('join-button').onclick = () => openJoin();
+$('join-dialog').addEventListener('close', () => {
+  if (!roomId && !isHost) { invites.leave(); resetPeer(); isHost = true; connectionStatus(false); }
+});
 $('publish-room-button').onclick = () => openCreate(true);
 $('leave-button').onclick = leaveRoom;
 $('about-button').onclick = () => $('about-dialog').showModal();
 document.querySelectorAll('.brand, .topbar nav a').forEach(link => link.addEventListener('click', () => {
   if (!$('room-view').hidden) leaveRoom();
 }));
-$('settings-button').onclick = () => { $('settings-error').textContent = ''; $('settings-dialog').showModal(); };
-$('available-only').onchange = renderRooms;
-$('refresh-button').onclick = () => { ensureLobby().then(() => lobby.send({ type: 'list' })).catch(report); };
+$('connection-info-button').onclick = () => $('connection-dialog').showModal();
+$('reconnect-button').onclick = () => invites.connect().then(() => toast('Uitnodigingsdienst verbonden.')).catch(report);
 $('rom-file').onchange = async () => {
   try {
     const file = $('rom-file').files[0]; if (!file) return;
@@ -436,38 +419,22 @@ $('create-form').onsubmit = async event => {
   event.preventDefault(); $('create-error').textContent = ''; $('create-submit').disabled = true;
   try {
     if (!useCurrentGame && !pickedGame) throw new Error('Kies eerst een NES-ROM of gebruik onze demo.');
-    await ensureLobby();
     const values = new FormData(event.target);
     nickname = String(values.get('name')).trim(); saveSetting('name', nickname);
     if (!useCurrentGame) await loadGame(pickedGame.bytes, pickedGame.name, pickedGame.demo);
     stop();
-    lobby.send({ type: 'create', name: nickname, title: values.get('title'), game: game.name, public: values.has('public') });
+    await invites.create({ name: nickname, title: values.get('title'), game: game.name });
   } catch (error) { report(error); }
 };
 $('join-form').onsubmit = async event => {
   event.preventDefault(); $('join-error').textContent = '';
   try {
-    let code = $('join-code').value.trim();
-    if (/^https?:\/\//.test(code)) {
-      const params = new URLSearchParams(new URL(code).hash.slice(1));
-      code = params.get('room') || '';
-      const server = params.get('server');
-      if (server && server !== lobby.url) {
-        $('server-url').value = server; await lobby.connect(server); saveSetting('server', server);
-      }
-    }
-    if (!/^[a-f\d]{10}$/i.test(code)) throw new Error('Gebruik de tien tekens van de kamercode of de volledige uitnodigingslink.');
-    await ensureLobby(); nickname = $('guest-name').value.trim(); saveSetting('name', nickname);
-    lobby.send({ type: 'join', id: code.toUpperCase(), name: nickname });
+    const code = parseInvitation($('join-code').value);
+    nickname = $('guest-name').value.trim(); saveSetting('name', nickname);
+    $('join-submit').disabled = true;
+    await invites.join(code, nickname);
   } catch (error) { report(error); }
-};
-$('settings-form').onsubmit = async event => {
-  event.preventDefault(); $('settings-error').textContent = '';
-  try {
-    if (roomId) throw new Error('Verlaat eerst je kamer voordat je de lobbyserver verandert.');
-    const url = $('server-url').value.trim(); await lobby.connect(url); saveSetting('server', url);
-    $('settings-dialog').close(); toast('Verbonden met de lobbyserver.');
-  } catch (error) { report(error); }
+  finally { $('join-submit').disabled = false; }
 };
 $('demo-button').onclick = async () => {
   try {
@@ -507,9 +474,9 @@ $('fullscreen-button').onclick = async () => {
   catch { toast('Volledig scherm is hier niet beschikbaar.'); }
 };
 $('copy-button').onclick = async () => {
-  const url = new URL(location.href); url.hash = new URLSearchParams({ room: roomId, server: lobby.url }).toString();
-  try { await navigator.clipboard.writeText(url.href); toast('Kamerlink gekopieerd. Tijd om iemand uit te dagen.'); }
-  catch { window.prompt('Kopieer deze uitnodigingslink:', url.href); }
+  const url = invitationUrl();
+  try { await navigator.clipboard.writeText(url); toast('Kamerlink gekopieerd. Tijd om iemand uit te dagen.'); }
+  catch { $('invite-link').focus(); $('invite-link').select(); toast('Selecteer en kopieer de link in het tekstvak.'); }
 };
 document.addEventListener('keydown', event => {
   if ($('room-view').hidden || document.querySelector('dialog[open]') || /INPUT|TEXTAREA|SELECT/.test(event.target.tagName)) return;
@@ -549,15 +516,9 @@ setInterval(async () => {
   } catch (error) { if (mode === 'online') fatal(error); }
 }, 2000);
 
-async function init() {
+function init() {
+  connectionStatus(false);
   const invitation = new URLSearchParams(location.hash.slice(1));
-  let config = {};
-  try { const response = await fetch(new URL('../config.json', import.meta.url)); if (response.ok) config = await response.json(); } catch { /* Optional deployment configuration. */ }
-  const local = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
-  const endpoint = invitation.get('server') || readSetting('server') || config.serverUrl || (local ? `${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}/ws` : '');
-  $('server-url').value = endpoint;
-  connectionStatus(false); renderRooms();
-  if (endpoint) { try { await lobby.connect(endpoint); } catch { connectionStatus(false); } }
-  if (invitation.get('room')) openJoin(invitation.get('room'));
+  if (invitation.get('room')) openJoin(location.href);
 }
-init().catch(report);
+init();

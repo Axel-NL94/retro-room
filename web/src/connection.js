@@ -1,102 +1,180 @@
-export class LobbyConnection extends EventTarget {
-  constructor() { super(); this.socket = null; this.url = ''; this.iceServers = []; }
-  emit(type, detail) { this.dispatchEvent(new CustomEvent(type, { detail })); }
-  async connect(url) {
-    const parsed = new URL(url);
-    if (!['ws:', 'wss:'].includes(parsed.protocol) || parsed.username || parsed.password) throw new Error('Gebruik een geldige ws://- of wss://-server.');
-    if (location.protocol === 'https:' && parsed.protocol !== 'wss:') throw new Error('Deze website heeft een beveiligde wss://-server nodig.');
-    if (this.socket) { this.socket.onclose = null; this.socket.close(); }
-    this.url = parsed.href;
-    const socket = this.socket = new WebSocket(this.url);
-    await new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => { socket.close(); reject(new Error('De lobbyserver reageert niet. Controleer het serveradres.')); }, 10000);
-      socket.onopen = () => { clearTimeout(timeout); resolve(); };
-      socket.onerror = () => { clearTimeout(timeout); reject(new Error('Kan de lobbyserver niet bereiken.')); };
-      socket.onmessage = event => {
-        try {
-          const message = JSON.parse(event.data);
-          if (message.type === 'welcome') this.iceServers = message.iceServers;
-          this.emit(message.type, message);
-        } catch { this.emit('error', { message: 'Ongeldig bericht van de lobbyserver.' }); }
-      };
-      socket.onclose = () => {
-        clearTimeout(timeout);
-        reject(new Error('Verbinding met de lobbyserver gesloten.'));
-        if (this.socket === socket) { this.socket = null; this.emit('offline', {}); }
-      };
-    });
-    this.emit('online', {});
+// PeerJS Cloud handles discovery only. Explicit STUN-only configuration keeps
+// ROMs and inputs on a direct connection, without a TURN account or relay quota.
+export const DIRECT_ICE = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+const ROOM_ID = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
+export function parseInvitation(value) {
+  let code = String(value).trim();
+  if (/^https?:\/\//i.test(code)) code = new URLSearchParams(new URL(code).hash.slice(1)).get('room') || '';
+  if (!ROOM_ID.test(code)) throw new Error('Plak een geldige RetroRoom-uitnodigingslink. Oude kamercodes werken niet meer.');
+  return code.toLowerCase();
+}
+const text = (value, max) => typeof value === 'string' ? value.trim().slice(0, max) : '';
+
+export class InviteConnection extends EventTarget {
+  constructor(PeerClass = globalThis.Peer) {
+    super(); this.PeerClass = PeerClass; this.endpoint = null; this.pending = null;
+    this.room = null; this.connection = null; this.host = false;
   }
-  get online() { return this.socket?.readyState === WebSocket.OPEN; }
-  send(message) {
-    if (!this.online) throw new Error('Verbind eerst met een lobbyserver via Instellingen.');
-    this.socket.send(JSON.stringify(message));
+  emit(type, detail = {}) { this.dispatchEvent(new CustomEvent(type, { detail })); }
+  get online() { return !!this.endpoint?.open && !this.endpoint.disconnected; }
+  async connect() {
+    if (this.online) return;
+    if (this.pending) return this.pending;
+    if (!this.PeerClass) throw new Error('De verbindingsmodule kon niet worden geladen. Vernieuw de pagina.');
+    this.pending = new Promise((resolve, reject) => {
+      const endpoint = this.endpoint && !this.endpoint.destroyed ? this.endpoint : new this.PeerClass('rr-' + crypto.randomUUID(), {
+        secure: true, config: DIRECT_ICE, debug: 0
+      });
+      const fresh = this.endpoint !== endpoint;
+      this.endpoint = endpoint;
+      const done = error => {
+        clearTimeout(timer); endpoint.off('open', opened); endpoint.off('error', failed);
+        error ? reject(error) : resolve();
+      };
+      const timer = setTimeout(() => done(new Error('De uitnodigingsdienst reageert niet. Probeer het later opnieuw.')), 15000);
+      const opened = () => { done(); this.emit('online'); };
+      const failed = () => done(new Error('De uitnodigingsdienst is niet bereikbaar. Probeer opnieuw.'));
+      endpoint.on('open', opened); endpoint.on('error', failed);
+      if (fresh) {
+        endpoint.on('connection', connection => this.accept(connection));
+        endpoint.on('disconnected', () => { if (this.endpoint === endpoint) this.emit('offline'); });
+        endpoint.on('error', error => {
+          if (this.endpoint !== endpoint) return;
+          if (error.type === 'peer-unavailable') {
+            this.dropConnection();
+            this.emit('error', { message: 'Deze kamer is gesloten of de host is offline. Vraag om een nieuwe link.' });
+          }
+        });
+      } else if (endpoint.disconnected) endpoint.reconnect();
+    }).finally(() => { this.pending = null; });
+    return this.pending;
+  }
+  async create(info) {
+    if (this.room || this.connection) throw new Error('Verlaat eerst je huidige kamer.');
+    await this.connect();
+    this.host = true;
+    this.room = { id: this.endpoint.id.slice(3), host: text(info.name, 24) || 'Speler 1',
+      title: text(info.title, 48) || 'Nog één potje', game: text(info.game, 80) };
+    this.emit('created', this.room);
+  }
+  async join(value, name) {
+    const id = parseInvitation(value);
+    if (this.room || this.connection) throw new Error('Verlaat eerst je huidige kamer.');
+    await this.connect();
+    if ('rr-' + id === this.endpoint.id) throw new Error('Dit is je eigen kamerlink. Deel hem met iemand anders.');
+    this.host = false;
+    const connection = this.endpoint.connect('rr-' + id, { label: 'retroroom', serialization: 'json', reliable: true,
+      metadata: { app: 'retroroom', version: 1, name: text(name, 24) || 'Speler 2' } });
+    this.watch(connection);
+    connection.on('data', message => {
+      if (this.connection !== connection || this.room) return;
+      if (message?.type === 'rejected') {
+        this.dropConnection(); this.emit('rejected', { message: text(message.message, 160) }); return;
+      }
+      if (message?.type !== 'room' || message.id !== id || message.version !== 1) return;
+      this.room = { id, host: text(message.host, 24), title: text(message.title, 48), game: text(message.game, 80) };
+      clearTimeout(this.joinTimeout);
+      this.emit('joined', this.room);
+    });
+    this.emit('joining', { connection, id });
+  }
+  accept(connection) {
+    if (!this.host || !this.room || this.connection || connection.label !== 'retroroom' ||
+        connection.serialization !== 'json' || connection.metadata?.app !== 'retroroom' || connection.metadata?.version !== 1) {
+      const timer = setTimeout(() => connection.close(), 10000);
+      connection.on('error', () => { clearTimeout(timer); connection.close(); });
+      connection.on('open', () => {
+        connection.send({ type: 'rejected', message: 'Deze kamer is al bezet of niet meer beschikbaar.' });
+        // Let the reliable channel deliver the rejection before closing it.
+        setTimeout(() => { clearTimeout(timer); connection.close(); }, 300);
+      });
+      return;
+    }
+    this.watch(connection);
+    connection.on('open', () => {
+      if (this.connection !== connection) return;
+      clearTimeout(this.joinTimeout);
+      connection.send({ type: 'room', version: 1, ...this.room });
+    });
+    this.emit('guest-joined', { connection, name: text(connection.metadata.name, 24) || 'Speler 2' });
+  }
+  watch(connection) {
+    this.connection = connection;
+    this.joinTimeout = setTimeout(() => {
+      if (this.connection !== connection) return;
+      this.dropConnection();
+      this.emit('rejected', { message: 'Rechtstreeks verbinden lukt niet op dit netwerk. Probeer een ander netwerk; deze versie heeft geen relay.' });
+    }, 25000);
+    connection.on('close', () => {
+      if (this.connection !== connection) return;
+      this.connection = null; clearTimeout(this.joinTimeout);
+      this.emit(this.host ? 'guest-left' : 'room-closed');
+      if (!this.host) this.room = null;
+    });
+    connection.on('error', () => {
+      if (this.connection !== connection) return;
+      this.dropConnection();
+      this.emit('rejected', { message: 'De directe verbinding is mislukt. Probeer een ander netwerk of een nieuwe uitnodiging.' });
+    });
+  }
+  dropConnection() {
+    clearTimeout(this.joinTimeout);
+    const connection = this.connection; this.connection = null; connection?.close();
+  }
+  leave() {
+    this.dropConnection(); this.room = null; this.host = false;
+    const endpoint = this.endpoint; this.endpoint = null; endpoint?.destroy();
   }
 }
 
 export class PeerConnection extends EventTarget {
-  constructor(lobby, host) {
-    super(); this.lobby = lobby; this.host = host; this.closed = false;
-    this.pc = new RTCPeerConnection({ iceServers: lobby.iceServers });
-    this.pendingCandidates = [];
-    this.pc.onicecandidate = ({ candidate }) => {
-      if (candidate && !this.closed) {
-        try { this.lobby.send({ type: 'signal', data: { type: 'candidate', candidate: candidate.toJSON() } }); }
-        catch { this.emit('error', 'De lobbyverbinding is onderbroken.'); }
-      }
+  constructor(connection, host) {
+    super(); this.connection = connection; this.host = host; this.closed = false; this.approved = host;
+    this.pc = connection.peerConnection;
+    // Preserve PeerJS's initial control-channel handler; add separate raw channels
+    // on the same SCTP/DTLS connection for bulk data and unordered input.
+    const initialChannel = this.pc.ondatachannel;
+    this.pc.ondatachannel = event => {
+      if (event.channel.label === 'retroroom') initialChannel?.call(this.pc, event);
+      else this.bind(event.channel);
     };
     this.pc.onconnectionstatechange = () => this.emit('state', this.pc.connectionState);
-    this.pc.ondatachannel = ({ channel }) => this.bind(channel);
-    if (host) {
-      this.bind(this.pc.createDataChannel('control', { ordered: true }));
-      this.bind(this.pc.createDataChannel('rom', { ordered: true }));
-      this.bind(this.pc.createDataChannel('input', { ordered: false }));
-    }
+    connection.on('data', data => { if (!this.closed) this.emit('control', data); });
+    connection.on('close', () => { if (!this.closed) this.emit('state', 'disconnected'); });
+    connection.on('open', () => {
+      this.control = connection.dataChannel;
+      if (host) {
+        this.bind(this.pc.createDataChannel('rom', { ordered: true }));
+        this.bind(this.pc.createDataChannel('input', { ordered: false }));
+      }
+      this.ready();
+    });
   }
   emit(type, detail) { this.dispatchEvent(new CustomEvent(type, { detail })); }
+  approve() { this.approved = true; this.ready(); }
+  ready() {
+    if (!this.closed && !this.opened && this.approved && ['control', 'rom', 'input'].every(k => this[k]?.readyState === 'open')) {
+      this.opened = true; this.emit('open', {});
+    }
+  }
   bind(channel) {
-    if (!['control', 'rom', 'input'].includes(channel.label)) { channel.close(); return; }
-    this[channel.label] = channel;
-    channel.binaryType = 'arraybuffer';
-    channel.onopen = () => {
-      if (!this.opened && ['control', 'rom', 'input'].every(k => this[k]?.readyState === 'open')) {
-        this.opened = true; this.emit('open', {});
-      }
-    };
-    channel.onerror = () => { if (!this.closed) this.emit('state', 'disconnected'); };
-    channel.onclose = () => { if (!this.closed) this.emit('state', 'disconnected'); };
+    if (!['rom', 'input'].includes(channel.label) || this[channel.label]) { channel.close(); return; }
+    this[channel.label] = channel; channel.binaryType = 'arraybuffer';
+    channel.onopen = () => this.ready();
+    channel.onerror = channel.onclose = () => { if (!this.closed) this.emit('state', 'disconnected'); };
     channel.onmessage = event => {
       try {
         if (typeof event.data === 'string' && event.data.length > 65536) throw new Error('Message too large');
-        const value = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
-        this.emit(channel.label, value);
+        this.emit(channel.label, typeof event.data === 'string' ? JSON.parse(event.data) : event.data);
       } catch { this.emit('error', 'Ongeldig bericht van de andere speler.'); }
     };
-  }
-  async offer() {
-    await this.pc.setLocalDescription(await this.pc.createOffer());
-    this.lobby.send({ type: 'signal', data: { type: 'offer', sdp: this.pc.localDescription.sdp } });
-  }
-  async signal(data) {
-    if (this.closed) return;
-    if (data.type === 'candidate') {
-      if (this.pc.remoteDescription) await this.pc.addIceCandidate(data.candidate);
-      else this.pendingCandidates.push(data.candidate);
-    } else if (data.type === 'offer' || data.type === 'answer') {
-      if ((data.type === 'offer') === this.host) throw new Error('Onverwachte verbindingsaanvraag.');
-      await this.pc.setRemoteDescription({ type: data.type, sdp: data.sdp });
-      for (const candidate of this.pendingCandidates.splice(0)) await this.pc.addIceCandidate(candidate);
-      if (data.type === 'offer') {
-        await this.pc.setLocalDescription(await this.pc.createAnswer());
-        this.lobby.send({ type: 'signal', data: { type: 'answer', sdp: this.pc.localDescription.sdp } });
-      }
-    }
   }
   send(channel, data) {
     const target = this[channel];
     if (target?.readyState !== 'open') throw new Error('De andere speler is niet verbonden.');
     if (target.bufferedAmount > 4 * 1024 * 1024) throw new Error('De verbinding loopt te ver achter.');
-    target.send(data instanceof ArrayBuffer || ArrayBuffer.isView(data) ? data : JSON.stringify(data));
+    if (channel === 'control') this.connection.send(data);
+    else target.send(data instanceof ArrayBuffer || ArrayBuffer.isView(data) ? data : JSON.stringify(data));
   }
   async transfer(bytes, metadata, progress) {
     this.send('rom', { type: 'begin', ...metadata, size: bytes.byteLength });
@@ -119,5 +197,5 @@ export class PeerConnection extends EventTarget {
     }
     this.send('rom', { type: 'complete' });
   }
-  close() { this.closed = true; this.pc.close(); }
+  close() { this.closed = true; this.connection.close(); }
 }
