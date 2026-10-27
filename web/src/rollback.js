@@ -1,4 +1,4 @@
-export const NETPLAY_VERSION = 'retroroom-nes-1-jsnes-2.1.0';
+export const NETPLAY_VERSION = 'retroroom-mesence-4c4e069-web-1';
 
 // Snapshots are states immediately BEFORE frame n. A packet always names the
 // frame on which its input must be applied, independent of either wall clock.
@@ -26,7 +26,7 @@ export class RollbackSession {
 
   receive(frame, buttons) {
     if (!Number.isSafeInteger(frame) || frame < 0 || frame > this.frame + 180 ||
-        !Number.isInteger(buttons) || buttons < 0 || buttons > 255) {
+        !Number.isInteger(buttons) || buttons < 0 || buttons > 4095) {
       throw new Error('Ongeldige spelinvoer ontvangen.');
     }
     const previous = this.remote.get(frame);
@@ -98,10 +98,11 @@ export class RollbackSession {
 }
 
 export function stateHash(state) {
-  const value = JSON.stringify(state.data ?? state);
+  const bytes = state instanceof Uint8Array;
+  const value = bytes ? state : JSON.stringify(state.data ?? state);
   let hash = 2166136261;
   for (let i = 0; i < value.length; i++) {
-    hash ^= value.charCodeAt(i);
+    hash ^= bytes ? value[i] : value.charCodeAt(i);
     hash = Math.imul(hash, 16777619);
   }
   return (hash >>> 0).toString(16).padStart(8, '0');

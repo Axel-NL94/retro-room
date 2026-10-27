@@ -1,13 +1,14 @@
-import { NesCore, validateRom, romHash } from './emulator.js';
+import { romHash } from './emulator.js';
 import { RollbackSession, NETPLAY_VERSION } from './rollback.js';
 import { InviteConnection, PeerConnection, parseInvitation } from './connection.js';
 import { AudioSink } from './audio.js';
+import { MesenCore, cartridgeSystem } from './mesen.js';
 
 const $ = id => document.getElementById(id);
 const invites = new InviteConnection();
 const audio = new AudioSink();
 const context = $('game').getContext('2d', { alpha: false });
-const image = context.createImageData(256, 240);
+let image = context.createImageData(256, 240);
 let game = null, core = null, pickedGame = null, useCurrentGame = false;
 let peer = null, roomId = null, isHost = true, remoteReady = false, localReady = false;
 let mode = 'idle', pausedMode = null, session = null, epoch = null;
@@ -16,8 +17,8 @@ let lastTime = 0, accumulator = 0, fpsCount = 0, fpsTime = 0, lastHash = -1;
 let toastTimer, peerTimeout, transferTimeout;
 const checks = new Map(), pressed = new Set(), touched = new Set();
 const keyMap = { KeyX: 0, KeyZ: 1, ShiftLeft: 2, ShiftRight: 2, Enter: 3,
-  ArrowUp: 4, ArrowDown: 5, ArrowLeft: 6, ArrowRight: 7 };
-const secondKeys = { KeyG: 0, KeyF: 1, KeyR: 2, KeyT: 3, KeyW: 4, KeyS: 5, KeyA: 6, KeyD: 7 };
+  ArrowUp: 4, ArrowDown: 5, ArrowLeft: 6, ArrowRight: 7, KeyC: 8, KeyV: 9, KeyQ: 10, KeyE: 11 };
+const secondKeys = { KeyG: 0, KeyF: 1, KeyR: 2, KeyT: 3, KeyW: 4, KeyS: 5, KeyA: 6, KeyD: 7, KeyY: 8, KeyH: 9, Digit1: 10, Digit2: 11 };
 
 function readSetting(key) { try { return localStorage.getItem('retroroom-' + key); } catch { return null; } }
 function saveSetting(key, value) { try { localStorage.setItem('retroroom-' + key, value); } catch { /* Private browsing can disable persistence. */ } }
@@ -49,6 +50,8 @@ function fatal(error) {
 function showRoom() {
   $('home').hidden = true; $('room-view').hidden = false;
   $('game-title').textContent = game.name;
+  $('console-badge').textContent = (game.system === 'snes' ? 'SNES' : 'NES') + ' · MESEN · ALPHA';
+  $('snes-controls-guide').hidden = $('snes-touch').hidden = game.system !== 'snes';
   $('game-hint').textContent = game.demo ? 'Room Rally: tik op A (X) om te racen. Start begint opnieuw.' : 'Pijlen bewegen · X = A · Z = B · Enter = Start';
   $('player-one').textContent = isHost ? nickname || 'Jij' : $('player-one').textContent;
   $('solo-controls').hidden = !!roomId;
@@ -66,7 +69,10 @@ function showRoom() {
   $('route-value').textContent = roomId ? 'Verbinden…' : 'Lokaal';
   updateActions(); window.scrollTo({ top: 0, behavior: 'instant' });
 }
-function draw(frame) {
+function draw(frame, width = 256, height = 240) {
+  if (image.width !== width || image.height !== height) {
+    $('game').width = width; $('game').height = height; image = context.createImageData(width, height);
+  }
   const data = image.data;
   for (let i = 0; i < frame.length; i++) {
     const pixel = frame[i], offset = i * 4;
@@ -75,16 +81,16 @@ function draw(frame) {
   }
   context.putImageData(image, 0, 0);
 }
-async function loadGame(bytes, name, demo = false) {
-  validateRom(bytes);
-  if (!window.jsnes?.NES) throw new Error('De emulator kon niet worden geladen. Vernieuw de pagina.');
-  const next = new NesCore(window.jsnes.NES, { onFrame: draw, onAudio: (l, r) => audio.push(l, r) });
-  next.load(bytes);
+async function loadGame(bytes, name, demo = false, system = 'nes') {
+  if (!['nes', 'snes'].includes(system)) throw new Error('Dit systeem wordt nog niet ondersteund.');
+  cartridgeSystem(bytes, system === 'snes' ? 'game.sfc' : 'game.nes');
+  const next = await MesenCore.create({ onFrame: draw, onAudio: (l, r) => audio.push(l, r) });
+  next.load(bytes, system);
   stop(); core = next;
-  game = { bytes, name: String(name).slice(0, 80), demo, hash: await romHash(bytes) };
+  game = { bytes, name: String(name).slice(0, 80), demo, system, hash: await romHash(bytes) };
   audio.clear();
   for (let i = 0; i < 6; i++) core.run(0, 0);
-  audio.clear(); core.load(bytes);
+  audio.clear(); core.load(bytes, system);
   overlay('Klaar voor de start.', 'Start solo of nodig een vriend uit.');
   $('rollback-value').textContent = '0'; $('fps-value').textContent = '—';
 }
@@ -111,7 +117,7 @@ function updateActions() {
   $('guest-state').textContent = (isHost ? remoteReady : localReady) ? 'Klaar' : connected ? 'Verbonden' : '—';
 }
 function beginOnline(newEpoch) {
-  core.load(game.bytes); audio.clear(); checks.clear(); lastHash = -1;
+  core.load(game.bytes, game.system); audio.clear(); checks.clear(); lastHash = -1;
   epoch = newEpoch; mode = 'online'; pausedMode = null; accumulator = 0; lastTime = 0;
   fpsTime = performance.now(); fpsCount = 0;
   session = new RollbackSession(core, { player: isHost ? 1 : 2,
@@ -175,7 +181,7 @@ function setupPeer(connection, host) {
     updateActions();
     if (host) {
       try {
-        await current.transfer(game.bytes, { name: game.name, hash: game.hash, demo: game.demo, version: NETPLAY_VERSION },
+        await current.transfer(game.bytes, { name: game.name, hash: game.hash, demo: game.demo, system: game.system, version: NETPLAY_VERSION },
           progress => setTransfer(progress, 'ROM verzenden'));
         $('room-message').textContent = 'Game verstuurd. Speler 2 controleert de ROM en maakt zich klaar.';
       } catch (error) { fatal(error); }
@@ -210,6 +216,7 @@ async function receiveRom(message, sender) {
   }
   if (message?.type === 'begin') {
     if (message.version !== NETPLAY_VERSION) throw new Error('Jullie gebruiken verschillende emulatorversies. Vernieuw allebei de pagina.');
+    if (!['nes', 'snes'].includes(message.system)) throw new Error('Dit systeem wordt nog niet ondersteund.');
     if (!Number.isInteger(message.size) || message.size < 16 || message.size > 8 * 1024 * 1024 || !/^[a-f0-9]{64}$/.test(message.hash)) throw new Error('Ongeldige ROM-gegevens.');
     incoming = { ...message, bytes: new Uint8Array(message.size), offset: 0 };
     game = null; localReady = false; setTransfer(0, 'ROM ontvangen'); armTransferTimeout(); updateActions();
@@ -220,7 +227,7 @@ async function receiveRom(message, sender) {
     const hash = await romHash(received.bytes);
     if (sender !== peer || sender.closed) return;
     if (hash !== received.hash) throw new Error('De ROM-controle is mislukt. Verbind opnieuw.');
-    await loadGame(received.bytes, received.name, received.demo === true);
+    await loadGame(received.bytes, received.name, received.demo === true, received.system);
     showRoom(); $('transfer').hidden = true;
     $('room-message').textContent = 'Game ontvangen en gecontroleerd. Klik op ‘Ik ben klaar’.';
     $('guest-detail').textContent = 'Jij · controller 2'; $('player-two').textContent = nickname;
@@ -266,8 +273,12 @@ function buttons(map, padIndex = 0, touch = false) {
   if (touch) for (const b of touched) bits |= 1 << b;
   const pad = [...(navigator.getGamepads?.() || [])].filter(Boolean)[padIndex];
   if (pad) {
-    if (pad.buttons[0]?.pressed) bits |= 1;
-    if (pad.buttons[1]?.pressed || pad.buttons[2]?.pressed) bits |= 2;
+    if (game?.system === 'snes') {
+      for (const [button, bit] of [[1, 0], [0, 1], [3, 8], [2, 9], [4, 10], [5, 11]]) if (pad.buttons[button]?.pressed) bits |= 1 << bit;
+    } else {
+      if (pad.buttons[0]?.pressed) bits |= 1;
+      if (pad.buttons[1]?.pressed || pad.buttons[2]?.pressed) bits |= 2;
+    }
     if (pad.buttons[8]?.pressed) bits |= 4;
     if (pad.buttons[9]?.pressed) bits |= 8;
     if (pad.buttons[12]?.pressed || pad.axes[1] < -.45) bits |= 16;
@@ -278,7 +289,7 @@ function buttons(map, padIndex = 0, touch = false) {
   // Opposite directions are undefined on physical NES controllers.
   if ((bits & 48) === 48) bits &= ~48;
   if ((bits & 192) === 192) bits &= ~192;
-  return bits;
+  return game?.system === 'snes' ? bits : bits & 255;
 }
 function loop(time) {
   requestAnimationFrame(loop);
@@ -287,11 +298,11 @@ function loop(time) {
   accumulator = Math.min(accumulator + time - lastTime, 100); lastTime = time;
   try {
     let count = 0;
-    while (accumulator >= 1000 / 60 && count++ < 5) {
+    while (accumulator >= 1000 / core.fps && count++ < 5) {
       let advanced = true;
       if (mode === 'online') advanced = session.tick(buttons(keyMap, 0, true));
       else core.run(buttons(keyMap, 0, true), buttons(secondKeys, 1));
-      accumulator -= 1000 / 60;
+      accumulator -= 1000 / core.fps;
       if (advanced) fpsCount++;
       else { accumulator = 0; break; }
     }
@@ -374,7 +385,7 @@ function openCreate(current = false) {
   if (roomId) { toast('Verlaat eerst je huidige kamer.'); return; }
   useCurrentGame = current && !!game; pickedGame = null;
   $('game-picker').hidden = useCurrentGame;
-  $('host-name').value = nickname; $('create-error').textContent = ''; $('file-name').textContent = 'Kies je NES-ROM';
+  $('host-name').value = nickname; $('create-error').textContent = ''; $('file-name').textContent = 'Kies je NES- of SNES-ROM';
   $('rom-file').value = ''; $('create-submit').disabled = false; $('create-dialog').showModal();
 }
 function openJoin(code = '') {
@@ -406,8 +417,8 @@ $('rom-file').onchange = async () => {
   try {
     const file = $('rom-file').files[0]; if (!file) return;
     if (file.size > 8 * 1024 * 1024) throw new Error('De ROM mag maximaal 8 MB zijn.');
-    const bytes = new Uint8Array(await file.arrayBuffer()); validateRom(bytes);
-    pickedGame = { bytes, name: file.name.replace(/\.nes$/i, ''), demo: false };
+    const bytes = new Uint8Array(await file.arrayBuffer()); const system = cartridgeSystem(bytes, file.name);
+    pickedGame = { bytes, name: file.name.replace(/\.(nes|sfc|smc)$/i, ''), demo: false, system };
     $('file-name').textContent = file.name; $('create-error').textContent = '';
   } catch (error) { pickedGame = null; report(error); }
 };
@@ -418,10 +429,10 @@ $('choose-demo').onclick = async () => {
 $('create-form').onsubmit = async event => {
   event.preventDefault(); $('create-error').textContent = ''; $('create-submit').disabled = true;
   try {
-    if (!useCurrentGame && !pickedGame) throw new Error('Kies eerst een NES-ROM of gebruik onze demo.');
+    if (!useCurrentGame && !pickedGame) throw new Error('Kies eerst een NES- of SNES-ROM of gebruik onze demo.');
     const values = new FormData(event.target);
     nickname = String(values.get('name')).trim(); saveSetting('name', nickname);
-    if (!useCurrentGame) await loadGame(pickedGame.bytes, pickedGame.name, pickedGame.demo);
+    if (!useCurrentGame) await loadGame(pickedGame.bytes, pickedGame.name, pickedGame.demo, pickedGame.system);
     stop();
     await invites.create({ name: nickname, title: values.get('title'), game: game.name });
   } catch (error) { report(error); }
@@ -445,7 +456,7 @@ $('demo-button').onclick = async () => {
 };
 $('solo-button').onclick = async () => {
   try {
-    await enableAudio(); core.load(game.bytes); session = null; mode = 'solo'; accumulator = 0; lastTime = 0;
+    await enableAudio(); core.load(game.bytes, game.system); session = null; mode = 'solo'; accumulator = 0; lastTime = 0;
     fpsTime = performance.now(); fpsCount = 0;
     $('screen-overlay').hidden = true; $('pause-button').disabled = false;
     $('pause-button').textContent = 'Pauzeren'; $('room-status').textContent = 'Solo aan het spelen';

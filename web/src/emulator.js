@@ -63,12 +63,12 @@ export class NesCore {
   }
 }
 
-export function validateRom(bytes) {
+export function validateRom(bytes, { alignedBanks = true } = {}) {
   if (!(bytes instanceof Uint8Array) || bytes.length < 16 || bytes.length > 8 * 1024 * 1024) {
     throw new Error('Kies een NES-ROM van maximaal 8 MB.');
   }
   if (bytes[0] !== 0x4e || bytes[1] !== 0x45 || bytes[2] !== 0x53 || bytes[3] !== 0x1a) {
-    throw new Error('Dit is geen iNES-ROM (.nes). SNES, Sega en PS1 volgen later.');
+    throw new Error('Dit is geen NES-ROM (.nes). Kies voor SNES een .sfc- of .smc-bestand.');
   }
   const nes2 = (bytes[7] & 0x0c) === 0x08;
   // NES 2.0 extends both sizes with byte 9. A high nibble of 15 instead
@@ -83,7 +83,7 @@ export function validateRom(bytes) {
   if (!prgSize || bytes.length < required) throw new Error('Het ROM-bestand is onvolledig.');
   // JSNES loads whole 16 KiB PRG / 4 KiB CHR banks. Odd NES 2.0 sizes
   // would otherwise shift the CHR data when its loader rounds PRG up.
-  if (prgSize % 16384 || chrSize % 4096) throw new Error('Deze afwijkende ROM-bankgrootte wordt nog niet ondersteund.');
+  if (alignedBanks && (prgSize % 16384 || chrSize % 4096)) throw new Error('Deze afwijkende ROM-bankgrootte wordt door de oudere emulator nog niet ondersteund.');
   if (nes2 && (bytes[7] & 3)) throw new Error('Deze ROM is voor een ander NES-consoletype, zoals Vs. System. Dat wordt nog niet ondersteund.');
 }
 
