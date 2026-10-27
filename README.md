@@ -35,6 +35,8 @@ onbeperkt gratis gebruik van externe diensten zijn niet gegarandeerd. Zie
 
 - Vastgezette JSNES 2.1.0 voor echte NES-emulatie en PeerJS 1.5.5 voor signalering.
 - Privékamers, uitnodigingslinks en automatische ROM-overdracht in blokken van 16 KiB.
+- iNES- en NES 2.0-bestanden met ondersteunde mappers. NES 2.0-headers blijven
+  intact; de controle leest ook uitgebreide ROM-groottes en eventuele trainerdata.
 - Lokale emulatie met 2 frames invoervertraging, maximaal 12 voorspellingsframes
   en rollback bij vertraagde invoer.
 - Controles op afwijkende toestanden, samen pauzeren en hervatten door de host.
@@ -45,7 +47,9 @@ onbeperkt gratis gebruik van externe diensten zijn niet gegarandeerd. Zie
 NES-compatibiliteit verschilt per game en mapper. De alpha gebruikt NTSC-timing
 (60 fps). Er zijn nog geen blijvende saves, accounts, wachtwoorden, toeschouwers
 of sessieherstel na verbindingsverlies. Alleen onze eigen demo is tot nu toe als
-game getest. Twee browservensters zijn samen getest; verschillende huishoudens
+game getest. Power Blade (NES 2.0, mapper 4) is aanvullend lokaal getest op
+opstarten en deterministisch toestandsherstel, niet op volledige gamecompatibiliteit.
+Twee browservensters zijn samen getest; verschillende huishoudens
 moeten nog in de praktijk worden getest.
 
 SNES, Sega en PlayStation staan op de roadmap. Iedere console vereist een eigen
@@ -140,7 +144,8 @@ pnpm test
 pnpm build
 ```
 
-De tests controleren uitnodigingsvalidatie, gastcapaciteit, verlopen kamers,
+De tests controleren iNES/NES 2.0-lengtes, uitgebreide en exponentiële ROM-groottes,
+trainerdata, onvolledige bestanden, uitnodigingsvalidatie, gastcapaciteit, verlopen kamers,
 hergebruik na een mislukte uitnodiging, echte emulatie, beide controllerpoorten,
 exact herstel en convergentie na vertraagde/anders geordende invoer. De eerdere
 WebSocket-lobbytests blijven als regressietests voor de bewaarde servercode.
