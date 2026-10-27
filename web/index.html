@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#12151b">
+  <meta name="description" content="Maak een kamer, nodig een vriend uit en speel samen retro-games in je browser. Oude games. Samen opnieuw.">
+  <title>RetroRoom — Oude games. Samen opnieuw.</title>
+  <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./style.css">
+  <script defer src="./vendor/jsnes.min.js"></script>
+  <script type="module" src="./src/app.js"></script>
+</head>
+<body>
+  <header class="topbar wrap">
+    <a href="#" class="brand" aria-label="RetroRoom startpagina"><span class="brand-icon" aria-hidden="true">▦</span>Retro<span>Room</span><span class="alpha">ALPHA</span></a>
+    <nav aria-label="Hoofdnavigatie"><a href="#lobby" class="active">Speelkamers</a><a href="#how">Hoe werkt het?</a></nav>
+    <button class="button quiet small" id="settings-button"><span aria-hidden="true">⚙</span> Instellingen</button>
+  </header>
+
+  <main class="wrap" id="home">
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow"><span class="status-dot"></span> DEZELFDE GAME. EEN ANDERE BANK.</p>
+        <h1>Oude games.<br><span>Samen opnieuw.</span></h1>
+        <p class="hero-description">Die ene game van vroeger. Je favoriete tegenstander.<br class="desktop"> Allebei gewoon in je eigen browser.</p>
+        <div class="hero-actions"><button class="button primary" data-create><span aria-hidden="true">＋</span> Maak een kamer</button><button class="button outline" id="join-button">Speel mee <span aria-hidden="true">↗</span></button></div>
+        <p class="hero-footnote"><span aria-hidden="true">✓</span> Geen installatie <i>·</i> Alleen de host kiest een ROM</p>
+      </div>
+      <div class="hero-art" aria-label="Illustratie van twee spelers die samen een retro racegame spelen" role="img">
+        <div class="art-orbit orbit-one"></div><div class="art-orbit orbit-two"></div>
+        <div class="player-tag tag-one"><span class="avatar coral">1</span> Jij <span class="tiny-dot"></span></div>
+        <div class="retro-monitor">
+          <div class="monitor-top"><span>RETRO ROOM</span><span>● ●</span></div>
+          <div class="monitor-screen">
+            <svg viewBox="0 0 256 164" aria-hidden="true" shape-rendering="crispEdges">
+              <rect width="256" height="164" fill="#213c39"/><path d="M0 16h256M0 148h256" stroke="#598075" stroke-width="2" stroke-dasharray="8 8"/>
+              <path d="M0 50h256M0 114h256" stroke="#83ad8c" stroke-width="2" stroke-dasharray="8 10"/>
+              <path d="M224 50h12v64h-12z" fill="#b5c6a4"/><path d="M224 50h6v8h-6m6 0h6v8h-6m-6 0h6v8h-6m6 0h6v8h-6m-6 0h6v8h-6m6 0h6v8h-6m-6 0h6v8h-6m6 0h6v8h-6" fill="#213c39"/>
+              <g fill="#ef9d77"><path d="M66 63h28v4h8v16h-8v4H66v-4h-8V67h8z"/><path d="M72 63v-4h12v4m-12 24v4h12v-4" fill="#0e2627"/><path d="M87 67h7v16h-7" fill="#f9dbb2"/><path d="M65 67h6v16h-6" fill="#a26050"/></g>
+              <g fill="#9ac6ab"><path d="M115 95h28v4h8v16h-8v4h-28v-4h-8V99h8z"/><path d="M121 95v-4h12v4m-12 24v4h12v-4" fill="#0e2627"/><path d="M136 99h7v16h-7" fill="#d6e4ba"/><path d="M114 99h6v16h-6" fill="#649581"/></g>
+              <text x="128" y="36" text-anchor="middle" fill="#a4c2a0" font-family="monospace" font-size="10" letter-spacing="3">READY, PLAYER TWO?</text>
+            </svg>
+            <div class="scanlines"></div>
+          </div>
+          <div class="monitor-bottom"><span class="monitor-led"></span><span>GOOD TIMES, RECONNECTED.</span><b>▥</b></div>
+        </div>
+        <div class="player-tag tag-two"><span class="avatar mint">2</span> Je favoriete rivaal <span class="tiny-dot"></span></div>
+        <div class="art-caption"><span>↔</span> TWEE SCHERMEN. ÉÉN AVONTUUR.</div>
+      </div>
+    </section>
+
+    <section class="platform-strip" aria-label="Ondersteunde consoles"><span>VAN CARTRIDGE TOT CD</span><div><b class="platform live">NES <small>NU SPEELBAAR</small></b><b class="platform">SNES <small>GEPLAND</small></b><b class="platform">SEGA <small>GEPLAND</small></b><b class="platform">PLAYSTATION <small>GEPLAND</small></b></div></section>
+
+    <section class="lobby-section" id="lobby">
+      <div class="section-heading"><div><p class="eyebrow">SCHUIF MAAR AAN</p><h2>De speelkamers<span id="room-count">0</span></h2></div><div class="lobby-tools"><span class="connection-label" id="connection-label"><span class="status-dot"></span> Verbinden…</span><button class="icon-button" id="refresh-button" aria-label="Kamers vernieuwen">↻</button><button class="button outline small" data-create>＋ Nieuwe kamer</button></div></div>
+      <div class="lobby-filters"><div class="segmented" aria-label="Consolefilter"><button class="selected" aria-pressed="true">Alle kamers</button><span>NES</span></div><label class="check-label"><input type="checkbox" id="available-only"> Alleen vrije plekken</label></div>
+      <div id="rooms" class="room-grid" aria-live="polite"></div>
+      <div class="lobby-empty" id="lobby-empty"><div class="empty-icon" aria-hidden="true">▦<span>＋</span></div><h3>De eerste kamer is voor jou.</h3><p id="empty-copy">Kies een game en nodig iemand uit.<br>Een ouderwets goede avond begint hier.</p><button class="button outline small" data-create>Maak een kamer <span aria-hidden="true">↗</span></button></div>
+      <p class="lobby-note"><span aria-hidden="true">↗</span> Liever onder elkaar? Maak een privékamer en deel alleen de link.</p>
+    </section>
+
+    <section class="demo-banner"><div class="demo-art" aria-hidden="true"><span class="pixel-car">▰</span><span>1P</span><i>·········</i><span class="pixel-car mint-car">▰</span><span>2P</span></div><div><p class="eyebrow">EVEN PROEFSPELEN?</p><h3>Maak kennis met Room Rally.</h3><p>Onze eigen kleine NES-racegame. Klaar om je eerste kamer te testen.</p></div><button class="button light" id="demo-button">Probeer de demo <span aria-hidden="true">→</span></button></section>
+
+    <section class="how-section" id="how"><div class="section-heading"><div><p class="eyebrow">NET ALS VROEGER. MAAR DAN ONLINE.</p><h2>Van ‘kom je spelen?’ naar start.</h2></div></div><div class="steps"><article><span class="step-number">01</span><h3>Jij kiest de game.</h3><p>Laad je eigen NES-ROM in of pak onze demo. Maak een openbare kamer of houd het privé.</p></article><article><span class="step-number">02</span><h3>Je vriend schuift aan.</h3><p>Deel je kamerlink. De game gaat rechtstreeks naar de andere browser, zonder handmatig bestanden te delen.</p></article><article><span class="step-number">03</span><h3>Allebei op start.</h3><p>Ieder speelt op zijn eigen scherm. De browsers wisselen jullie knoppen uit en houden de game gelijk.</p></article></div></section>
+  </main>
+
+  <main class="wrap room-view" id="room-view" hidden>
+    <div class="room-heading"><button class="text-button" id="leave-button">← Terug naar de lobby</button><span class="badge">NES · ALPHA</span></div>
+    <div class="room-title"><div><p class="eyebrow" id="room-subtitle">JOUW SPEELKAMER</p><h1 id="game-title">Room Rally</h1></div><span class="room-status" id="room-status">Klaar om te spelen</span></div>
+    <div class="play-layout">
+      <section class="play-panel" id="play-panel" aria-label="Game en bediening">
+        <div class="screen-toolbar"><span><span class="status-dot"></span> <span id="play-mode">Lokaal</span></span><div><button class="icon-button" id="audio-button" aria-label="Geluid aanzetten" title="Geluid aanzetten">♪</button><button class="icon-button" id="fullscreen-button" aria-label="Volledig scherm" title="Volledig scherm">⛶</button></div></div>
+        <div class="game-screen"><canvas id="game" width="256" height="240" tabindex="0" aria-label="NES-gamescherm"></canvas><div id="screen-overlay" class="screen-overlay"><span class="eyebrow">READY, PLAYER TWO?</span><strong>Klaar voor de start.</strong><p>Start solo of nodig een vriend uit.</p></div></div>
+        <div class="game-bottom"><span id="game-hint">Room Rally: tik op A om te racen.</span><button class="text-button" id="pause-button" disabled>Pauzeren</button></div>
+        <div class="touch-controls" aria-label="Aanraakbediening"><div class="dpad"><button data-pad="4" aria-label="Omhoog">↑</button><button data-pad="6" aria-label="Links">←</button><button data-pad="5" aria-label="Omlaag">↓</button><button data-pad="7" aria-label="Rechts">→</button></div><div class="touch-middle"><button data-pad="2">Select</button><button data-pad="3">Start</button></div><button class="round-button" data-pad="1">B</button><button class="round-button coral-button" data-pad="0">A</button></div>
+      </section>
+      <aside class="room-sidebar">
+        <section class="side-card"><p class="eyebrow">OP DE BANK</p><div class="player-row"><span class="avatar coral">1</span><div><strong id="player-one">Jij</strong><small>Host · controller 1</small></div><span class="player-state" id="host-state">Klaar</span></div><div class="player-row"><span class="avatar mint">2</span><div><strong id="player-two">Nog een plekje vrij</strong><small id="guest-detail">Nodig je favoriete rivaal uit</small></div><span class="player-state" id="guest-state">—</span></div><div class="transfer" id="transfer" hidden><label for="transfer-progress" id="transfer-label">ROM ontvangen</label><progress id="transfer-progress" max="1" value="0"></progress></div><p class="room-message" id="room-message" aria-live="polite">Je kunt alvast solo spelen.</p><button class="button primary full" id="start-button" disabled>Start samen <span aria-hidden="true">→</span></button><button class="button outline full" id="solo-button">Speel solo</button><button class="text-button full" id="restart-button" hidden>Game opnieuw starten</button></section>
+        <section class="side-card" id="invite-card"><p class="eyebrow">SAMEN IS LEUKER</p><h3>Bewaar een plek.</h3><p id="invite-description">Maak een kamer om een uitnodigingslink te delen.</p><div class="invite-code" id="invite-code" hidden><span id="room-code"></span><button class="icon-button" id="copy-button" aria-label="Uitnodigingslink kopiëren">⧉</button></div><button class="button outline full" id="publish-room-button">Maak een kamer</button></section>
+        <section class="side-card metrics-card"><p class="eyebrow">DE VERBINDING</p><dl><div><dt>Ping</dt><dd id="ping-value">—</dd></div><div><dt>Game</dt><dd id="fps-value">—</dd></div><div><dt>Route</dt><dd id="route-value">Lokaal</dd></div><div><dt>Rollback-correcties</dt><dd id="rollback-value">0</dd></div></dl></section>
+      </aside>
+    </div>
+    <section class="controls-guide"><div><span class="eyebrow">JOUW CONTROLLER</span><p><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> Bewegen <span><kbd>X</kbd> A <kbd>Z</kbd> B</span> <span><kbd>Enter</kbd> Start <kbd>Shift</kbd> Select</span></p></div><span class="gamepad-hint" id="gamepad-hint">USB- en Bluetooth-gamepads worden automatisch herkend.</span><p class="solo-controls" id="solo-controls">Tweede speler op dit toetsenbord: WASD · G = A · F = B · T = Start · R = Select.</p></section>
+  </main>
+
+  <footer class="wrap footer"><a href="#" class="brand">Retro<span>Room</span><span class="footer-tagline">Oude games. Samen opnieuw.</span></a><span>Gemaakt voor nog één potje. <span class="footer-dot">✳</span></span><button class="text-button" id="about-button">Over deze alpha ↗</button></footer>
+
+  <dialog id="create-dialog"><form id="create-form"><div class="dialog-heading"><div><p class="eyebrow">KOM ERBIJ</p><h2>Maak het gezellig.</h2></div><button type="button" class="icon-button" data-close aria-label="Sluiten">×</button></div><p class="dialog-intro">Een game, een kamer en iemand om mee te spelen.</p><label>Jouw naam<input name="name" id="host-name" maxlength="24" placeholder="Hoe noemen je vrienden je?" required autocomplete="nickname"></label><label>Kamernaam<input name="title" maxlength="48" placeholder="Nog één potje" value="Nog één potje" required></label><div id="game-picker"><label class="file-drop" for="rom-file"><span aria-hidden="true">＋</span><strong id="file-name">Kies je NES-ROM</strong><small>.nes · maximaal 8 MB · blijft buiten de lobbyserver</small><input type="file" id="rom-file" accept=".nes"></label><button type="button" class="text-button" id="choose-demo">Of gebruik Room Rally, onze eigen demo ↗</button></div><label class="check-label public-check"><input name="public" type="checkbox" checked><span>Toon mijn kamer in de openbare lobby<small>Uitgevinkt? Alleen mensen met de link kunnen meedoen.</small></span></label><p class="form-error" id="create-error" role="alert"></p><button type="submit" class="button primary full" id="create-submit">Maak een kamer <span aria-hidden="true">→</span></button></form></dialog>
+
+  <dialog id="join-dialog"><form id="join-form"><div class="dialog-heading"><div><p class="eyebrow">ER IS EEN PLEK VOOR JE</p><h2>Schuif aan.</h2></div><button type="button" class="icon-button" data-close aria-label="Sluiten">×</button></div><p class="dialog-intro">Vul een kamercode in of plak de uitnodigingslink.</p><label>Jouw naam<input name="name" id="guest-name" maxlength="24" placeholder="Speler 2" required autocomplete="nickname"></label><label>Kamercode of uitnodigingslink<input name="room" id="join-code" placeholder="Bijvoorbeeld A1B2C3D4E5" required autocomplete="off"></label><p class="form-error" id="join-error" role="alert"></p><button type="submit" class="button primary full">Speel mee <span aria-hidden="true">→</span></button></form></dialog>
+
+  <dialog id="settings-dialog"><form id="settings-form"><div class="dialog-heading"><div><p class="eyebrow">ACHTER DE SCHERMEN</p><h2>Instellingen.</h2></div><button type="button" class="icon-button" data-close aria-label="Sluiten">×</button></div><p class="dialog-intro">De lobbyserver brengt spelers bij elkaar. ROMs worden tussen de browsers uitgewisseld.</p><label>Adres van de lobbyserver<input id="server-url" type="url" placeholder="wss://jouw-server.example/ws" autocomplete="off"></label><p class="setting-note" id="server-note">Voor online spelen is een bereikbare lobbyserver nodig. Solo spelen kan ook zonder verbinding.</p><p class="form-error" id="settings-error" role="alert"></p><button type="submit" class="button primary full">Opslaan en verbinden <span aria-hidden="true">→</span></button></form></dialog>
+
+  <dialog id="about-dialog"><div class="dialog-heading"><div><p class="eyebrow">DE EERSTE LEVELS</p><h2>Dit is RetroRoom.</h2></div><button class="icon-button" data-close aria-label="Sluiten">×</button></div><p class="dialog-intro">Een eerste speelbare versie, gebouwd rond twee spelers en NES-games.</p><div class="roadmap"><div><span class="status-dot"></span><strong>Nu</strong><p>NES · kamers · ROM-overdracht · lokale emulatie · rollback · toetsenbord en gamepad</p></div><div><span class="roadmap-dot"></span><strong>Hierna</strong><p>Meer gametests, opgeslagen voortgang en SNES.</p></div><div><span class="roadmap-dot"></span><strong>Later</strong><p>Sega-consoles en onderzoek naar PlayStation. Iedere console krijgt een eigen geteste emulatorintegratie.</p></div></div><p class="setting-note">Room Rally is een originele demo. Eigen ROMs worden standaard alleen in het geheugen geladen. Netplay ondersteunt in deze alpha twee spelers en NTSC-timing; compatibiliteit verschilt per game.</p></dialog>
+  <div class="toast" id="toast" role="status" hidden></div>
+</body>
+</html>
