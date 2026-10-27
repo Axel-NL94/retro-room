@@ -1,80 +1,60 @@
-# RetroRoom gratis testen
+# Gratis spelen met uitnodigingslinks
 
-De frontend staat op <https://axel-nl94.github.io/retro-room/>.
-De lobbycode is lokaal met twee browsers getest, maar een openbare lobbyserver en
-TURN-account zijn nog niet geactiveerd. De site geeft dit aan; de demo werkt solo.
+De site staat op https://axel-nl94.github.io/retro-room/.
+De huidige versie werkt met **privékamers en uitnodigingslinks**.
+Je hoeft geen eigen server te draaien en geen Render- of TURN-account aan te maken.
 
-Een gratis startopzet voor een kleine groep:
+| Onderdeel | Huidige oplossing |
+|---|---|
+| Website | GitHub Pages |
+| Browsers bij elkaar brengen | De gedeelde PeerJS Cloud-dienst |
+| Directe verbinding vinden | Google STUN |
+| ROM en controllerinvoer | Rechtstreeks via WebRTC tussen de spelers |
+| TURN-relay | Uitgeschakeld |
 
-| Onderdeel | Dienst | Gratis aanbod |
-|---|---|---|
-| Website | GitHub Pages | De huidige gepubliceerde projectsite |
-| Lobby en signalering | Render Free | 750 instance-uren per workspace per maand |
-| TURN-terugval | Metered Open Relay | 20 GB relayverkeer per maand |
+Er is geen TURN-databundel in deze opzet: het spelverkeer gaat niet door een
+relay. Dit is geen garantie op onbeperkt gratis gebruik van externe diensten.
+PeerJS Cloud is een gedeelde dienst zonder beschikbaarheidsgarantie en adviseert
+voor drukke toepassingen een eigen dienst. De website blijft ook onderhevig aan
+de gebruikslimieten van GitHub Pages.
 
-Bronnen, gecontroleerd op 27 oktober 2026:
+## Gebruik
 
-- <https://render.com/docs/free>
-- <https://render.com/docs/websocket>
-- <https://www.metered.ca/tools/openrelay/>
-- <https://www.metered.ca/tools/openrelay/webrtc-signaling-server/>
+1. Open de site en kies **Maak een kamer**.
+2. Selecteer een NES-ROM of de meegeleverde Room Rally-demo.
+3. Kopieer de uitnodigingslink en deel die met je vriend. Houd je kamer open.
+4. Je vriend opent de link, vult een naam in en klikt op **Speel mee**.
+5. De ROM gaat automatisch naar de andere browser. De gast klikt op **Ik ben klaar**;
+   daarna start de host met **Start samen**.
 
-## Render
+Een kamer heeft plek voor twee spelers. De link werkt totdat de host de kamer
+verlaat, de pagina vernieuwt of de browser sluit. Een nieuwe kamer krijgt een
+nieuwe willekeurige link. Iedereen die de link heeft kan proberen mee te doen;
+deel hem dus alleen met je gewenste medespeler.
 
-`render.yaml` staat expliciet op `plan: free`, één webservice in Frankfurt,
-zonder database of betaalde extra resources. De configuratie maakt op zichzelf
-geen account of dienst aan. GitHub Pages blijft de frontend hosten.
+## Als verbinden niet lukt
 
-1. Maak zelf een Render-account aan of log in. Bekijk en accepteer zelf eventuele
-   accountvoorwaarden. De implementatie heeft nog geen Render-account gekoppeld.
-2. Gebruik een Blueprint met deze repository en `render.yaml`, of maak een
-   Docker Web Service van de openbare repository. Controleer dat het plan **Free** is.
-3. Wacht op een geslaagde deployment en open de eigen `https://…onrender.com/health`.
-   Die hoort JSON met `status: ok` terug te geven.
-4. Zet de openbare `wss://…onrender.com/ws`-URL in de GitHub Actions-repositoryvariabele
-   `RETROROOM_SERVER_URL` en start de Pages-workflow opnieuw.
+Strenge routers, sommige mobiele verbindingen en bedrijfsnetwerken kunnen een
+directe verbinding blokkeren. Zonder TURN is daar geen automatische omweg voor.
+Probeer een ander netwerk, bijvoorbeeld een andere wifi-verbinding, en maak zo
+nodig een nieuwe kamer. Een uitnodigingslink verandert deze netwerkbeperking niet.
 
-Render Free slaapt na 15 minuten zonder inkomend verkeer. Opstarten kost ongeveer
-een minuut. De huidige frontend probeert ongeveer tien seconden verbinding te
-maken; bij een slapende gratis server kan een eerste poging daarom mislukken.
-Open dan eerst `/health`, wacht tot die reageert en probeer opnieuw. Een aangepaste
-opstart-/herverbindingsflow is een volgende verbetering zodra het echte serveradres
-beschikbaar is. Automatische serverdeploys staan uit om actieve kamers niet bij
-iedere bronwijziging te onderbreken.
+De kleine PeerJS-dienst helpt alleen bij het opzetten van de verbinding. ROMs
+en controllerinvoer lopen rechtstreeks tussen browsers. PeerJS verwerkt daarbij
+verbindingsmetadata zoals peer-ID's en WebRTC-verbindingsgegevens. Google STUN
+helpt het publieke netwerkadres bepalen. Er worden geen gebruikersaccounts gemaakt.
 
-De 750 gratis uren zijn gedeeld door je workspace. Render kan de gratis dienst
-herstarten, waardoor actieve kamers verdwijnen. Bandbreedte en buildminuten
-hebben ook limieten. Zonder betaalmethode schort Render diensten/bouwactiviteiten
-bij bepaalde limieten op in plaats van extra gebruik af te rekenen; controleer
-de actuele accountinstellingen. Dit is een hobby-/testopzet zonder uptimegarantie.
+## Latere uitbreiding
 
-## Open Relay
+De eerdere Node-lobbyserver, Dockerfile en `render.yaml` blijven beschikbaar als
+voorbereidend werk voor een eventuele latere lobby. Ze worden door de huidige
+uitnodigingsversie niet gebruikt en hoeven niet te worden uitgerold. De oude
+`RETROROOM_SERVER_URL`-instelling is niet meer nodig. Een publieke kamerlijst en
+TURN-terugval zijn nu geen onderdeel van de site.
 
-Maak een gratis Metered/Open Relay-account aan. De aanbieder vermeldt 20 GB TURN-
-verkeer per maand; voor de gratis signallingdienst vermeldt hij geen creditcard
-en geen overagekosten. Controleer specifiek het gekozen TURN-plan en schakel geen
-betaald plan of automatisch opwaarderen in als je uitsluitend gratis wilt testen.
+Officiële bronnen, gecontroleerd op 27 oktober 2026:
 
-Haal via het dashboard/de officiële API de eigen `iceServers`-lijst op en plaats
-die als `ICE_SERVERS_JSON` in de Render-omgeving. Een beheer-API-sleutel hoort alleen
-op de server; zet die niet in GitHub, de publieke Pages-configuratie of browser-
-instellingen. De huidige server kan al een ICE-lijst aan de browsers verstrekken.
-Automatische vernieuwing van providercredentials is nog geen geïmplementeerde feature.
-
-Verbind daarna twee apparaten via verschillende netwerken. Test zowel een directe
-verbinding als een geforceerde relayroute in een aparte ontwikkeltest. Laat de
-productieconfiguratie automatisch tussen rechtstreeks en TURN kiezen. Een TURN-
-test is pas geslaagd als werkelijk relayverkeer is waargenomen, niet alleen als
-de configuratie is opgeslagen.
-
-Omdat de game bij beide spelers lokaal draait, versturen we tijdens het spelen
-vooral kleine invoerberichten. Dat maakt deze opzet veel zuiniger met relayverkeer
-dan videostreaming. ROMs kosten ook relayverkeer wanneer TURN nodig is; grotere
-PS1-bestanden vragen later om andere overdrachtslimieten en capaciteitskeuzes.
-
-## Ander gratis alternatief
-
-Cloudflare Realtime TURN heeft momenteel een gezamenlijke TURN/SFU-vrijstelling
-van 1.000 GB per maand, maar rekent daarboven gebruik af. Dat is daarom niet
-automatisch een opzet met een harde kostengrens van nul. Bron:
-<https://developers.cloudflare.com/realtime/sfu/platform/pricing/>.
+- https://peerjs.com/server/cloud
+- https://peerjs.com/client/getting-started
+- https://peerjs.com/client/api/peer
+- https://github.com/peers/peerjs-server
