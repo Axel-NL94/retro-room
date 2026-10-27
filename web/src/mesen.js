@@ -1,7 +1,12 @@
 import createMesen from '../assets/mesen-core.mjs';
 import { validateRom } from './emulator.js';
 
-export const MESEN_BUILD = 'mesence-4c4e069-web-1';
+export const MESEN_BUILD = 'mesence-4c4e069-web-2';
+export const OVERCLOCK_VALUES = Object.freeze([100, 125, 150, 175, 200, 225, 250, 275, 300]);
+export function validateOverclock(value) {
+  if (!OVERCLOCK_VALUES.includes(value)) throw new Error('Kies een CPU-overclock van 100% tot 300%, in stappen van 25%.');
+  return value;
+}
 let binary;
 function coreBinary() {
   return binary ||= fetch(new URL('../assets/mesen-core.wasm', import.meta.url)).then(async response => {
@@ -27,7 +32,8 @@ export class MesenCore {
     const message = this.module.UTF8ToString(this.module._rr_error_ptr());
     return new Error(message ? `${fallback} ${message}` : fallback);
   }
-  load(bytes, system = 'nes') {
+  load(bytes, system = 'nes', { overclock = 100 } = {}) {
+    validateOverclock(overclock);
     if (system === 'nes') validateRom(bytes, { alignedBanks: false });
     else if (system === 'snes') validateSnesRom(bytes);
     else throw new Error('Dit systeem wordt nog niet ondersteund.');
@@ -39,7 +45,8 @@ export class MesenCore {
       // entirely inside this WebAssembly instance; no ROM is written to disk.
       m.FS.writeFile(filename, bytes);
       m.HEAPU8.set(bytes, pointer); m.HEAPU8.set(new TextEncoder().encode(filename + '\0'), path);
-      if (!m._rr_load(pointer, bytes.length, path)) throw this.error('Deze ROM kan niet door Mesen worden geladen.');
+      if (!m._rr_load(pointer, bytes.length, path, overclock)) throw this.error('Deze ROM kan niet door Mesen worden geladen.');
+      this.overclock = overclock;
       this.fps = m._rr_frame_rate();
     } finally { m._free(pointer); m._free(path); }
   }

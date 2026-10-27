@@ -2,9 +2,9 @@
   "engine": "MesenCE",
   "revision": "4c4e069f16a8ad6ed79e046046c56d51558c7daf",
   "toolchain": "Emscripten 4.0.19",
-  "bridge": "retroroom-web-1",
-  "wasmSha256": "73b43e69b0aea31148ce339959fece2d8f192c7210eb757b85f7e58443ec5e89",
+  "bridge": "retroroom-web-2",
+  "wasmSha256": "da877c9951f03fa8529b70dad67ae44a01e705f35556dcf4f168cb4aa26bae39",
   "sourceArchive": "mesen-source.tar.gz",
-  "sourceSha256": "a2bbf1604d3ee10fac70a44afec9fabac779328a3479df9976c6a386ef4e90a9",
+  "sourceSha256": "79b629e545eb236cedf40d297e62a1e94b5ddf5f078f936fe94f2dd3a421f796",
   "license": "GPL-3.0-or-later"
 }

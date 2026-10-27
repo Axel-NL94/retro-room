@@ -2,7 +2,7 @@ import { romHash } from './emulator.js';
 import { RollbackSession, NETPLAY_VERSION } from './rollback.js';
 import { InviteConnection, PeerConnection, parseInvitation } from './connection.js';
 import { AudioSink } from './audio.js';
-import { MesenCore, cartridgeSystem } from './mesen.js';
+import { MesenCore, cartridgeSystem, validateOverclock } from './mesen.js';
 
 const $ = id => document.getElementById(id);
 const invites = new InviteConnection();
@@ -81,16 +81,17 @@ function draw(frame, width = 256, height = 240) {
   }
   context.putImageData(image, 0, 0);
 }
-async function loadGame(bytes, name, demo = false, system = 'nes') {
+async function loadGame(bytes, name, demo = false, system = 'nes', overclock = 100) {
+  validateOverclock(overclock);
   if (!['nes', 'snes'].includes(system)) throw new Error('Dit systeem wordt nog niet ondersteund.');
   cartridgeSystem(bytes, system === 'snes' ? 'game.sfc' : 'game.nes');
   const next = await MesenCore.create({ onFrame: draw, onAudio: (l, r) => audio.push(l, r) });
-  next.load(bytes, system);
+  next.load(bytes, system, { overclock });
   stop(); core = next;
-  game = { bytes, name: String(name).slice(0, 80), demo, system, hash: await romHash(bytes) };
+  game = { bytes, name: String(name).slice(0, 80), demo, system, overclock, hash: await romHash(bytes) };
   audio.clear();
   for (let i = 0; i < 6; i++) core.run(0, 0);
-  audio.clear(); core.load(bytes, system);
+  audio.clear(); core.load(bytes, system, { overclock });
   overlay('Klaar voor de start.', 'Start solo of nodig een vriend uit.');
   $('rollback-value').textContent = '0'; $('fps-value').textContent = '—';
 }
@@ -110,6 +111,9 @@ function updateAudio() {
 }
 function updateActions() {
   const connected = peer?.control?.readyState === 'open';
+  $('room-overclock').value = String(game?.overclock ?? 100);
+  $('room-overclock').disabled = !game || !isHost || !!peer || !!invites.connection;
+  $('overclock-note').textContent = !isHost ? 'De host kiest deze instelling. Jullie gebruiken allebei dezelfde waarde.' : peer || invites.connection ? 'Vastgezet zolang speler 2 verbonden is. Beide spelers gebruiken dezelfde waarde.' : 'Wijzigen begint de game opnieuw. Kies de waarde voordat speler 2 verbindt.';
   $('solo-button').hidden = !isHost || !!connected;
   $('start-button').disabled = isHost ? !remoteReady || !connected || mode === 'online' : !game || !connected || localReady;
   $('start-button').textContent = isHost ? (mode === 'online' ? 'Samen aan het spelen' : mode === 'paused' && session ? 'Verder spelen →' : 'Start samen →') : (mode === 'online' ? 'Samen aan het spelen' : localReady ? 'Wachten op de host…' : 'Ik ben klaar →');
@@ -117,7 +121,7 @@ function updateActions() {
   $('guest-state').textContent = (isHost ? remoteReady : localReady) ? 'Klaar' : connected ? 'Verbonden' : '—';
 }
 function beginOnline(newEpoch) {
-  core.load(game.bytes, game.system); audio.clear(); checks.clear(); lastHash = -1;
+  core.load(game.bytes, game.system, game); audio.clear(); checks.clear(); lastHash = -1;
   epoch = newEpoch; mode = 'online'; pausedMode = null; accumulator = 0; lastTime = 0;
   fpsTime = performance.now(); fpsCount = 0;
   session = new RollbackSession(core, { player: isHost ? 1 : 2,
@@ -181,7 +185,7 @@ function setupPeer(connection, host) {
     updateActions();
     if (host) {
       try {
-        await current.transfer(game.bytes, { name: game.name, hash: game.hash, demo: game.demo, system: game.system, version: NETPLAY_VERSION },
+        await current.transfer(game.bytes, { name: game.name, hash: game.hash, demo: game.demo, system: game.system, overclock: game.overclock, version: NETPLAY_VERSION },
           progress => setTransfer(progress, 'ROM verzenden'));
         $('room-message').textContent = 'Game verstuurd. Speler 2 controleert de ROM en maakt zich klaar.';
       } catch (error) { fatal(error); }
@@ -205,7 +209,7 @@ function setupPeer(connection, host) {
       remoteReady = false; updateActions();
     }
   });
-  return peer;
+  updateActions(); return peer;
 }
 async function receiveRom(message, sender) {
   if (isHost) throw new Error('Alleen de host kan een ROM versturen.');
@@ -217,6 +221,7 @@ async function receiveRom(message, sender) {
   if (message?.type === 'begin') {
     if (message.version !== NETPLAY_VERSION) throw new Error('Jullie gebruiken verschillende emulatorversies. Vernieuw allebei de pagina.');
     if (!['nes', 'snes'].includes(message.system)) throw new Error('Dit systeem wordt nog niet ondersteund.');
+    validateOverclock(message.overclock);
     if (!Number.isInteger(message.size) || message.size < 16 || message.size > 8 * 1024 * 1024 || !/^[a-f0-9]{64}$/.test(message.hash)) throw new Error('Ongeldige ROM-gegevens.');
     incoming = { ...message, bytes: new Uint8Array(message.size), offset: 0 };
     game = null; localReady = false; setTransfer(0, 'ROM ontvangen'); armTransferTimeout(); updateActions();
@@ -227,12 +232,12 @@ async function receiveRom(message, sender) {
     const hash = await romHash(received.bytes);
     if (sender !== peer || sender.closed) return;
     if (hash !== received.hash) throw new Error('De ROM-controle is mislukt. Verbind opnieuw.');
-    await loadGame(received.bytes, received.name, received.demo === true, received.system);
+    await loadGame(received.bytes, received.name, received.demo === true, received.system, received.overclock);
     showRoom(); $('transfer').hidden = true;
     $('room-message').textContent = 'Game ontvangen en gecontroleerd. Klik op ‘Ik ben klaar’.';
     $('guest-detail').textContent = 'Jij · controller 2'; $('player-two').textContent = nickname;
     overlay('Je game staat klaar.', 'Klik op ‘Ik ben klaar’. De host start jullie game.');
-    peer.send('control', { type: 'rom-ready', hash: game.hash });
+    peer.send('control', { type: 'rom-ready', hash: game.hash, overclock: game.overclock });
     updateActions();
   } else throw new Error('Onbekend overdrachtsbericht.');
 }
@@ -247,14 +252,17 @@ function handleControl(message) {
     $('ping-value').textContent = Math.max(0, Math.round(performance.now() - message.time)) + ' ms'; return;
   }
   if (message.type === 'rom-ready' && isHost) {
+    checkGameSettings(message);
     if (message.hash !== game.hash) throw new Error('De ROMs komen niet overeen.');
     $('transfer').hidden = true; $('room-message').textContent = 'Game gecontroleerd. Wachten tot speler 2 klaar is.'; return;
   }
   if (message.type === 'ready' && isHost) {
+    checkGameSettings(message);
     if (message.hash !== game.hash) throw new Error('De ROMs komen niet overeen.');
     remoteReady = true; $('room-message').textContent = 'Iedereen is klaar. Jij kunt de game starten.'; updateActions(); return;
   }
   if (message.type === 'start' && !isHost && localReady && game) {
+    checkGameSettings(message);
     if (message.version !== NETPLAY_VERSION || message.hash !== game.hash || typeof message.epoch !== 'string') throw new Error('De startgegevens komen niet overeen.');
     beginOnline(message.epoch); return;
   }
@@ -266,6 +274,9 @@ function handleControl(message) {
   if (message.type === 'interrupted' && message.epoch === epoch) {
     stop('De game is onderbroken bij de andere speler. De host kan opnieuw starten.'); return;
   }
+}
+function checkGameSettings(message) {
+  if (message.overclock !== game?.overclock) throw new Error('Jullie CPU-overclock komt niet overeen. Verbind opnieuw met de kamer.');
 }
 function buttons(map, padIndex = 0, touch = false) {
   let bits = 0;
@@ -385,6 +396,7 @@ function openCreate(current = false) {
   if (roomId) { toast('Verlaat eerst je huidige kamer.'); return; }
   useCurrentGame = current && !!game; pickedGame = null;
   $('game-picker').hidden = useCurrentGame;
+  $('host-overclock').value = String(useCurrentGame ? game.overclock : 100);
   $('host-name').value = nickname; $('create-error').textContent = ''; $('file-name').textContent = 'Kies je NES- of SNES-ROM';
   $('rom-file').value = ''; $('create-submit').disabled = false; $('create-dialog').showModal();
 }
@@ -432,7 +444,8 @@ $('create-form').onsubmit = async event => {
     if (!useCurrentGame && !pickedGame) throw new Error('Kies eerst een NES- of SNES-ROM of gebruik onze demo.');
     const values = new FormData(event.target);
     nickname = String(values.get('name')).trim(); saveSetting('name', nickname);
-    if (!useCurrentGame) await loadGame(pickedGame.bytes, pickedGame.name, pickedGame.demo, pickedGame.system);
+    const selected = useCurrentGame ? game : pickedGame;
+    await loadGame(selected.bytes, selected.name, selected.demo, selected.system, Number(values.get('overclock')));
     stop();
     await invites.create({ name: nickname, title: values.get('title'), game: game.name });
   } catch (error) { report(error); }
@@ -456,7 +469,7 @@ $('demo-button').onclick = async () => {
 };
 $('solo-button').onclick = async () => {
   try {
-    await enableAudio(); core.load(game.bytes, game.system); session = null; mode = 'solo'; accumulator = 0; lastTime = 0;
+    await enableAudio(); core.load(game.bytes, game.system, game); session = null; mode = 'solo'; accumulator = 0; lastTime = 0;
     fpsTime = performance.now(); fpsCount = 0;
     $('screen-overlay').hidden = true; $('pause-button').disabled = false;
     $('pause-button').textContent = 'Pauzeren'; $('room-status').textContent = 'Solo aan het spelen';
@@ -464,16 +477,28 @@ $('solo-button').onclick = async () => {
     $('play-mode').textContent = 'Lokaal · solo'; $('solo-controls').hidden = false;
   } catch (error) { fatal(error); }
 };
+$('room-overclock').onchange = () => {
+  if (!game || !isHost || peer || invites.connection) { updateActions(); return; }
+  try {
+    const overclock = validateOverclock(Number($('room-overclock').value));
+    stop(); core.load(game.bytes, game.system, { overclock });
+    game.overclock = overclock; localReady = remoteReady = false;
+    overlay('CPU-overclock ingesteld.', `${overclock}% CPU-ruimte. Start de game opnieuw om te spelen.`);
+    $('room-status').textContent = 'Klaar om te spelen';
+    $('room-message').textContent = `CPU-overclock: ${overclock}%. Speler 2 krijgt automatisch dezelfde instelling.`;
+    updateActions();
+  } catch (error) { fatal(error); updateActions(); }
+};
 async function startTogether() {
   await enableAudio();
   if (!isHost) {
-    localReady = true; peer.send('control', { type: 'ready', hash: game.hash });
+    localReady = true; peer.send('control', { type: 'ready', hash: game.hash, overclock: game.overclock });
     $('room-message').textContent = 'Je bent klaar. De host kan nu starten.'; updateActions(); return;
   }
   if (!remoteReady || !peer) throw new Error('Wacht tot speler 2 klaar is.');
   if (mode === 'paused' && session) { resume(); return; }
   const nextEpoch = crypto.randomUUID();
-  peer.send('control', { type: 'start', epoch: nextEpoch, hash: game.hash, version: NETPLAY_VERSION });
+  peer.send('control', { type: 'start', epoch: nextEpoch, hash: game.hash, overclock: game.overclock, version: NETPLAY_VERSION });
   beginOnline(nextEpoch);
 }
 $('start-button').onclick = () => startTogether().catch(report);

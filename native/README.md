@@ -24,6 +24,20 @@ This is necessary for independent online instances to start with identical state
 Snapshots exclude fixed settings, ROMs and the host audio output queue. Audio
 produced while replaying speculative frames is not sent to Web Audio.
 
+## CPU overclock
+
+The host selects 100–300% in 25% steps before the guest connects. Mesen adds
+extra scanlines before NMI to give the CPU more work time within each video
+frame; this is an approximate CPU-time percentage, not a literal MHz multiplier.
+NTSC uses 262 base scanlines and PAL/Dendy 312. Video cadence and audio retain
+their normal speed. SNES enhancement-chip clocks are unchanged.
+
+Both peers receive and validate the same setting before ROM loading and starting.
+The setting is locked while a guest is connecting or connected; changes otherwise
+restart the emulated machine. Rollback snapshots exclude settings, so the selected
+value must be applied again on every ROM load/reset. Netplay protocol web-2 rejects
+older clients. Overclocking can break timing-sensitive games and uses more CPU.
+
 ## Build
 
 The normal website build uses the checked-in WebAssembly binary. To rebuild:

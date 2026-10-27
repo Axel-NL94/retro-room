@@ -14,3 +14,6 @@ dialog{border:1px solid #464b54;background:var(--panel);color:var(--text);border
 .touch-controls{flex-wrap:wrap}.snes-touch{width:100%;display:flex;justify-content:flex-end;gap:12px}.snes-touch button{min-width:42px}.controls-guide #snes-controls-guide{width:100%;margin:0;color:var(--mint);line-height:1.8}
 
 .setting-note a{text-decoration:underline;color:var(--mint)}
+
+/* Host-selected emulation settings share the existing form styling. */
+.overclock-label{display:block;color:var(--text);font-size:12px}select{font:inherit;color:var(--text);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:11px 12px;width:100%;margin-top:9px}select:focus-visible{outline:3px solid var(--mint);outline-offset:3px}select:disabled{opacity:.65;cursor:not-allowed}.overclock-card .setting-note{line-height:1.8;margin-bottom:0}.overclock-card{grid-column:1/-1}
