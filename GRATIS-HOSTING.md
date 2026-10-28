@@ -1,6 +1,6 @@
 # RetroRoom: uitnodigingen met eigen ROMs
 
-De site blijft voorlopig ongepubliceerd. Codewijzigingen voeren alleen tests uit.
+Codewijzigingen voeren alleen tests uit. De eigenaar kan de site handmatig publiceren.
 GitHub Pages kan uitsluitend handmatig worden gepubliceerd via de Pages-workflow
 (`workflow_dispatch`), nadat de eigenaar daar expliciet voor kiest.
 
@@ -26,14 +26,21 @@ vanuit de website worden geladen.
 | Statische website, wanneer handmatig gepubliceerd | GitHub Pages |
 | Uitnodigingen en signalering | Gedeelde PeerJS Cloud-dienst |
 | Directe verbinding ontdekken | Google STUN |
-| Spelinvoer en synchronisatie | Rechtstreeks via WebRTC |
-| TURN of andere relay | Uitgeschakeld |
+| Spelinvoer en synchronisatie, eerste keuze | Rechtstreeks via WebRTC |
+| Fallback als P2P niet lukt | Itty Sockets (WebSocket over TLS, AES-GCM-berichten) |
+| TURN | Uitgeschakeld |
 
 Er is geen betaalde relay of databundel geactiveerd. Sommige mobiele,
-bedrijfsnetwerken en routers kunnen rechtstreeks verbinden blokkeren. Deze
-versie heeft geen relay om daarop terug te vallen. Externe diensten geven geen
+bedrijfsnetwerken en routers kunnen rechtstreeks verbinden blokkeren. Na ongeveer 10 seconden zonder werkende P2P-verbinding probeert de gast automatisch Itty Sockets. De host houdt daarvoor een wachtverbinding open; bij werkend P2P gaat er geen spelverkeer via Itty. Ook de relay kan door een firewall worden geblokkeerd en kan meer vertraging geven. Externe diensten geven geen
 garantie op beschikbaarheid of onbeperkt gratis gebruik.
 
 ROM-bytes blijven in tijdelijk geheugen op het apparaat dat ze lokaal kiest.
 PeerJS ontvangt verbindingsmetadata; Google STUN ziet netwerkadressen. Er is
 geen account, openbare lobby, opslag van ROMs of ROM-downloadservice.
+
+De volledige uitnodigingslink bevat een willekeurige encryptiesleutel in het URL-fragment.
+Deze sleutel wordt niet naar de relay verstuurd. De relay ontvangt versleutelde spelberichten,
+maar ziet IP-adressen, de kamer-id en timing. Deel de link alleen met je medespeler.
+Er worden ook via de fallback geen ROM-bestanden of emulator-snapshots doorgestuurd.
+De gratis dienst heeft anti-misbruiklimieten en geen SLA:
+https://ittysockets.com/pricing en https://ittysockets.com/terms.

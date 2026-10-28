@@ -31,7 +31,7 @@ test('invitations accept only valid new room IDs, never arbitrary server endpoin
 });
 
 test('only an active host accepts one invited guest and closing invalidates the old link', async () => {
-  const invites = new InviteConnection(FakePeer);
+  const invites = new InviteConnection(FakePeer, { RelayRoomClass: null });
   let accepted = 0;
   invites.addEventListener('guest-joined', () => accepted++);
   await invites.create({ name: 'Axel', game: 'Room Rally' });
@@ -49,7 +49,7 @@ test('only an active host accepts one invited guest and closing invalidates the 
 });
 
 test('a guest waits for the matching host handshake and cannot accept incoming players', async () => {
-  const invites = new InviteConnection(FakePeer);
+  const invites = new InviteConnection(FakePeer, { RelayRoomClass: null });
   let joined = 0; invites.addEventListener('joined', () => joined++);
   await invites.join(id, 'Gast');
   const connection = invites.connection;
@@ -64,12 +64,12 @@ test('a guest waits for the matching host handshake and cannot accept incoming p
 });
 
 test('unavailable host releases a pending invitation so a fresh link can be tried', async () => {
-  const invites = new InviteConnection(FakePeer);
-  let message; invites.addEventListener('error', e => { message = e.detail.message; });
+  const invites = new InviteConnection(FakePeer, { RelayRoomClass: null });
+  let message; invites.addEventListener('rejected', e => { message = e.detail.message; });
   await invites.join(id, 'Gast');
   const stale = invites.connection;
   invites.endpoint.emit('error', { type: 'peer-unavailable' });
-  assert.equal(invites.connection, null); assert.match(message, /gesloten/);
+  assert.equal(invites.connection, null); assert.match(message, /volledige nieuwe uitnodigingslink/);
   await invites.join(id, 'Gast'); const current = invites.connection;
   stale.emit('close'); assert.equal(invites.connection, current);
   invites.leave();
@@ -77,7 +77,7 @@ test('unavailable host releases a pending invitation so a fresh link can be trie
 
 
 test('older clients with ROM sharing cannot join a local-ROM-only host', async () => {
-  const invites=new InviteConnection(FakePeer);await invites.create({game:'Room Rally'});
+  const invites=new InviteConnection(FakePeer, { RelayRoomClass: null });await invites.create({game:'Room Rally'});
   const old=new FakeConnection({app:'retroroom',version:1,name:'Old client'});
   invites.accept(old);old.emit('open');
   assert.equal(old.messages[0].type,'rejected');assert.equal(invites.connection,null);

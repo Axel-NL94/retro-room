@@ -15,7 +15,7 @@ let peer = null, roomId = null, isHost = true, remoteReady = false, localReady =
 let mode = 'idle', pausedMode = null, session = null, epoch = null;
 let expectedGame = null, guestLoading = false, nickname = readSetting('name') || '';
 let lastTime = 0, accumulator = 0, fpsCount = 0, fpsTime = 0, lastHash = -1;
-let toastTimer, peerTimeout;
+let toastTimer;
 const checks = new Map(), pressed = new Set(), touched = new Set();
 const keyMap = { KeyX: 0, KeyZ: 1, ShiftLeft: 2, ShiftRight: 2, Enter: 3,
   ArrowUp: 4, ArrowDown: 5, ArrowLeft: 6, ArrowRight: 7, KeyC: 8, KeyV: 9, KeyQ: 10, KeyE: 11 };
@@ -67,7 +67,7 @@ function showRoom() {
   $('room-status').textContent = 'Klaar om te spelen';
   $('solo-button').textContent = 'Speel solo';
   $('play-mode').textContent = roomId ? 'Privékamer · twee spelers' : 'Lokaal · solo';
-  $('route-value').textContent = roomId ? 'Verbinden…' : 'Lokaal';
+  $('route-value').textContent = peer?.opened ? peer.route : roomId ? 'Verbinden…' : 'Lokaal';
   updateActions(); window.scrollTo({ top: 0, behavior: 'instant' });
 }
 function draw(frame, width = 256, height = 240) {
@@ -114,7 +114,7 @@ function updateAudio() {
   $('audio-button').textContent = audio.enabled ? '♫' : '♪';
 }
 function updateActions() {
-  const connected = peer?.control?.readyState === 'open';
+  const connected = peer?.opened && peer?.control?.readyState === 'open';
   $('guest-rom-card').hidden = isHost || !expectedGame;
   $('guest-rom-file').disabled = guestLoading || localReady || mode === 'online' || mode === 'paused';
   $('guest-demo-button').hidden = !expectedGame?.demo;
@@ -160,7 +160,7 @@ function resume(send = true) {
   $('game').focus(); updateActions();
 }
 function resetPeer() {
-  clearTimeout(peerTimeout); expectedGame = null; guestLoading = false;
+  expectedGame = null; guestLoading = false;
   peer?.close(); peer = null; remoteReady = false; localReady = false;
   $('guest-rom-card').hidden = true; $('guest-rom-file').value = ''; $('ping-value').textContent = '—';
   $('route-value').textContent = 'Niet verbonden';
@@ -179,12 +179,9 @@ function setupPeer(connection, host) {
   if (mode === 'solo') stop();
   peer = new PeerConnection(connection, host);
   const current = peer;
-  peerTimeout = setTimeout(() => {
-    if (current === peer && current.pc.connectionState !== 'connected') fatal('Rechtstreeks verbinden lukt niet op dit netwerk. Probeer een ander netwerk; deze versie heeft geen relay.');
-  }, 20000);
   peer.addEventListener('open', () => {
     if (current !== peer) return;
-    clearTimeout(peerTimeout); stop();
+    stop(); $('route-value').textContent = current.route;
     $('room-message').textContent = host ? 'Speler 2 is verbonden en kiest nu een eigen ROM.' : 'Verbonden. Wachten op de gamegegevens van de host.';
     updateActions();
     if (host) {
@@ -203,7 +200,7 @@ function setupPeer(connection, host) {
   peer.addEventListener('error', ({ detail }) => { if (current === peer && !current.closed) fatal(detail); });
   peer.addEventListener('state', ({ detail }) => {
     if (current !== peer) return;
-    if (detail === 'failed') fatal('Rechtstreeks verbinden lukt hier niet. Probeer een ander netwerk of vraag een nieuwe uitnodiging.');
+    if (!current.opened) { if (detail === 'failed' && !host) void invites.fallback(); return; }
     if (detail === 'disconnected' || detail === 'closed') {
       stop('De verbinding met de andere speler is weggevallen. Verlaat de kamer en verbind opnieuw.');
       remoteReady = false; updateActions();
@@ -348,7 +345,7 @@ requestAnimationFrame(loop);
 
 function invitationUrl() {
   const url = new URL(location.href);
-  url.hash = new URLSearchParams({ room: roomId }).toString();
+  url.hash = new URLSearchParams({ room: roomId, key: invites.secret }).toString();
   return url.href;
 }
 function connectionStatus(online) {
@@ -359,6 +356,13 @@ invites.addEventListener('online', () => connectionStatus(true));
 invites.addEventListener('offline', () => {
   connectionStatus(false);
   if (roomId) toast('De uitnodigingsdienst is even weg. Een bestaande spelverbinding blijft actief.');
+});
+invites.addEventListener('fallback', ({ detail }) => {
+  if ($('join-dialog').open) $('join-error').textContent = detail.message;
+  if (roomId) { $('route-value').textContent = 'Fallback verbinden…'; $('room-message').textContent = detail.message; }
+});
+invites.addEventListener('relay-unavailable', () => {
+  if (isHost && roomId) toast('Itty Sockets is niet bereikbaar. P2P blijft beschikbaar, maar de fallback werkt nu niet.');
 });
 invites.addEventListener('error', ({ detail }) => { resetPeer(); report(detail.message); });
 invites.addEventListener('rejected', ({ detail }) => {
@@ -374,6 +378,7 @@ invites.addEventListener('created', ({ detail }) => {
   $('room-message').textContent = 'Je privékamer staat klaar. Deel de uitnodigingslink en houd deze pagina open.';
   $('player-two').textContent = 'Nog een plekje vrij';
 });
+invites.addEventListener('negotiating', () => { isHost = false; $('join-error').textContent = 'Eerst rechtstreeks verbinden met de host…'; });
 invites.addEventListener('joining', ({ detail }) => {
   isHost = false; game = null; roomId = null;
   $('join-error').textContent = 'Verbinding maken met de host…';
@@ -473,7 +478,7 @@ $('create-form').onsubmit = async event => {
 $('join-form').onsubmit = async event => {
   event.preventDefault(); $('join-error').textContent = '';
   try {
-    const code = parseInvitation($('join-code').value);
+    const code = $('join-code').value.trim(); parseInvitation(code);
     nickname = $('guest-name').value.trim(); saveSetting('name', nickname);
     $('join-submit').disabled = true;
     await invites.join(code, nickname);
@@ -561,6 +566,7 @@ setInterval(async () => {
         peer.send('control', { type: 'hash', ...checkpoint, epoch }); lastHash = checkpoint.frame;
       }
     }
+    if (peer.route === 'Itty Sockets') { $('route-value').textContent = 'Itty Sockets'; return; }
     const stats = await peer.pc.getStats();
     for (const value of stats.values()) {
       if (value.type === 'transport' && value.selectedCandidatePairId) {
