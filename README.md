@@ -1,13 +1,14 @@
 # RetroRoom
 
 **Oude games. Samen opnieuw.** NES en SNES samen spelen in de browser via
-uitnodigingslinks. De site staat op https://axel-nl94.github.io/retro-room/ en de
-bron op https://github.com/Axel-NL94/retro-room.
+uitnodigingslinks. De site op https://axel-nl94.github.io/retro-room/ is momenteel
+ongepubliceerd. De bron staat op https://github.com/Axel-NL94/retro-room.
 
 De emulator is **MesenCE**, een moderne Mesen-core die naar WebAssembly is
 gecompileerd. NES is beschikbaar; SNES is een eerste **beta**. De host kiest een
-lokale ROM. De gast ontvangt dezelfde bytes rechtstreeks via WebRTC en speelt
-in een eigen emulator op het eigen apparaat. Tijdens het spelen worden kleine
+lokale ROM. De gast kiest zelf dezelfde ROM op het eigen apparaat. Een lokale
+SHA-256-controle vergelijkt het bestand met de hash van de host. ROM-bestanden
+worden niet tussen spelers verstuurd. Tijdens het spelen worden kleine
 controllerberichten en controlehashes uitgewisseld.
 
 ## Samen spelen
@@ -15,7 +16,9 @@ controllerberichten en controlehashes uitgewisseld.
 1. Kies **Maak een kamer** en selecteer `.nes`, `.sfc` of `.smc`, of gebruik de demo.
 2. Deel de uitnodigingslink en houd de kamer open.
 3. De gast opent de link, vult een naam in en kiest **Speel mee**.
-4. Na automatische ROM-overdracht en SHA-256-controle kiest de gast **Ik ben klaar**.
+4. De gast kiest onder **Jouw ROM** hetzelfde lokale bestand en klikt na de
+   SHA-256-controle op **Ik ben klaar**. Een afwijkende versie, regio of hack
+   wordt geweigerd; er is geen overdrachtsfunctie of terugval naar downloaden.
 5. De host kiest **Start samen**.
 
 Een kamer heeft plek voor twee spelers en staat niet in een openbare lijst.
@@ -33,15 +36,17 @@ op beschikbaarheid of onbeperkt gratis gebruik. Zie [GRATIS-HOSTING.md](GRATIS-H
 
 - Moderne MesenCE-core, vastgezet op `4c4e069f16a8ad6ed79e046046c56d51558c7daf`.
 - NES met iNES/NES 2.0 en SNES met `.sfc`/`.smc`; maximaal 8 MB per ROM.
-- Gamebytes blijven intact en gaan rechtstreeks tussen browsers. Mesen laadt ze
-  in tijdelijk WebAssembly-geheugen; er worden geen ROMs naar een spelserver geüpload.
+- Iedere speler laadt eigen gamebytes in tijdelijk WebAssembly-geheugen.
+  ROM-bytes worden niet verstuurd naar een andere speler of een spelserver.
+  Alleen een expliciete set kleine protocolberichten mag het netwerk op.
+  Er bestaat geen ROM-datakanaal, bestandszender of bestandsontvanger.
 - Twee lokale emulatorinstanties, 2 frames invoervertraging en maximaal 12
   voorspellingsframes. Vertraagde invoer leidt tot rollback.
 - Native Mesen-snapshots; controlehashes stoppen de game als de toestanden afwijken.
 - Dezelfde startinstellingen bij beide spelers, waaronder deterministische NES/SNES-RAM.
 - Toetsenbord, gamepads, aanraakknoppen, geluid, volledig scherm en samen pauzeren.
 - Speltiming volgt de FPS van de geladen Mesen-core.
-- De originele, vrij meegeleverde NES-homebrew **Room Rally**. Geen commerciële ROMs
+- De originele, vrij meegeleverde NES-homebrew **Room Rally**, die beide spelers zelf vanuit de site kunnen laden. Geen commerciële ROMs
   of BIOS-bestanden worden meegeleverd.
 
 De eerste emulator-download is ongeveer 5,8 MB. Mesen begint met 96 MiB Wasm-geheugen
@@ -87,8 +92,11 @@ Open `http://localhost:4173`. De server is een ontwikkelpreview; spelers gebruik
 GitHub Pages. Ook in de preview lopen uitnodigingen via PeerJS Cloud. Bouw opnieuw
 na bronwijzigingen. Solo heeft na het laden van de website geen PeerJS nodig.
 
-De workflow **Test and deploy GitHub Pages** test en publiceert iedere push naar
-`main`. Onder **Settings → Pages → Source** staat **GitHub Actions**. Er zijn geen
+De workflow **Check project** test iedere pull request en push naar `main`.
+De workflow **Test and deploy GitHub Pages** staat voor publicatie op
+**alleen handmatig** via `workflow_dispatch`; een codewijziging zet de site niet
+automatisch opnieuw online. De site blijft ongepubliceerd totdat de eigenaar
+expliciet kiest voor opnieuw publiceren. Onder **Settings → Pages → Source** staat **GitHub Actions**. Er zijn geen
 serveradressen, API-sleutels of geheimen nodig. Oude `RETROROOM_SERVER_URL`-instellingen
 worden door deze frontend niet gebruikt. Alle paden werken onder `/retro-room/`.
 Buildmarkeringen voorkomen gemengde gecachte versies. Beide spelers moeten na
@@ -102,7 +110,8 @@ web/assets/mesen-*      Core, complete bijbehorende broncode en buildmetadata
 native/mesen-web.cpp    Libretro-frontend voor framebesturing, video, audio en input
 scripts/build-mesen.py  Native build met vastgezette Emscripten-toolchain
 web/src/rollback.js     Invoer per frame, voorspelling, rollback en hashes
-web/src/connection.js   PeerJS-uitnodigingen en WebRTC-datakanalen
+web/src/connection.js   PeerJS-uitnodigingen en WebRTC voor invoer en metadata
+web/src/protocol.js     Kleine netwerkberichten en vergelijking van lokale ROMs
 web/src/app.js          Kamerinterface, invoer en spelverloop
 web/src/audio*.js       Web Audio-uitvoer op 48 kHz
 scripts/demo-rom.js     Originele Room Rally-ROM
@@ -115,9 +124,14 @@ Een native rebuild staat beschreven in [native/README.md](native/README.md).
 De code vereist geen SharedArrayBuffer, desktopinstallatie of bijzondere
 COOP/COEP-headers. Daardoor kan de statische frontend op GitHub Pages draaien.
 
-PeerJS beheert het betrouwbare JSON-controlkanaal. ROM en ongeordende betrouwbare
-inputs hebben aparte kanalen op dezelfde RTCPeerConnection. De ROM wordt vooraf
-verstuurd, in blokken van 16 KiB. De gast start pas na een passende kamerhandshake.
+PeerJS beheert het betrouwbare JSON-controlkanaal. Daarnaast bestaat alleen een
+ongeordend betrouwbaar invoerkanaal op dezelfde RTCPeerConnection. Het protocol
+stuurt een gamenaam, console, bestandsgrootte, SHA-256-hash en overclockinstelling;
+geen bestandsinhoud, downloadadres of externe bestandspaden. De gast selecteert
+zelf een lokaal bestand dat exact overeenkomt. De ingebouwde originele demo kan
+op ieder apparaat vanuit de site worden geladen. Oudere clients met de functie
+voor bestandsdeling worden al tijdens de uitnodigingshandshake geweigerd.
+De gast start pas na een passende kamerhandshake.
 Iedere 120 frames wordt een bevestigde snapshot beschikbaar voor hashcontrole.
 De host verstuurt ongeveer iedere twee seconden een hash. Bij een afwijking stopt
 de game; hashes zijn een synchronisatiecontrole, geen anti-cheatmechanisme.

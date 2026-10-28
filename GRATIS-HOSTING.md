@@ -1,60 +1,39 @@
-# Gratis spelen met uitnodigingslinks
+# RetroRoom: uitnodigingen met eigen ROMs
 
-De site staat op https://axel-nl94.github.io/retro-room/.
-De huidige versie gebruikt Mesen-emulatie voor NES en SNES (beta), met **privékamers en uitnodigingslinks**.
-Je hoeft geen eigen server te draaien en geen Render- of TURN-account aan te maken.
+De site blijft voorlopig ongepubliceerd. Codewijzigingen voeren alleen tests uit.
+GitHub Pages kan uitsluitend handmatig worden gepubliceerd via de Pages-workflow
+(`workflow_dispatch`), nadat de eigenaar daar expliciet voor kiest.
 
-| Onderdeel | Huidige oplossing |
+## Spelen
+
+1. De host maakt een kamer met een eigen NES- of SNES-ROM.
+2. De host deelt de uitnodigingslink en houdt de pagina open.
+3. Speler 2 opent de kamer en kiest zelf hetzelfde lokale ROM-bestand.
+4. Beide browsers berekenen lokaal de SHA-256-hash. Bij een andere versie,
+   regio of ROM-hack kan het spel niet starten.
+5. Speler 2 kiest **Ik ben klaar** en de host **Start samen**.
+
+ROM-bestanden worden nooit tussen spelers doorgestuurd. Er is geen bestandkanaal
+of overdrachtsoptie in de netwerkcode. Alleen gamegegevens (naam, console,
+bestandsgrootte, hash en overclock), controllerinvoer en synchronisatieberichten
+worden uitgewisseld. De eigen originele Room Rally-demo kan op beide apparaten
+vanuit de website worden geladen.
+
+## Diensten
+
+| Onderdeel | Dienst |
 |---|---|
-| Website | GitHub Pages |
-| Browsers bij elkaar brengen | De gedeelde PeerJS Cloud-dienst |
-| Directe verbinding vinden | Google STUN |
-| ROM en controllerinvoer | Rechtstreeks via WebRTC tussen de spelers |
-| TURN-relay | Uitgeschakeld |
+| Statische website, wanneer handmatig gepubliceerd | GitHub Pages |
+| Uitnodigingen en signalering | Gedeelde PeerJS Cloud-dienst |
+| Directe verbinding ontdekken | Google STUN |
+| Spelinvoer en synchronisatie | Rechtstreeks via WebRTC |
+| TURN of andere relay | Uitgeschakeld |
 
-Er is geen TURN-databundel in deze opzet: het spelverkeer gaat niet door een
-relay. Dit is geen garantie op onbeperkt gratis gebruik van externe diensten.
-PeerJS Cloud is een gedeelde dienst zonder beschikbaarheidsgarantie en adviseert
-voor drukke toepassingen een eigen dienst. De website blijft ook onderhevig aan
-de gebruikslimieten van GitHub Pages.
+Er is geen betaalde relay of databundel geactiveerd. Sommige mobiele,
+bedrijfsnetwerken en routers kunnen rechtstreeks verbinden blokkeren. Deze
+versie heeft geen relay om daarop terug te vallen. Externe diensten geven geen
+garantie op beschikbaarheid of onbeperkt gratis gebruik.
 
-## Gebruik
-
-1. Open de site en kies **Maak een kamer**.
-2. Selecteer een NES- of SNES-ROM of de meegeleverde Room Rally-demo.
-3. Kopieer de uitnodigingslink en deel die met je vriend. Houd je kamer open.
-4. Je vriend opent de link, vult een naam in en klikt op **Speel mee**.
-5. De ROM gaat automatisch naar de andere browser. De gast klikt op **Ik ben klaar**;
-   daarna start de host met **Start samen**.
-
-Een kamer heeft plek voor twee spelers. De link werkt totdat de host de kamer
-verlaat, de pagina vernieuwt of de browser sluit. Een nieuwe kamer krijgt een
-nieuwe willekeurige link. Iedereen die de link heeft kan proberen mee te doen;
-deel hem dus alleen met je gewenste medespeler.
-
-## Als verbinden niet lukt
-
-Strenge routers, sommige mobiele verbindingen en bedrijfsnetwerken kunnen een
-directe verbinding blokkeren. Zonder TURN is daar geen automatische omweg voor.
-Probeer een ander netwerk, bijvoorbeeld een andere wifi-verbinding, en maak zo
-nodig een nieuwe kamer. Een uitnodigingslink verandert deze netwerkbeperking niet.
-
-De kleine PeerJS-dienst helpt alleen bij het opzetten van de verbinding. ROMs
-en controllerinvoer lopen rechtstreeks tussen browsers. PeerJS verwerkt daarbij
-verbindingsmetadata zoals peer-ID's en WebRTC-verbindingsgegevens. Google STUN
-helpt het publieke netwerkadres bepalen. Er worden geen gebruikersaccounts gemaakt.
-
-## Latere uitbreiding
-
-De eerdere Node-lobbyserver, Dockerfile en `render.yaml` blijven beschikbaar als
-voorbereidend werk voor een eventuele latere lobby. Ze worden door de huidige
-uitnodigingsversie niet gebruikt en hoeven niet te worden uitgerold. De oude
-`RETROROOM_SERVER_URL`-instelling is niet meer nodig. Een publieke kamerlijst en
-TURN-terugval zijn nu geen onderdeel van de site.
-
-Officiële bronnen, gecontroleerd op 27 oktober 2026:
-
-- https://peerjs.com/server/cloud
-- https://peerjs.com/client/getting-started
-- https://peerjs.com/client/api/peer
-- https://github.com/peers/peerjs-server
+ROM-bytes blijven in tijdelijk geheugen op het apparaat dat ze lokaal kiest.
+PeerJS ontvangt verbindingsmetadata; Google STUN ziet netwerkadressen. Er is
+geen account, openbare lobby, opslag van ROMs of ROM-downloadservice.

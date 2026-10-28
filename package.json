@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Oude games. Samen opnieuw. Browser NES netplay met ROM-overdracht en rollback.",
+  "description": "Oude games. Samen opnieuw. Browser NES en SNES netplay met eigen ROMs en rollback.",
   "engines": {
     "node": ">=22"
   },
