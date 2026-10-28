@@ -84,8 +84,8 @@ EMSCRIPTEN_KEEPALIVE int rr_init() {
 }
 EMSCRIPTEN_KEEPALIVE int rr_load(const uint8_t* data, size_t size, const char* path, unsigned overclock) {
   try {
-    if(overclock < 100 || overclock > 300 || overclock % 25) {
-      rr_error="Kies een CPU-overclock van 100% tot 300%, in stappen van 25%."; return 0;
+    if(overclock < 100 || overclock > 500 || overclock % 100) {
+      rr_error="Kies een CPU-overclock van 100%, 200%, 300%, 400% of 500%."; return 0;
     }
     if(rr_loaded) retro_unload_game();
     rr_loaded=false; rr_buttons[0]=rr_buttons[1]=0; rr_samples.clear(); rr_pixels.clear();

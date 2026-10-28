@@ -26,7 +26,7 @@ produced while replaying speculative frames is not sent to Web Audio.
 
 ## CPU overclock
 
-The host selects 100–300% in 25% steps before the guest connects. Mesen adds
+The host selects 100%, 200%, 300%, 400% or 500% before the guest connects. Mesen adds
 extra scanlines before NMI to give the CPU more work time within each video
 frame; this is an approximate CPU-time percentage, not a literal MHz multiplier.
 NTSC uses 262 base scanlines and PAL/Dendy 312. Video cadence and audio retain
@@ -35,7 +35,7 @@ their normal speed. SNES enhancement-chip clocks are unchanged.
 Both peers receive and validate the same setting before ROM loading and starting.
 The setting is locked while a guest is connecting or connected; changes otherwise
 restart the emulated machine. Rollback snapshots exclude settings, so the selected
-value must be applied again on every ROM load/reset. Netplay protocol web-2 rejects
+value must be applied again on every ROM load/reset. The versioned netplay protocol rejects
 older clients. Overclocking can break timing-sensitive games and uses more CPU.
 
 ## Build
@@ -70,3 +70,9 @@ upstream sources (including dependencies), applied patches, browser frontend
 and build script accompany the binary in `web/assets/mesen-source.tar.gz`.
 `web/assets/mesen-build.json` records the source revision, toolchain and SHA-256
 checksums. No game ROM or BIOS is included in that source archive.
+
+Local savestate files use the uncompressed core snapshot with a versioned RetroRoom
+header, ROM SHA-256, CPU setting and payload SHA-256. They contain no ROM. Imported
+states are restored on a separate emulator instance before replacing a solo game.
+The current upstream Libretro save-RAM accessors return null/zero; battery-save
+export is therefore not exposed.
