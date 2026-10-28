@@ -1,7 +1,7 @@
 import { romHash } from './emulator.js';
 
-export const NETPLAY_VERSION = 'retroroom-mesence-4c4e069-local-rom-3';
-export const INVITE_VERSION = 2;
+export const NETPLAY_VERSION = 'retroroom-mesence-4c4e069-local-rom-relay-4';
+export const INVITE_VERSION = 3;
 export const OVERCLOCK_VALUES = Object.freeze([100, 125, 150, 175, 200, 225, 250, 275, 300]);
 export function validateOverclock(value) {
   if (!OVERCLOCK_VALUES.includes(value)) throw new Error('Kies een CPU-overclock van 100% tot 300%, in stappen van 25%.');
