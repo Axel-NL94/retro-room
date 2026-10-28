@@ -530,8 +530,35 @@ $('start-button').onclick = () => startTogether().catch(report);
 $('restart-button').onclick = () => { stop(); startTogether().catch(report); };
 $('pause-button').onclick = () => { try { mode === 'paused' ? resume() : pause(); } catch (error) { report(error); } };
 $('audio-button').onclick = async () => { if (audio.enabled) { audio.mute(); updateAudio(); } else await enableAudio(); };
+const playPanel = $('play-panel');
+let fullscreenControlsTimer;
+function applyScreenFit(value) {
+  const fit = value === 'fill' ? 'fill' : 'contain';
+  playPanel.dataset.screenFit = fit; $('screen-fit').value = fit;
+  saveSetting('screen-fit', fit);
+}
+applyScreenFit(readSetting('screen-fit'));
+$('screen-fit').onchange = event => applyScreenFit(event.target.value);
+function revealFullscreenControls() {
+  if (document.fullscreenElement !== playPanel) return;
+  playPanel.classList.add('fullscreen-controls-visible');
+  clearTimeout(fullscreenControlsTimer);
+  fullscreenControlsTimer = setTimeout(() => {
+    if (!playPanel.querySelector('.screen-toolbar:focus-within, .game-bottom:focus-within, .touch-controls:focus-within')) {
+      playPanel.classList.remove('fullscreen-controls-visible');
+    }
+  }, 2500);
+}
+for (const type of ['pointermove', 'pointerdown', 'keydown', 'focusin']) playPanel.addEventListener(type, revealFullscreenControls);
+document.addEventListener('fullscreenchange', () => {
+  const fullscreen = document.fullscreenElement === playPanel;
+  const label = fullscreen ? 'Volledig scherm verlaten' : 'Volledig scherm';
+  $('fullscreen-button').setAttribute('aria-label', label); $('fullscreen-button').title = label;
+  clearTimeout(fullscreenControlsTimer); playPanel.classList.remove('fullscreen-controls-visible');
+  if (fullscreen) { $('game').focus(); revealFullscreenControls(); }
+});
 $('fullscreen-button').onclick = async () => {
-  try { document.fullscreenElement ? await document.exitFullscreen() : await $('play-panel').requestFullscreen(); }
+  try { document.fullscreenElement ? await document.exitFullscreen() : await playPanel.requestFullscreen(); }
   catch { toast('Volledig scherm is hier niet beschikbaar.'); }
 };
 $('copy-button').onclick = async () => {
