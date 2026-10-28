@@ -57,6 +57,14 @@ op beschikbaarheid of onbeperkt gratis gebruik. Zie [GRATIS-HOSTING.md](GRATIS-H
   Savestates bevatten geen ROM en worden niet via het netwerk gedeeld. Tijdens online
   spelen zijn export en import uitgeschakeld om desynchronisatie te voorkomen.
 - Speltiming volgt de FPS van de geladen Mesen-core.
+- Fullscreen, wisselen van tabblad en minimaliseren zetten solo of multiplayer
+  niet automatisch op pauze. Gebruik de pauzeknop; online pauzeren beide spelers.
+  Verborgen pagina's gebruiken een workerklok omdat schermverversing daar stopt.
+  Losgelaten focus wist de invoer; verborgen spelers sturen neutrale knoppen.
+  De browser of het besturingssysteem kan een achtergrondpagina nog vertragen,
+  bevriezen of sluiten, vooral op mobiel of in energiebesparing. Continu doorspelen
+  kan daarom niet op ieder apparaat worden gegarandeerd. Een handmatige pauze
+  blijft bij terugkeren actief; gemiste tijd wordt niet versneld ingehaald.
 - De originele, vrij meegeleverde NES-homebrew **Room Rally**, die beide spelers zelf vanuit de site kunnen laden. Geen commerciële ROMs
   of BIOS-bestanden worden meegeleverd.
 
@@ -125,6 +133,7 @@ web/src/connection.js   Uitnodigingen, P2P eerst en automatische fallback
 web/src/relay.js        Itty WebSocket-transport, versleuteling en invoerbundeling
 web/src/protocol.js     Kleine netwerkberichten en vergelijking van lokale ROMs
 web/src/savestate.js    Lokaal savestateformaat, compatibiliteit en checksum
+web/src/playback-*.js   Voorgrond-/achtergrondklok, onafhankelijk van pauzeren
 web/src/app.js          Kamerinterface, invoer en spelverloop
 web/src/audio*.js       Web Audio-uitvoer op 48 kHz
 scripts/demo-rom.js     Originele Room Rally-ROM

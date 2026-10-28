@@ -5,6 +5,7 @@ import { AudioSink } from './audio.js';
 import { MesenCore, MESEN_BUILD, cartridgeSystem, validateOverclock } from './mesen.js';
 import { encodeSavestate, decodeSavestate, savestateFilename, MAX_SAVESTATE_FILE } from './savestate.js';
 import { createGameConfig, validateGameConfig, verifyLocalRom } from './protocol.js';
+import { PlaybackClock } from './playback-clock.js';
 
 const $ = id => document.getElementById(id);
 const invites = new InviteConnection();
@@ -33,6 +34,7 @@ function overlay(title, description) {
   $('screen-overlay').querySelector('p').textContent = description;
 }
 function stop(message) {
+  playbackClock.setRunning(false);
   mode = 'idle'; session = null; pausedMode = null; audio.clear();
   $('fps-value').textContent = '—';
   $('pause-button').disabled = true; $('pause-button').textContent = 'Pauzeren';
@@ -119,6 +121,7 @@ function updateAudio() {
   $('audio-button').textContent = audio.enabled ? '♫' : '♪';
 }
 function updateActions() {
+  playbackClock.setRunning(!!core && ['solo', 'online'].includes(mode));
   const connected = peer?.opened && peer?.control?.readyState === 'open';
   $('guest-rom-card').hidden = isHost || !expectedGame;
   $('guest-rom-file').disabled = guestLoading || localReady || mode === 'online' || mode === 'paused';
@@ -296,6 +299,7 @@ function checkGameSettings(message) {
   if (message.overclock !== game?.overclock) throw new Error('Jullie CPU-overclock komt niet overeen. Verbind opnieuw met de kamer.');
 }
 function buttons(map, padIndex = 0, touch = false) {
+  if (document.hidden) return 0;
   let bits = 0;
   for (const key of pressed) if (map[key] !== undefined) bits |= 1 << map[key];
   if (touch) for (const b of touched) bits |= 1 << b;
@@ -320,7 +324,6 @@ function buttons(map, padIndex = 0, touch = false) {
   return game?.system === 'snes' ? bits : bits & 255;
 }
 function loop(time) {
-  requestAnimationFrame(loop);
   if (!core || !['solo', 'online'].includes(mode)) { lastTime = time; return; }
   if (!lastTime) lastTime = time;
   accumulator = Math.min(accumulator + time - lastTime, 100); lastTime = time;
@@ -352,7 +355,7 @@ function loop(time) {
     }
   } catch (error) { fatal(error); }
 }
-requestAnimationFrame(loop);
+const playbackClock = new PlaybackClock(loop);
 
 function invitationUrl() {
   const url = new URL(location.href);
@@ -684,9 +687,13 @@ document.addEventListener('keydown', event => {
   if (keyMap[event.code] !== undefined || secondKeys[event.code] !== undefined) { event.preventDefault(); pressed.add(event.code); }
 });
 document.addEventListener('keyup', event => pressed.delete(event.code));
-window.addEventListener('blur', () => pressed.clear());
+function releaseButtons() {
+  pressed.clear(); touched.clear();
+  document.querySelectorAll('[data-pad].pressed').forEach(button => button.classList.remove('pressed'));
+}
+window.addEventListener('blur', releaseButtons);
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden) { pressed.clear(); touched.clear(); try { pause(); } catch { /* Connection may be closing. */ } }
+  if (document.hidden) releaseButtons();
 });
 document.querySelectorAll('[data-pad]').forEach(button => {
   button.onpointerdown = event => { event.preventDefault(); button.setPointerCapture(event.pointerId); touched.add(Number(button.dataset.pad)); button.classList.add('pressed'); };
