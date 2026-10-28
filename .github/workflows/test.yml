@@ -1,5 +1,8 @@
-name: Check pull requests
-on: [pull_request]
+name: Check project
+on:
+  pull_request:
+  push:
+    branches: [main]
 permissions:
   contents: read
 jobs:
