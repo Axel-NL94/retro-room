@@ -12,7 +12,7 @@ controllerberichten en controlehashes uitgewisseld.
 
 ## Samen spelen
 
-1. Kies **Maak een kamer** en selecteer `.nes`, `.sfc` of `.smc`, of gebruik de demo.
+1. Kies **Maak een kamer**, kies NES of SNES en selecteer je ROM, of gebruik de NES-demo.
 2. Deel de uitnodigingslink en houd de kamer open.
 3. De gast opent de link, vult een naam in en kiest **Speel mee**.
 4. De gast kiest onder **Jouw ROM** hetzelfde lokale bestand en klikt na de
@@ -46,15 +46,24 @@ op beschikbaarheid of onbeperkt gratis gebruik. Zie [GRATIS-HOSTING.md](GRATIS-H
 - Toetsenbord, gamepads, aanraakknoppen, geluid, volledig scherm en samen pauzeren.
   Kies boven het beeld **Beeldformaat → Originele verhouding** (hele beeld met eventuele
   randen) of **Schermvullend · uitrekken** (hele scherm, zonder afsnijden). De keuze wordt
-  lokaal bewaard en geldt voor fullscreen. De bediening verschijnt bij muisbeweging,
-  aanraken of toetsenbordfocus; Escape of de fullscreenknop sluit volledig scherm.
+  lokaal bewaard en geldt voor fullscreen. Schermvullend toont uitsluitend de game,
+  ook bij muisbeweging of pauzeren; verlaat die stand met Escape of de browserbediening.
+  Bij originele verhouding verschijnt de bediening bij muisbeweging, aanraken of toetsenbordfocus.
+- **Speel solo** en **Maak een kamer** beginnen met NES- en SNES-consoletegels.
+  Kies daarna je eigen ROM en CPU-instelling. Alleen NES heeft een meegeleverde demo.
+- In solo kun je een savestate downloaden als `.rrstate` en later importeren.
+  Gebruik daarvoor dezelfde ROM, coreversie en CPU-instelling. Importeren controleert
+  bestandsgrootte, metadata en checksum en test de snapshot op een aparte emulatorinstantie.
+  Savestates bevatten geen ROM en worden niet via het netwerk gedeeld. Tijdens online
+  spelen zijn export en import uitgeschakeld om desynchronisatie te voorkomen.
 - Speltiming volgt de FPS van de geladen Mesen-core.
 - De originele, vrij meegeleverde NES-homebrew **Room Rally**, die beide spelers zelf vanuit de site kunnen laden. Geen commerciële ROMs
   of BIOS-bestanden worden meegeleverd.
 
 De eerste emulator-download is ongeveer 5,8 MB. Mesen begint met 96 MiB Wasm-geheugen
 per browser en kan groeien. Prestaties op telefoons en oudere apparaten moeten
-in de praktijk worden getest. Er zijn nog geen blijvende saves, accounts,
+in de praktijk worden getest. Losse batterij-/SRAM-savebestanden zijn nog niet beschikbaar;
+de gebruikte upstream-API levert hiervoor geen data. Er zijn nog geen accounts,
 wachtwoorden, toeschouwers, automatisch sessieherstel of automatische hersynchronisatie.
 
 De browser- en automatische tests gebruiken eigen NES- en SNES-homebrew. Power Blade
@@ -115,6 +124,7 @@ web/src/rollback.js     Invoer per frame, voorspelling, rollback en hashes
 web/src/connection.js   Uitnodigingen, P2P eerst en automatische fallback
 web/src/relay.js        Itty WebSocket-transport, versleuteling en invoerbundeling
 web/src/protocol.js     Kleine netwerkberichten en vergelijking van lokale ROMs
+web/src/savestate.js    Lokaal savestateformaat, compatibiliteit en checksum
 web/src/app.js          Kamerinterface, invoer en spelverloop
 web/src/audio*.js       Web Audio-uitvoer op 48 kHz
 scripts/demo-rom.js     Originele Room Rally-ROM
@@ -158,8 +168,8 @@ Google Fonts zijn optioneel met systeemfonts als terugval.
 
 ### CPU-overclock voor ROM-hacks
 
-De host kan bij het maken van een kamer en onder **Emulator** 100–300% kiezen
-(in stappen van 25%). 100% is standaard. Mesen geeft de virtuele CPU extra tijd
+De solospeler of host kan bij het laden en onder **Emulator** 100%, 200%, 300%,
+400% of 500% kiezen. 100% is standaard. Mesen geeft de virtuele CPU extra tijd
 per beeldframe; de game en audio blijven op normale snelheid. Het percentage is
 een benadering van de beschikbare CPU-tijd, geen exacte MHz-vermenigvuldiging.
 Speler 2 neemt dezelfde waarde over. Zodra een gast verbindt staat de instelling
