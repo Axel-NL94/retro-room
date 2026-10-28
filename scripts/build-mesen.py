@@ -56,6 +56,6 @@ with tarfile.open(archive,'w:gz',compresslevel=9) as tar:
   tar.add(f,arcname=pathlib.Path('mesen-src')/rel,recursive=False,filter=stable)
  for name in ['native/mesen-web.cpp','native/MESEN-LICENSE.txt','native/README.md','scripts/build-mesen.py']:
   tar.add(root/name,arcname=pathlib.Path('retro-room')/name,filter=stable)
-meta={'engine':'MesenCE','revision':PIN,'toolchain':'Emscripten 4.0.19','bridge':'retroroom-web-2','wasmSha256':hashlib.sha256(out.with_suffix('.wasm').read_bytes()).hexdigest(),'sourceArchive':archive.name,'sourceSha256':hashlib.sha256(archive.read_bytes()).hexdigest(),'license':'GPL-3.0-or-later'}
+meta={'engine':'MesenCE','revision':PIN,'toolchain':'Emscripten 4.0.19','bridge':'retroroom-web-3','wasmSha256':hashlib.sha256(out.with_suffix('.wasm').read_bytes()).hexdigest(),'sourceArchive':archive.name,'sourceSha256':hashlib.sha256(archive.read_bytes()).hexdigest(),'license':'GPL-3.0-or-later'}
 (out.parent/'mesen-build.json').write_text(json.dumps(meta,indent=2)+'\n')
 print('Packaged complete source and build checksums.',flush=True)
