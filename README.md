@@ -44,6 +44,10 @@ op beschikbaarheid of onbeperkt gratis gebruik. Zie [GRATIS-HOSTING.md](GRATIS-H
 - Native Mesen-snapshots; controlehashes stoppen de game als de toestanden afwijken.
 - Dezelfde startinstellingen bij beide spelers, waaronder deterministische NES/SNES-RAM.
 - Toetsenbord, gamepads, aanraakknoppen, geluid, volledig scherm en samen pauzeren.
+  Kies boven het beeld **Beeldformaat → Originele verhouding** (hele beeld met eventuele
+  randen) of **Schermvullend · uitrekken** (hele scherm, zonder afsnijden). De keuze wordt
+  lokaal bewaard en geldt voor fullscreen. De bediening verschijnt bij muisbeweging,
+  aanraken of toetsenbordfocus; Escape of de fullscreenknop sluit volledig scherm.
 - Speltiming volgt de FPS van de geladen Mesen-core.
 - De originele, vrij meegeleverde NES-homebrew **Room Rally**, die beide spelers zelf vanuit de site kunnen laden. Geen commerciële ROMs
   of BIOS-bestanden worden meegeleverd.
