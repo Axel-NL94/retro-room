@@ -2,7 +2,8 @@ import { romHash } from './emulator.js';
 import { RollbackSession, NETPLAY_VERSION } from './rollback.js';
 import { InviteConnection, PeerConnection, parseInvitation } from './connection.js';
 import { AudioSink } from './audio.js';
-import { MesenCore, cartridgeSystem, validateOverclock } from './mesen.js';
+import { MesenCore, MESEN_BUILD, cartridgeSystem, validateOverclock } from './mesen.js';
+import { encodeSavestate, decodeSavestate, savestateFilename, MAX_SAVESTATE_FILE } from './savestate.js';
 import { createGameConfig, validateGameConfig, verifyLocalRom } from './protocol.js';
 
 const $ = id => document.getElementById(id);
@@ -16,6 +17,8 @@ let mode = 'idle', pausedMode = null, session = null, epoch = null;
 let expectedGame = null, guestLoading = false, nickname = readSetting('name') || '';
 let lastTime = 0, accumulator = 0, fpsCount = 0, fpsTime = 0, lastHash = -1;
 let toastTimer;
+let launchMode = 'room', selectedSystem = null, launchGeneration = 0, launchBusy = false, launchCommitted = false, currentGameRequested = false;
+let stateBusy = false;
 const checks = new Map(), pressed = new Set(), touched = new Set();
 const keyMap = { KeyX: 0, KeyZ: 1, ShiftLeft: 2, ShiftRight: 2, Enter: 3,
   ArrowUp: 4, ArrowDown: 5, ArrowLeft: 6, ArrowRight: 7, KeyC: 8, KeyV: 9, KeyQ: 10, KeyE: 11 };
@@ -41,7 +44,7 @@ function report(error) {
   for (const [dialog, target] of [['create-dialog', 'create-error'], ['join-dialog', 'join-error']]) {
     if ($(dialog).open) $(target).textContent = message;
   }
-  $('create-submit').disabled = false;
+  if (!launchBusy) $('create-submit').disabled = false;
 }
 function fatal(error) {
   const message = error?.message || String(error);
@@ -49,14 +52,16 @@ function fatal(error) {
   try { peer?.send('control', { type: 'interrupted', message, epoch }); } catch { /* Disconnected. */ }
 }
 function showRoom() {
+  $('savestate-status').textContent = '';
   $('home').hidden = true; $('room-view').hidden = false;
   $('game-title').textContent = game.name;
   $('console-badge').textContent = (game.system === 'snes' ? 'SNES' : 'NES') + ' · MESEN · ALPHA';
+  $('game').setAttribute('aria-label', `${game.system.toUpperCase()}-gamescherm`);
   $('snes-controls-guide').hidden = $('snes-touch').hidden = game.system !== 'snes';
   $('game-hint').textContent = game.demo ? 'Room Rally: tik op A (X) om te racen. Start begint opnieuw.' : 'Pijlen bewegen · X = A · Z = B · Enter = Start';
   $('player-one').textContent = isHost ? nickname || 'Jij' : $('player-one').textContent;
   $('solo-controls').hidden = !!roomId;
-  $('room-subtitle').textContent = roomId ? 'PRIVÉKAMER · UITNODIGING' : 'EVEN PROEFSPELEN';
+  $('room-subtitle').textContent = roomId ? 'PRIVÉKAMER · UITNODIGING' : 'SOLO · LOKAAL';
   $('invite-code').hidden = !roomId;
   $('room-code').textContent = roomId ? 'Alleen via jouw link' : '';
   $('invite-link').value = roomId ? invitationUrl() : '';
@@ -102,7 +107,7 @@ async function loadGame(bytes, name, demo = false, system = 'nes', overclock = 1
 async function demoData() {
   const response = await fetch(new URL('../assets/room-rally.nes', import.meta.url));
   if (!response.ok) throw new Error('De demo kon niet worden geladen.');
-  return { bytes: new Uint8Array(await response.arrayBuffer()), name: 'Room Rally', demo: true };
+  return { bytes: new Uint8Array(await response.arrayBuffer()), name: 'Room Rally', demo: true, system: 'nes' };
 }
 async function enableAudio() {
   try { await audio.enable(); updateAudio(); }
@@ -120,9 +125,15 @@ function updateActions() {
   $('guest-demo-button').hidden = !expectedGame?.demo;
   $('guest-demo-button').disabled = $('guest-rom-file').disabled;
   $('room-overclock').value = String(game?.overclock ?? expectedGame?.overclock ?? 100);
-  $('room-overclock').disabled = !game || !isHost || !!peer || !!invites.connection;
+  $('room-overclock').disabled = !game || !isHost || !!peer || !!invites.connection || stateBusy;
   $('overclock-note').textContent = !isHost ? 'De host kiest deze instelling. Jullie gebruiken allebei dezelfde waarde.' : peer || invites.connection ? 'Vastgezet zolang speler 2 verbonden is. Beide spelers gebruiken dezelfde waarde.' : 'Wijzigen begint de game opnieuw. Kies de waarde voordat speler 2 verbindt.';
   $('solo-button').hidden = !isHost || !!connected;
+  $('solo-button').disabled = stateBusy;
+  $('solo-button').textContent = mode === 'paused' && pausedMode === 'solo' ? 'Verder spelen' : mode === 'solo' ? 'Solo opnieuw beginnen' : 'Speel solo';
+  $('pause-button').disabled = stateBusy || !core || !['solo', 'online', 'paused'].includes(mode);
+  const canSave = canUseSavestates();
+  $('export-state-button').disabled = $('import-state-file').disabled = !canSave || stateBusy;
+  $('savestate-note').textContent = roomId || peer ? 'Savestates zijn alleen beschikbaar bij solo spelen. Online starten beide spelers gelijk.' : 'Download je speltoestand en laad hem later met dezelfde ROM, emulatorversie en overclock. Bestanden blijven lokaal.';
   $('start-button').disabled = isHost ? !remoteReady || !connected || mode === 'online' : !game || !connected || localReady;
   $('start-button').textContent = isHost ? (mode === 'online' ? 'Samen aan het spelen' : mode === 'paused' && session ? 'Verder spelen →' : 'Start samen →') : (mode === 'online' ? 'Samen aan het spelen' : localReady ? 'Wachten op de host…' : 'Ik ben klaar →');
   $('restart-button').hidden = !isHost || !connected || !remoteReady || !(mode === 'online' || mode === 'paused');
@@ -373,7 +384,7 @@ invites.addEventListener('rejected', ({ detail }) => {
 });
 invites.addEventListener('created', ({ detail }) => {
   roomId = detail.id; isHost = true;
-  $('create-dialog').close(); $('create-submit').disabled = false;
+  launchCommitted = true; setLaunchBusy(false); $('create-dialog').close();
   $('player-one').textContent = nickname; showRoom();
   $('room-message').textContent = 'Je privékamer staat klaar. Deel de uitnodigingslink en houd deze pagina open.';
   $('player-two').textContent = 'Nog een plekje vrij';
@@ -406,14 +417,54 @@ invites.addEventListener('guest-left', () => {
 });
 invites.addEventListener('room-closed', () => { leaveRoom(); toast('De host heeft de kamer gesloten. Vraag om een nieuwe uitnodiging.'); });
 
-function openCreate(current = false) {
-  if (roomId) { toast('Verlaat eerst je huidige kamer.'); return; }
-  useCurrentGame = current && !!game; pickedGame = null;
-  $('game-picker').hidden = useCurrentGame;
-  $('host-overclock').value = String(useCurrentGame ? game.overclock : 100);
-  $('host-name').value = nickname; $('create-error').textContent = ''; $('file-name').textContent = 'Kies je NES- of SNES-ROM';
-  $('rom-file').value = ''; $('create-submit').disabled = false; $('create-dialog').showModal();
+function setLaunchBusy(busy) {
+  launchBusy = busy;
+  for (const id of ['create-submit', 'rom-file', 'choose-demo', 'back-console-button', 'host-overclock']) $(id).disabled = busy;
 }
+function openCreate(current = false, type = 'room') {
+  if (roomId) { toast('Verlaat eerst je huidige kamer.'); return; }
+  if (mode === 'solo') pause();
+  launchGeneration++; launchMode = type; selectedSystem = null; pickedGame = null;
+  currentGameRequested = current && !!game; useCurrentGame = false; launchCommitted = false;
+  $('console-picker').hidden = false; $('launch-fields').hidden = true;
+  $('launch-eyebrow').textContent = type === 'solo' ? 'EEN POTJE VOOR JEZELF' : 'SAMEN AAN DE START';
+  $('launch-heading').textContent = 'Kies je console.';
+  $('launch-intro').textContent = type === 'solo' ? 'Speel solo met je eigen game. Waar gaan we op spelen?' : 'Maak een kamer voor twee spelers. Kies eerst je console.';
+  $('host-overclock').value = String(currentGameRequested ? game.overclock : 100);
+  $('host-name').value = nickname; $('create-error').textContent = ''; $('rom-file').value = '';
+  $('room-fields').hidden = type === 'solo';
+  $('host-name').required = $('room-title-input').required = type === 'room';
+  $('create-submit').textContent = type === 'solo' ? 'Start solo →' : 'Maak een kamer →';
+  $('launch-privacy-note').textContent = type === 'solo' ? 'Je speelt lokaal. Je ROM en savestates worden niet geüpload.' : 'Alleen mensen met je uitnodigingslink kunnen meedoen. Beide spelers kiezen hun eigen ROM.';
+  setLaunchBusy(false); $('create-dialog').showModal();
+}
+function chooseConsole(system) {
+  if (!['nes', 'snes'].includes(system) || launchBusy) return;
+  launchGeneration++; selectedSystem = system; pickedGame = null; $('rom-file').value = '';
+  useCurrentGame = currentGameRequested && game?.system === system;
+  $('console-picker').hidden = true; $('launch-fields').hidden = false;
+  $('launch-heading').textContent = launchMode === 'solo' ? 'Jouw game. Jouw tempo.' : 'Maak het gezellig.';
+  $('launch-intro').textContent = `Je kiest ${system.toUpperCase()}. Laad je eigen ROM en stel de emulator in.`;
+  $('launch-console').textContent = system === 'snes' ? 'SNES · BETA' : 'NES';
+  $('rom-file').accept = system === 'nes' ? '.nes' : '.sfc,.smc';
+  $('file-name').textContent = `Kies je ${system.toUpperCase()}-ROM`;
+  $('rom-file-hint').textContent = (system === 'nes' ? '.nes' : '.sfc / .smc') + ' · maximaal 8 MB · blijft op jouw apparaat';
+  $('choose-demo').hidden = system !== 'nes'; $('game-picker').hidden = useCurrentGame;
+  $('current-game-note').hidden = !useCurrentGame; $('create-error').textContent = '';
+}
+$('solo-home-button').onclick = () => openCreate(false, 'solo');
+document.querySelectorAll('[data-console]').forEach(button => button.onclick = () => chooseConsole(button.dataset.console));
+$('back-console-button').onclick = () => {
+  if (launchBusy) return;
+  launchGeneration++; selectedSystem = null; pickedGame = null; useCurrentGame = false;
+  $('console-picker').hidden = false; $('launch-fields').hidden = true;
+  $('launch-heading').textContent = 'Kies je console.'; $('create-error').textContent = '';
+};
+$('create-dialog').addEventListener('close', () => {
+  launchGeneration++;
+  if (launchBusy && !launchCommitted) { invites.leave(); connectionStatus(false); }
+  setLaunchBusy(false);
+});
 function openJoin(code = '') {
   if (roomId || game && !$('room-view').hidden) { toast('Verlaat eerst je huidige speelkamer.'); return; }
   $('guest-name').value = nickname; $('join-code').value = code; $('join-error').textContent = '';
@@ -443,7 +494,10 @@ $('rom-file').onchange = async () => {
   try {
     const file = $('rom-file').files[0]; if (!file) return;
     if (file.size > 8 * 1024 * 1024) throw new Error('De ROM mag maximaal 8 MB zijn.');
+    const generation = launchGeneration;
     const bytes = new Uint8Array(await file.arrayBuffer()); const system = cartridgeSystem(bytes, file.name);
+    if (generation !== launchGeneration) return;
+    if (system !== selectedSystem) throw new Error(`Dit is een ${system.toUpperCase()}-ROM. Kies een ${selectedSystem.toUpperCase()}-ROM of ga terug naar de consolekeuze.`);
     pickedGame = { bytes, name: file.name.replace(/\.(nes|sfc|smc)$/i, ''), demo: false, system };
     $('file-name').textContent = file.name; $('create-error').textContent = '';
   } catch (error) { pickedGame = null; report(error); }
@@ -460,20 +514,29 @@ $('guest-demo-button').onclick = async () => {
   catch (error) { $('guest-rom-status').textContent = error.message; report(error); }
 };
 $('choose-demo').onclick = async () => {
-  try { pickedGame = await demoData(); $('file-name').textContent = 'Room Rally · originele NES-demo'; $('rom-file').value = ''; $('create-error').textContent = ''; }
+  try { const generation = launchGeneration; const demo = await demoData(); if (generation !== launchGeneration || selectedSystem !== 'nes') return; pickedGame = demo; $('file-name').textContent = 'Room Rally · originele NES-demo'; $('rom-file').value = ''; $('create-error').textContent = ''; }
   catch (error) { report(error); }
 };
 $('create-form').onsubmit = async event => {
-  event.preventDefault(); $('create-error').textContent = ''; $('create-submit').disabled = true;
+  event.preventDefault(); if (launchBusy) return;
+  $('create-error').textContent = '';
+  const generation = launchGeneration, type = launchMode;
+  const isCurrent = () => generation === launchGeneration && $('create-dialog').open;
   try {
-    if (!useCurrentGame && !pickedGame) throw new Error('Kies eerst een NES- of SNES-ROM of gebruik onze demo.');
-    const values = new FormData(event.target);
-    nickname = String(values.get('name')).trim(); saveSetting('name', nickname);
-    const selected = useCurrentGame ? game : pickedGame;
-    await loadGame(selected.bytes, selected.name, selected.demo, selected.system, Number(values.get('overclock')));
-    stop();
-    await invites.create({ name: nickname, title: values.get('title'), game: game.name });
-  } catch (error) { report(error); }
+    if (!selectedSystem) throw new Error('Kies eerst NES of SNES.');
+    if (!useCurrentGame && !pickedGame) throw new Error(`Kies eerst een ${selectedSystem.toUpperCase()}-ROM${selectedSystem === 'nes' ? ' of gebruik onze demo' : ''}.`);
+    const values = new FormData(event.target), selected = useCurrentGame ? game : pickedGame;
+    if (selected.system !== selectedSystem) throw new Error('De ROM hoort niet bij de gekozen console.');
+    setLaunchBusy(true);
+    if (type === 'solo') await enableAudio();
+    if (!isCurrent()) return;
+    if (type === 'room') { nickname = String(values.get('name')).trim(); saveSetting('name', nickname); }
+    if (!await loadGame(selected.bytes, selected.name, selected.demo, selected.system, Number(values.get('overclock')), isCurrent)) return;
+    if (type === 'solo') {
+      isHost = true; roomId = null; launchCommitted = true; setLaunchBusy(false); $('create-dialog').close();
+      showRoom(); await startSolo();
+    } else await invites.create({ name: nickname, title: values.get('title'), game: game.name });
+  } catch (error) { if (isCurrent()) { setLaunchBusy(false); report(error); } }
 };
 $('join-form').onsubmit = async event => {
   event.preventDefault(); $('join-error').textContent = '';
@@ -492,18 +555,63 @@ $('demo-button').onclick = async () => {
     $('room-message').textContent = 'Tik op A om te racen. Speel solo of maak een kamer om samen te testen.';
   } catch (error) { report(error); }
 };
-$('solo-button').onclick = async () => {
+async function startSolo() {
+  if (!core || !game || stateBusy) return;
+  const currentCore = core, currentGame = game;
+  await enableAudio();
+  if (core !== currentCore || game !== currentGame) return;
+  if (mode === 'paused' && pausedMode === 'solo') { resume(); return; }
+  core.load(game.bytes, game.system, game); session = null; mode = 'solo'; accumulator = 0; lastTime = 0;
+  fpsTime = performance.now(); fpsCount = 0;
+  $('screen-overlay').hidden = true; $('pause-button').disabled = false;
+  $('pause-button').textContent = 'Pauzeren'; $('room-status').textContent = 'Solo aan het spelen';
+  $('game').focus(); $('play-mode').textContent = 'Lokaal · solo'; $('solo-controls').hidden = false; updateActions();
+}
+$('solo-button').onclick = () => startSolo().catch(fatal);
+function canUseSavestates() { return !!core && !!game && isHost && !roomId && !peer && !invites.connection; }
+$('export-state-button').onclick = async () => {
+  if (!canUseSavestates() || stateBusy) return;
+  stateBusy = true; if (mode === 'solo') pause(); updateActions();
+  const currentGame = game;
   try {
-    await enableAudio(); core.load(game.bytes, game.system, game); session = null; mode = 'solo'; accumulator = 0; lastTime = 0;
-    fpsTime = performance.now(); fpsCount = 0;
-    $('screen-overlay').hidden = true; $('pause-button').disabled = false;
-    $('pause-button').textContent = 'Pauzeren'; $('room-status').textContent = 'Solo aan het spelen';
-    $('solo-button').textContent = 'Solo opnieuw beginnen'; $('game').focus();
-    $('play-mode').textContent = 'Lokaal · solo'; $('solo-controls').hidden = false;
-  } catch (error) { fatal(error); }
+    const bytes = await encodeSavestate(core.save(), currentGame, MESEN_BUILD);
+    const url = URL.createObjectURL(new Blob([bytes], { type: 'application/octet-stream' }));
+    const link = document.createElement('a'); link.href = url; link.download = savestateFilename(currentGame.name);
+    document.body.append(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 60000);
+    $('savestate-status').textContent = 'Savestate gedownload. Bewaar ook je eigen ROM; die blijft nodig om verder te spelen.';
+  } catch (error) { $('savestate-status').textContent = error.message; report(error); }
+  finally { stateBusy = false; updateActions(); }
+};
+$('import-state-file').onchange = async () => {
+  const file = $('import-state-file').files[0]; $('import-state-file').value = '';
+  if (!file || !canUseSavestates() || stateBusy) return;
+  const currentCore = core, currentGame = game;
+  const isCurrent = () => core === currentCore && game === currentGame && canUseSavestates();
+  stateBusy = true; if (mode === 'solo') pause(); updateActions();
+  $('savestate-status').textContent = 'Savestate controleren…';
+  try {
+    if (file.size > MAX_SAVESTATE_FILE) throw new Error('Dit savestatebestand is te groot.');
+    const { state } = await decodeSavestate(new Uint8Array(await file.arrayBuffer()), currentGame, MESEN_BUILD);
+    if (!isCurrent()) return;
+    // Restore into a separate instance. Invalid snapshots cannot damage the active game.
+    let preview;
+    const candidate = await MesenCore.create({ onFrame: (frame, width, height) => { preview = { frame: frame.slice(), width, height }; } });
+    if (!isCurrent()) return;
+    candidate.load(currentGame.bytes, currentGame.system, currentGame); candidate.restore(state); candidate.run(0, 0);
+    if (!isCurrent()) return;
+    candidate.onFrame = draw; candidate.onAudio = (l, r) => audio.push(l, r);
+    stop(); core = candidate; session = null; checks.clear(); epoch = null;
+    mode = 'paused'; pausedMode = 'solo'; accumulator = 0; lastTime = 0; pressed.clear(); touched.clear();
+    draw(preview.frame, preview.width, preview.height);
+    $('play-mode').textContent = 'Lokaal · solo'; $('room-status').textContent = 'Savestate geladen';
+    $('pause-button').disabled = false; $('pause-button').textContent = 'Verder spelen';
+    $('savestate-status').textContent = 'Je voortgang is geladen. Kies ‘Verder spelen’.';
+    overlay('Weer waar je was.', 'Je savestate is geladen. Kies ‘Verder spelen’.');
+  } catch (error) { if (isCurrent()) { $('savestate-status').textContent = error.message; report(error); } }
+  finally { stateBusy = false; updateActions(); }
 };
 $('room-overclock').onchange = () => {
-  if (!game || !isHost || peer || invites.connection) { updateActions(); return; }
+  if (!game || !isHost || peer || invites.connection || stateBusy) { updateActions(); return; }
   try {
     const overclock = validateOverclock(Number($('room-overclock').value));
     stop(); core.load(game.bytes, game.system, { overclock });
@@ -528,7 +636,7 @@ async function startTogether() {
 }
 $('start-button').onclick = () => startTogether().catch(report);
 $('restart-button').onclick = () => { stop(); startTogether().catch(report); };
-$('pause-button').onclick = () => { try { mode === 'paused' ? resume() : pause(); } catch (error) { report(error); } };
+$('pause-button').onclick = () => { if (stateBusy) return; try { mode === 'paused' ? resume() : pause(); } catch (error) { report(error); } };
 $('audio-button').onclick = async () => { if (audio.enabled) { audio.mute(); updateAudio(); } else await enableAudio(); };
 const playPanel = $('play-panel');
 let fullscreenControlsTimer;
@@ -536,11 +644,13 @@ function applyScreenFit(value) {
   const fit = value === 'fill' ? 'fill' : 'contain';
   playPanel.dataset.screenFit = fit; $('screen-fit').value = fit;
   saveSetting('screen-fit', fit);
+  if (fit === 'fill') { clearTimeout(fullscreenControlsTimer); playPanel.classList.remove('fullscreen-controls-visible'); }
+  else revealFullscreenControls();
 }
 applyScreenFit(readSetting('screen-fit'));
 $('screen-fit').onchange = event => applyScreenFit(event.target.value);
 function revealFullscreenControls() {
-  if (document.fullscreenElement !== playPanel) return;
+  if (document.fullscreenElement !== playPanel || playPanel.dataset.screenFit === 'fill') return;
   playPanel.classList.add('fullscreen-controls-visible');
   clearTimeout(fullscreenControlsTimer);
   fullscreenControlsTimer = setTimeout(() => {
@@ -556,6 +666,9 @@ document.addEventListener('fullscreenchange', () => {
   $('fullscreen-button').setAttribute('aria-label', label); $('fullscreen-button').title = label;
   clearTimeout(fullscreenControlsTimer); playPanel.classList.remove('fullscreen-controls-visible');
   if (fullscreen) { $('game').focus(); revealFullscreenControls(); }
+});
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && document.fullscreenElement === playPanel) document.exitFullscreen().catch(() => {});
 });
 $('fullscreen-button').onclick = async () => {
   try { document.fullscreenElement ? await document.exitFullscreen() : await playPanel.requestFullscreen(); }

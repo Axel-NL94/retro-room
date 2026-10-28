@@ -3,7 +3,7 @@ import { validateRom } from './emulator.js';
 export { OVERCLOCK_VALUES, validateOverclock } from './protocol.js';
 import { validateOverclock } from './protocol.js';
 
-export const MESEN_BUILD = 'mesence-4c4e069-web-2';
+export const MESEN_BUILD = 'mesence-4c4e069-web-3';
 let binary;
 function coreBinary() {
   return binary ||= fetch(new URL('../assets/mesen-core.wasm', import.meta.url)).then(async response => {
