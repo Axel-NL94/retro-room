@@ -1,4 +1,4 @@
-export const NETPLAY_VERSION = 'retroroom-mesence-4c4e069-web-2';
+export { NETPLAY_VERSION } from './protocol.js';
 
 // Snapshots are states immediately BEFORE frame n. A packet always names the
 // frame on which its input must be applied, independent of either wall clock.

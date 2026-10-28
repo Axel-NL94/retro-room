@@ -1,5 +1,6 @@
 // PeerJS Cloud handles discovery only. Explicit STUN-only configuration keeps
-// ROMs and inputs on a direct connection, without a TURN account or relay quota.
+// Inputs and game metadata use a direct connection. ROMs never enter this transport.
+import { INVITE_VERSION, peerMessage } from './protocol.js';
 export const DIRECT_ICE = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
 const ROOM_ID = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
 export function parseInvitation(value) {
@@ -64,14 +65,14 @@ export class InviteConnection extends EventTarget {
     if ('rr-' + id === this.endpoint.id) throw new Error('Dit is je eigen kamerlink. Deel hem met iemand anders.');
     this.host = false;
     const connection = this.endpoint.connect('rr-' + id, { label: 'retroroom', serialization: 'json', reliable: true,
-      metadata: { app: 'retroroom', version: 1, name: text(name, 24) || 'Speler 2' } });
+      metadata: { app: 'retroroom', version: INVITE_VERSION, name: text(name, 24) || 'Speler 2' } });
     this.watch(connection);
     connection.on('data', message => {
       if (this.connection !== connection || this.room) return;
       if (message?.type === 'rejected') {
         this.dropConnection(); this.emit('rejected', { message: text(message.message, 160) }); return;
       }
-      if (message?.type !== 'room' || message.id !== id || message.version !== 1) return;
+      if (message?.type !== 'room' || message.id !== id || message.version !== INVITE_VERSION) return;
       this.room = { id, host: text(message.host, 24), title: text(message.title, 48), game: text(message.game, 80) };
       clearTimeout(this.joinTimeout);
       this.emit('joined', this.room);
@@ -80,7 +81,7 @@ export class InviteConnection extends EventTarget {
   }
   accept(connection) {
     if (!this.host || !this.room || this.connection || connection.label !== 'retroroom' ||
-        connection.serialization !== 'json' || connection.metadata?.app !== 'retroroom' || connection.metadata?.version !== 1) {
+        connection.serialization !== 'json' || connection.metadata?.app !== 'retroroom' || connection.metadata?.version !== INVITE_VERSION) {
       const timer = setTimeout(() => connection.close(), 10000);
       connection.on('error', () => { clearTimeout(timer); connection.close(); });
       connection.on('open', () => {
@@ -94,7 +95,7 @@ export class InviteConnection extends EventTarget {
     connection.on('open', () => {
       if (this.connection !== connection) return;
       clearTimeout(this.joinTimeout);
-      connection.send({ type: 'room', version: 1, ...this.room });
+      connection.send({ type: 'room', version: INVITE_VERSION, ...this.room });
     });
     this.emit('guest-joined', { connection, name: text(connection.metadata.name, 24) || 'Speler 2' });
   }
@@ -132,19 +133,22 @@ export class PeerConnection extends EventTarget {
     super(); this.connection = connection; this.host = host; this.closed = false; this.approved = host;
     this.pc = connection.peerConnection;
     // Preserve PeerJS's initial control-channel handler; add separate raw channels
-    // on the same SCTP/DTLS connection for bulk data and unordered input.
+    // on the same SCTP/DTLS connection for unordered controller input only.
     const initialChannel = this.pc.ondatachannel;
     this.pc.ondatachannel = event => {
       if (event.channel.label === 'retroroom') initialChannel?.call(this.pc, event);
       else this.bind(event.channel);
     };
     this.pc.onconnectionstatechange = () => this.emit('state', this.pc.connectionState);
-    connection.on('data', data => { if (!this.closed) this.emit('control', data); });
+    connection.on('data', data => {
+      if (this.closed || ['room', 'rejected'].includes(data?.type)) return;
+      try { this.emit('control', peerMessage('control', data)); }
+      catch (error) { this.emit('error', error.message); }
+    });
     connection.on('close', () => { if (!this.closed) this.emit('state', 'disconnected'); });
     connection.on('open', () => {
       this.control = connection.dataChannel;
       if (host) {
-        this.bind(this.pc.createDataChannel('rom', { ordered: true }));
         this.bind(this.pc.createDataChannel('input', { ordered: false }));
       }
       this.ready();
@@ -153,49 +157,29 @@ export class PeerConnection extends EventTarget {
   emit(type, detail) { this.dispatchEvent(new CustomEvent(type, { detail })); }
   approve() { this.approved = true; this.ready(); }
   ready() {
-    if (!this.closed && !this.opened && this.approved && ['control', 'rom', 'input'].every(k => this[k]?.readyState === 'open')) {
+    if (!this.closed && !this.opened && this.approved && ['control', 'input'].every(k => this[k]?.readyState === 'open')) {
       this.opened = true; this.emit('open', {});
     }
   }
   bind(channel) {
-    if (!['rom', 'input'].includes(channel.label) || this[channel.label]) { channel.close(); return; }
+    if (channel.label !== 'input' || this[channel.label]) { channel.close(); return; }
     this[channel.label] = channel; channel.binaryType = 'arraybuffer';
     channel.onopen = () => this.ready();
     channel.onerror = channel.onclose = () => { if (!this.closed) this.emit('state', 'disconnected'); };
     channel.onmessage = event => {
       try {
-        if (typeof event.data === 'string' && event.data.length > 65536) throw new Error('Message too large');
-        this.emit(channel.label, typeof event.data === 'string' ? JSON.parse(event.data) : event.data);
+        if (typeof event.data !== 'string' || event.data.length > 512) throw new Error('Invalid input');
+        this.emit('input', peerMessage('input', JSON.parse(event.data)));
       } catch { this.emit('error', 'Ongeldig bericht van de andere speler.'); }
     };
   }
   send(channel, data) {
+    const message = peerMessage(channel, data);
     const target = this[channel];
     if (target?.readyState !== 'open') throw new Error('De andere speler is niet verbonden.');
     if (target.bufferedAmount > 4 * 1024 * 1024) throw new Error('De verbinding loopt te ver achter.');
-    if (channel === 'control') this.connection.send(data);
-    else target.send(data instanceof ArrayBuffer || ArrayBuffer.isView(data) ? data : JSON.stringify(data));
-  }
-  async transfer(bytes, metadata, progress) {
-    this.send('rom', { type: 'begin', ...metadata, size: bytes.byteLength });
-    for (let offset = 0; offset < bytes.length; offset += 16384) {
-      if (this.closed) throw new Error('Overdracht geannuleerd.');
-      if (this.rom.bufferedAmount > 262144) {
-        await new Promise((resolve, reject) => {
-          this.rom.bufferedAmountLowThreshold = 65536;
-          const timeout = setTimeout(() => { cleanup(); reject(new Error('ROM-overdracht duurde te lang.')); }, 15000);
-          const ready = () => { cleanup(); resolve(); };
-          const closed = () => { cleanup(); reject(new Error('ROM-overdracht onderbroken.')); };
-          const cleanup = () => { clearTimeout(timeout); this.rom.removeEventListener('bufferedamountlow', ready); this.rom.removeEventListener('close', closed); };
-          this.rom.addEventListener('bufferedamountlow', ready);
-          this.rom.addEventListener('close', closed);
-          if (this.rom.bufferedAmount <= 65536) ready();
-        });
-      }
-      this.send('rom', bytes.subarray(offset, offset + 16384));
-      progress(Math.min(bytes.length, offset + 16384) / bytes.length);
-    }
-    this.send('rom', { type: 'complete' });
+    if (channel === 'control') this.connection.send(message);
+    else target.send(JSON.stringify(message));
   }
   close() { this.closed = true; this.connection.close(); }
 }
