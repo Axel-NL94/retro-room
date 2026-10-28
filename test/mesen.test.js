@@ -76,7 +76,7 @@ test('Mesen overclock retains a nonzero audio signal at the normal sample rate',
 });
 
 test('SNES netplay converges with delayed 12-button controller inputs', async () => {
-  const a=await create(),b=await create();a.load(makeSnesFixture(),'snes',{overclock:150});b.load(makeSnesFixture(),'snes',{overclock:150});
+  const a=await create(),b=await create();a.load(makeSnesFixture(),'snes',{overclock:200});b.load(makeSnesFixture(),'snes',{overclock:200});
   assert.equal(stateHash(a.save()),stateHash(b.save()),'both SNES machines must power on identically');
   const queue=[];let clock=0,left,right;
   left=new RollbackSession(a,{player:1,send:m=>queue.push({to:right,m,at:clock+1+m.frame%4})});
@@ -92,12 +92,12 @@ test('SNES netplay converges with delayed 12-button controller inputs', async ()
 });
 
 test('CPU overclock rejects unsupported values before loading content', () => {
-  for(const value of [0,99,101,301,Infinity,NaN,'200',null]) assert.throws(()=>validateOverclock(value));
+  for(const value of [0,99,101,125,150,301,501,Infinity,NaN,'200',null]) assert.throws(()=>validateOverclock(value));
 });
 
 // Original busy loops count CPU work in RAM independently of the UI or settings.
 // Measuring their progress proves extra emulated work, rather than fast-forward.
-for(const system of ['nes','snes']) test(`${system.toUpperCase()} 200% doubles CPU work per video frame and survives reset/rollback`, async () => {
+for(const system of ['nes','snes']) test(`${system.toUpperCase()} 200–500% adds CPU work per video frame and survives reset/rollback`, async () => {
   const rom=system==='nes'?new Uint8Array(16+16384+8192):makeSnesFixture();
   if(system==='nes') {
     rom.set([78,69,83,26,1,1]);
@@ -113,6 +113,12 @@ for(const system of ['nes','snes']) test(`${system.toUpperCase()} 200% doubles C
   core.load(rom,system,{overclock:200});const faster=measure();
   assert.ok(normal>100);assert.ok(faster/normal>1.9&&faster/normal<2.1,`${faster}/${normal} must be about 2x`);
   assert.equal(core.fps,fps,'video cadence must stay unchanged');
+  for (const overclock of [300,400,500]) {
+    core.load(rom,system,{overclock}); const work=measure();
+    assert.ok(Math.abs(work/normal-overclock/100)<0.15,`${overclock}%: ${work}/${normal}`);
+    assert.equal(core.fps,fps,'higher CPU work must not fast-forward video');
+  }
+  for (const invalid of [0,99,125,550]) assert.equal(core.module._rr_load(0,0,0,invalid),0,'native bridge enforces the same choices');
   const saved=core.save();for(let f=0;f<6;f++)core.run(0,0);const expected=stateHash(core.save());
   core.restore(saved);for(let f=0;f<6;f++)core.run(0,0);assert.equal(stateHash(core.save()),expected);
   core.load(rom,system);assert.equal(measure(),normal,'returning to 100% removes overclock');

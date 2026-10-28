@@ -18,7 +18,7 @@ test('game configuration carries only metadata, never the local ROM or a downloa
 
 for(const system of ['nes','snes']) test(`${system}: guest must supply identical local bytes, including region/hack changes`, async () => {
   const bytes=system==='nes'?makeDemoRom():makeSnesFixture();
-  const config=createGameConfig({bytes,hash:await romHash(bytes),system,name:'Host title',demo:false,overclock:150});
+  const config=createGameConfig({bytes,hash:await romHash(bytes),system,name:'Host title',demo:false,overclock:200});
   assert.equal((await verifyLocalRom(bytes.slice(),config)).name,'Host title');
   const other=bytes.slice();other[100]^=1;
   await assert.rejects(verifyLocalRom(other,config),/komt niet overeen/);
