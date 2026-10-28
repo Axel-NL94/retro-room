@@ -1,12 +1,9 @@
 import createMesen from '../assets/mesen-core.mjs';
 import { validateRom } from './emulator.js';
+export { OVERCLOCK_VALUES, validateOverclock } from './protocol.js';
+import { validateOverclock } from './protocol.js';
 
 export const MESEN_BUILD = 'mesence-4c4e069-web-2';
-export const OVERCLOCK_VALUES = Object.freeze([100, 125, 150, 175, 200, 225, 250, 275, 300]);
-export function validateOverclock(value) {
-  if (!OVERCLOCK_VALUES.includes(value)) throw new Error('Kies een CPU-overclock van 100% tot 300%, in stappen van 25%.');
-  return value;
-}
 let binary;
 function coreBinary() {
   return binary ||= fetch(new URL('../assets/mesen-core.wasm', import.meta.url)).then(async response => {
