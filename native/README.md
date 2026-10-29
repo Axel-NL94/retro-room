@@ -7,8 +7,8 @@ advertised as playable.
 
 `mesen-web.cpp` is the GPL-3.0-or-later browser frontend. It supplies Libretro
 callbacks, two controller ports, RGBA video, 48 kHz stereo PCM and uncompressed
-core snapshots. ROMs live in Emscripten MEMFS only. Each player has a separate
-WebAssembly instance. No native server or desktop emulator is required by players.
+core snapshots. ROMs live in Emscripten MEMFS only. In local-ROM mode each player has a separate
+WebAssembly instance; streaming mode runs only the host instance. No native server or desktop emulator is required by players.
 
 The build script applies these small upstream changes:
 
@@ -64,15 +64,36 @@ need performance testing; the frontend does not require multithreading.
 
 ## Source and licensing
 
-MesenCE and this linked frontend are GPL-3.0-or-later; see `MESEN-LICENSE.txt`
-and upstream source headers for third-party notices. The complete corresponding
-upstream sources (including dependencies), applied patches, browser frontend
-and build script accompany the binary in `web/assets/mesen-source.tar.gz`.
+MesenCE upstream and this frontend have GPL-3.0-or-later grants. The combined
+emulator distribution selects GPL version 3, including the xBRZ code whose
+header specifies GPLv3 with a MAME-specific exception. See `MESEN-LICENSE.txt`,
+`../LICENSING.md` and the preserved upstream notices; an MIT license for the
+website's own code does not replace these terms.
+
+The complete corresponding source trees used by the native build (Core,
+Utilities, SevenZip, Lua and Libretro), applied patches, browser frontend,
+`CHANGES.md`, third-party notices and build scripts accompany the binary in
+`web/assets/mesen-source.tar.gz`. Unrelated desktop UI/platform trees are omitted.
 `web/assets/mesen-build.json` records the source revision, toolchain and SHA-256
-checksums. No game ROM or BIOS is included in that source archive.
+checksums, including the generated loader hash. No game ROM or BIOS is included in that source archive.
 
 Local savestate files use the uncompressed core snapshot with a versioned RetroRoom
 header, ROM SHA-256, CPU setting and payload SHA-256. They contain no ROM. Imported
 states are restored on a separate emulator instance before replacing a solo game.
 The current upstream Libretro save-RAM accessors return null/zero; battery-save
 export is therefore not exposed.
+
+
+## Updating only source packaging or notices
+
+For documentation/comment-only changes, preserve the executable binary and run:
+
+```sh
+python3 scripts/package-mesen-source.py --source /path/to/the-matching-patched-mesen-src
+```
+
+This updates the source archive and metadata, not the Wasm or generated loader.
+Never use this command to pair a modified native implementation with an old binary.
+After executable source changes, rebuild with `build-mesen.py` instead. The ordinary
+website build checks all three hashes. Keep source downloads accessible beside
+all versions of the binary being distributed.

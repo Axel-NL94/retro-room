@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+// Copyright (c) 2026 RetroRoom contributors. Browser modifications: 2026-10-28–2026-10-29.
 // Single-threaded browser frontend for the pinned MesenCE Libretro core.
 #include "Libretro/libretro.cpp"
 #include "Core/NES/BaseNesPpu.h"
