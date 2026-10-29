@@ -43,7 +43,11 @@ LICENSE/README, all RetroRoom patches, native bridge, notices and build scripts.
 Unrelated desktop UI/platform trees are omitted; none is required by this build.
 `native/CHANGES.md` and prominent dated comments identify the changed upstream files.
 The archive may contain support code for systems not exposed by the website.
-Only NES/SNES are presented as playable. No commercial ROM or BIOS is packaged.
+Only NES/SNES are presented as playable. No commercial game ROM or proprietary
+console BIOS is packaged. Core/Gameboy/GbBootRom.h does contain MIT/Expat-licensed
+open-source replacement boot code by LIJI32 (Lior Halphon), including Mesen's
+documented SGB timing alteration. Its attribution and full license are included.
+These embedded replacement byte arrays are preserved in the Mesen source.
 
 The already built Wasm and generated loader remain in the full application source
 download for convenience. Their hashes and the matching native-source hash are
@@ -83,7 +87,9 @@ or asset update needs a renewed human review, not simply a regenerated hash.
 
 DM Sans and Space Grotesk are loaded remotely via Google Fonts under OFL-1.1.
 Their unmodified license/copyright notices are included. No logo, screenshot,
-commercial game ROM or BIOS from a console vendor is shipped. Room Rally is an
+commercial game ROM or proprietary console BIOS from a vendor is shipped.
+The multi-system core does include the separately credited open-source SameBoy
+replacement boot code described above. Room Rally is an
 original demo built by `scripts/demo-rom.js`; the controller SVGs/favicon are
 original project artwork. Console and emulator names identify compatibility;
 there is no claim of endorsement or affiliation.
