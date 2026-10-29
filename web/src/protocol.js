@@ -1,7 +1,8 @@
 import { romHash } from './emulator.js';
+import { streamMessage } from './stream-protocol.js';
 
 export const NETPLAY_VERSION = 'retroroom-mesence-4c4e069-local-rom-relay-5';
-export const INVITE_VERSION = 4;
+export const INVITE_VERSION = 5;
 export const OVERCLOCK_VALUES = Object.freeze([100, 200, 300, 400, 500]);
 export function validateOverclock(value) {
   if (!OVERCLOCK_VALUES.includes(value)) throw new Error('Kies een CPU-overclock van 100%, 200%, 300%, 400% of 500%.');
@@ -34,6 +35,7 @@ export async function verifyLocalRom(bytes, config) {
 // is deliberately no file channel, binary payload or generic bulk-send API.
 export function peerMessage(channel, data) {
   if (!data || typeof data !== 'object' || ArrayBuffer.isView(data) || data instanceof ArrayBuffer) throw new Error('Ongeldig spelbericht.');
+  if (typeof data.type === 'string' && data.type.startsWith('stream-')) return streamMessage(channel, data);
   const epoch = () => {
     if (typeof data.epoch !== 'string' || !data.epoch.length || data.epoch.length > 64) throw new Error('Ongeldige spelsessie.');
     return data.epoch;

@@ -1,7 +1,8 @@
-// P2P first. Itty is a waiting rendezvous on the host and carries game traffic
+// ROM mode: P2P first. Itty is a waiting rendezvous on the host and carries game traffic
 // only after the guest's direct connection fails or times out. No ROM bytes.
 import { INVITE_VERSION, peerMessage } from './protocol.js';
 import { RelayRoom, RelayConnection, newRelaySecret, validRelaySecret } from './relay.js';
+import { playMode } from './stream-protocol.js';
 export const DIRECT_ICE = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
 const ROOM_ID = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
 export function parseInvitation(value) {
@@ -44,6 +45,10 @@ export class InviteConnection extends EventTarget {
       endpoint.on('open', opened); endpoint.on('error', failed);
       if (fresh) {
         endpoint.on('connection', connection => this.accept(connection));
+        endpoint.on('call', call => {
+          if (this.endpoint === endpoint) this.emit('call', { call });
+          else call.close();
+        });
         endpoint.on('disconnected', () => { if (this.endpoint === endpoint) this.emit('offline'); });
         endpoint.on('error', error => {
           if (this.endpoint !== endpoint) return;
@@ -66,14 +71,16 @@ export class InviteConnection extends EventTarget {
   }
   async create(info) {
     if (this.room || this.connection) throw new Error('Verlaat eerst je huidige kamer.');
+    const mode = playMode(info.playMode);
     const generation = this.generation;
     try { await this.connect(); } catch { /* A relay-only room can still be reached. */ }
     if (generation !== this.generation) return;
+    if (mode === 'stream' && !this.online) throw new Error('Voor streamen moet de WebRTC-verbindingsdienst bereikbaar zijn. Itty kan beeld en geluid niet overnemen.');
     this.host = true;
     this.room = { id: this.endpoint?.id?.slice(3) || crypto.randomUUID(), host: text(info.name, 24) || 'Speler 1',
-      title: text(info.title, 48) || 'Nog één potje', game: text(info.game, 80) };
+      title: text(info.title, 48) || 'Nog één potje', game: text(info.game, 80), playMode: mode };
     this.secret = newRelaySecret();
-    const relay = this.relayFor(this.room.id, this.secret);
+    const relay = mode === 'netplay' ? this.relayFor(this.room.id, this.secret) : null;
     if (!this.online && relay) {
       try { await relay.connect(); } catch (error) { this.leave(); throw error; }
     } else if (relay) void relay.connect().catch(() => { if (this.relayRoom === relay) this.emit('relay-unavailable'); });
@@ -85,27 +92,29 @@ export class InviteConnection extends EventTarget {
     if (this.room || this.connection || this.joinInfo) throw new Error('Verlaat eerst je huidige kamer.');
     const params = /^https?:\/\//i.test(String(value).trim()) ? new URLSearchParams(new URL(value).hash.slice(1)) : null;
     this.secret = params?.get('key') || '';
-    this.joinInfo = { id, name: text(name, 24) || 'Speler 2', attempt: crypto.randomUUID() };
+    this.joinInfo = { id, name: text(name, 24) || 'Speler 2', attempt: crypto.randomUUID(), playMode: playMode(params?.get('mode') || undefined) };
     this.host = false; this.emit('negotiating');
     const generation = this.generation;
     try { await this.connect(); } catch { if (generation === this.generation) await this.fallback(); return; }
     if (generation !== this.generation) return;
     if ('rr-' + id === this.endpoint.id) { this.joinInfo = null; throw new Error('Dit is je eigen kamerlink. Deel hem met iemand anders.'); }
     const connection = this.endpoint.connect('rr-' + id, { label: 'retroroom', serialization: 'json', reliable: true,
-      metadata: { app: 'retroroom', version: INVITE_VERSION, name: this.joinInfo.name } });
+      metadata: { app: 'retroroom', version: INVITE_VERSION, name: this.joinInfo.name, playMode: this.joinInfo.playMode } });
     this.watch(connection);
     connection.on('data', message => {
       if (this.connection !== connection || this.room) return;
       if (message?.type === 'rejected') { this.rejectJoin(text(message.message, 160)); return; }
       if (message?.type !== 'room' || message.id !== id || message.version !== INVITE_VERSION) return;
-      this.room = { id, host: text(message.host, 24), title: text(message.title, 48), game: text(message.game, 80) };
+      if ((message.playMode || 'netplay') !== this.joinInfo.playMode) { this.rejectJoin('De speelwijze komt niet overeen met de kamerlink. Vraag om een nieuwe link.'); return; }
+      this.room = { id, host: text(message.host, 24), title: text(message.title, 48), game: text(message.game, 80), playMode: this.joinInfo.playMode };
       this.emit('joined', this.room);
     });
     this.emit('joining', { connection, id });
   }
   accept(connection) {
     if (!this.host || !this.room || this.connection || connection.label !== 'retroroom' ||
-        connection.serialization !== 'json' || connection.metadata?.app !== 'retroroom' || connection.metadata?.version !== INVITE_VERSION) {
+        connection.serialization !== 'json' || connection.metadata?.app !== 'retroroom' || connection.metadata?.version !== INVITE_VERSION ||
+        (connection.metadata?.playMode || 'netplay') !== this.room.playMode) {
       const timer = setTimeout(() => connection.close(), 10000);
       connection.on('error', () => { clearTimeout(timer); connection.close(); });
       connection.on('open', () => {
@@ -130,7 +139,8 @@ export class InviteConnection extends EventTarget {
     };
     if (!connection.relay) this.joinTimeout = setTimeout(() => {
       if (this.connection !== connection || connection.netplayReady) return;
-      if (this.host) this.emit('fallback', { message: 'P2P lukt nog niet. Wachten op de Itty Sockets-fallback…' });
+      if (this.host && this.room?.playMode === 'stream') this.rejectJoin('De directe WebRTC-verbinding lukt niet. Itty ondersteunt geen videostreams.');
+      else if (this.host) this.emit('fallback', { message: 'P2P lukt nog niet. Wachten op de Itty Sockets-fallback…' });
       else void this.fallback();
     }, this.directTimeout);
     connection.on('close', () => {
@@ -148,12 +158,14 @@ export class InviteConnection extends EventTarget {
       if (this.connection !== connection) return;
       if (!connection.netplayReady && !connection.relay) {
         if (!this.host) void this.fallback();
+        else if (this.room?.playMode === 'stream') this.rejectJoin('De directe WebRTC-verbinding lukt niet. Itty ondersteunt geen videostreams.');
         else this.emit('fallback', { message: 'P2P lukt niet. Wachten op de Itty Sockets-fallback…' });
       } else this.rejectJoin('De spelverbinding is weggevallen. Verbind opnieuw met de uitnodigingslink.');
     });
   }
   async fallback() {
     if (this.host || !this.joinInfo || this.connection?.netplayReady || this.fallbackStarting) return;
+    if (this.joinInfo.playMode === 'stream') { this.rejectJoin('De directe WebRTC-verbinding voor streamen lukt niet. Probeer een ander netwerk of maak een kamer met eigen ROMs. Itty ondersteunt geen videostreams.'); return; }
     if (!validRelaySecret(this.secret)) { this.rejectJoin('P2P lukt niet. Plak de volledige nieuwe uitnodigingslink om de fallback te gebruiken.'); return; }
     this.fallbackStarting = true; clearTimeout(this.joinTimeout);
     this.emit('fallback', { message: 'P2P lukt niet. Verbinden via Itty Sockets…' });
@@ -171,6 +183,7 @@ export class InviteConnection extends EventTarget {
   }
   relayPacket({ uid, payload }) {
     if (!payload || typeof payload !== 'object') return;
+    if (this.room?.playMode === 'stream' || this.joinInfo?.playMode === 'stream') return;
     if (this.host && this.room && payload.kind === 'join' && payload.version === INVITE_VERSION && ROOM_ID.test(payload.attempt)) {
       if (this.connection?.netplayReady || this.connection?.relay) {
         this.relayRoom.send({ kind: 'rejected', attempt: payload.attempt, message: 'Deze kamer is al bezet.' }, uid); return;
@@ -188,7 +201,8 @@ export class InviteConnection extends EventTarget {
     clearTimeout(this.relayJoinTimeout); this.dropConnection();
     const connection = new RelayConnection(this.relayRoom, uid, payload.attempt);
     this.watch(connection); this.emit('joining', { connection, id: this.joinInfo.id });
-    this.room = { id: this.joinInfo.id, host: text(payload.room.host, 24), title: text(payload.room.title, 48), game: text(payload.room.game, 80) };
+    if ((payload.room.playMode || 'netplay') !== 'netplay') { this.rejectJoin('Streamen kan niet via Itty Sockets.'); return; }
+    this.room = { id: this.joinInfo.id, host: text(payload.room.host, 24), title: text(payload.room.title, 48), game: text(payload.room.game, 80), playMode: 'netplay' };
     this.fallbackStarting = false; this.emit('joined', this.room); connection.activate();
   }
   rejectJoin(message) {

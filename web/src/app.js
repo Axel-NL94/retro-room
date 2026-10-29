@@ -6,6 +6,9 @@ import { MesenCore, MESEN_BUILD, cartridgeSystem, validateOverclock } from './me
 import { encodeSavestate, decodeSavestate, savestateFilename, MAX_SAVESTATE_FILE } from './savestate.js';
 import { createGameConfig, validateGameConfig, verifyLocalRom } from './protocol.js';
 import { PlaybackClock } from './playback-clock.js';
+import { GameStream } from './game-stream.js';
+import { createControls } from './controls.js';
+import { STREAM_VERSION, StreamInput, playMode as validatePlayMode } from './stream-protocol.js';
 
 const $ = id => document.getElementById(id);
 const invites = new InviteConnection();
@@ -20,10 +23,23 @@ let lastTime = 0, accumulator = 0, fpsCount = 0, fpsTime = 0, lastHash = -1;
 let toastTimer;
 let launchMode = 'room', selectedSystem = null, launchGeneration = 0, launchBusy = false, launchCommitted = false, currentGameRequested = false;
 let stateBusy = false;
+let playStyle = 'netplay', gameStream = null, streamInfo = null, streamReady = false;
+let streamInput = null, streamSequence = 0;
+const streamVideo = $('stream-video');
+streamVideo.volume = 0.65;
+function isStreamGuest() { return playStyle === 'stream' && !isHost; }
+function focusGame() { (isStreamGuest() ? streamVideo : $('game')).focus(); }
+function closeGameStream() {
+  gameStream?.close(); gameStream = null; audio.releaseCapture();
+  streamInfo = null; streamReady = false; streamInput = null; streamSequence = 0;
+  streamVideo.pause(); streamVideo.srcObject = null; streamVideo.muted = true;
+  streamVideo.hidden = true; $('game').hidden = false;
+}
 const checks = new Map(), pressed = new Set(), touched = new Set();
-const keyMap = { KeyX: 0, KeyZ: 1, ShiftLeft: 2, ShiftRight: 2, Enter: 3,
-  ArrowUp: 4, ArrowDown: 5, ArrowLeft: 6, ArrowRight: 7, KeyC: 8, KeyV: 9, KeyQ: 10, KeyE: 11 };
-const secondKeys = { KeyG: 0, KeyF: 1, KeyR: 2, KeyT: 3, KeyW: 4, KeyS: 5, KeyA: 6, KeyD: 7, KeyY: 8, KeyH: 9, Digit1: 10, Digit2: 11 };
+const controls = createControls({ pressed, touched, release: releaseButtons,
+  currentSystem: () => game?.system || selectedSystem || 'nes',
+  localCoop: () => mode === 'solo'
+});
 
 function readSetting(key) { try { return localStorage.getItem('retroroom-' + key); } catch { return null; } }
 function saveSetting(key, value) { try { localStorage.setItem('retroroom-' + key, value); } catch { /* Private browsing can disable persistence. */ } }
@@ -51,6 +67,10 @@ function report(error) {
 function fatal(error) {
   const message = error?.message || String(error);
   stop(message); report(message);
+  if (playStyle === 'stream') {
+    closeGameStream(); remoteReady = localReady = false;
+    $('stream-status').textContent = message; $('room-message').textContent = message; updateActions();
+  }
   try { peer?.send('control', { type: 'interrupted', message, epoch }); } catch { /* Disconnected. */ }
 }
 function showRoom() {
@@ -59,8 +79,8 @@ function showRoom() {
   $('game-title').textContent = game.name;
   $('console-badge').textContent = (game.system === 'snes' ? 'SNES' : 'NES') + ' · MESEN · ALPHA';
   $('game').setAttribute('aria-label', `${game.system.toUpperCase()}-gamescherm`);
-  $('snes-controls-guide').hidden = $('snes-touch').hidden = game.system !== 'snes';
-  $('game-hint').textContent = game.demo ? 'Room Rally: tik op A (X) om te racen. Start begint opnieuw.' : 'Pijlen bewegen · X = A · Z = B · Enter = Start';
+  $('snes-touch').hidden = game.system !== 'snes';
+  controls.guide();
   $('player-one').textContent = isHost ? nickname || 'Jij' : $('player-one').textContent;
   $('solo-controls').hidden = !!roomId;
   $('room-subtitle').textContent = roomId ? 'PRIVÉKAMER · UITNODIGING' : 'SOLO · LOKAAL';
@@ -70,10 +90,12 @@ function showRoom() {
   $('invite-link').closest('label').hidden = !roomId;
   $('publish-room-button').hidden = !!roomId || !isHost;
   $('invite-card').hidden = !isHost;
-  $('invite-description').textContent = roomId ? 'Deel je kamerlink. Je vriend kiest zelf dezelfde ROM op het eigen apparaat.' : 'Maak een kamer om een uitnodigingslink te delen.';
+  $('invite-description').textContent = roomId ? playStyle === 'stream' ? 'Deel je kamerlink. Je vriend ontvangt beeld en geluid; alleen jij hebt de ROM nodig.' : 'Deel je kamerlink. Je vriend kiest zelf dezelfde ROM op het eigen apparaat.' : 'Maak een kamer om een uitnodigingslink te delen.';
   $('room-status').textContent = 'Klaar om te spelen';
   $('solo-button').textContent = 'Speel solo';
-  $('play-mode').textContent = roomId ? 'Privékamer · twee spelers' : 'Lokaal · solo';
+  $('play-mode').textContent = roomId ? playStyle === 'stream' ? 'WebRTC · beeld en geluid' : 'Privékamer · twee spelers' : 'Lokaal · solo';
+  $('stream-guest-card').hidden = !isStreamGuest();
+  $('game').hidden = isStreamGuest(); streamVideo.hidden = !isStreamGuest();
   $('route-value').textContent = peer?.opened ? peer.route : roomId ? 'Verbinden…' : 'Lokaal';
   updateActions(); window.scrollTo({ top: 0, behavior: 'instant' });
 }
@@ -88,6 +110,7 @@ function draw(frame, width = 256, height = 240) {
     data[offset + 2] = pixel >> 16 & 255; data[offset + 3] = 255;
   }
   context.putImageData(image, 0, 0);
+  gameStream?.captureFrame();
 }
 async function loadGame(bytes, name, demo = false, system = 'nes', overclock = 100, isCurrent = () => true) {
   validateOverclock(overclock);
@@ -116,12 +139,13 @@ async function enableAudio() {
   catch { toast('Geluid is hier niet beschikbaar. Je kunt zonder geluid verder spelen.'); }
 }
 function updateAudio() {
-  const text = audio.enabled ? 'Geluid uitzetten' : 'Geluid aanzetten';
+  const enabled = isStreamGuest() ? !streamVideo.muted : audio.enabled;
+  const text = enabled ? 'Geluid uitzetten' : 'Geluid aanzetten';
   $('audio-button').setAttribute('aria-label', text); $('audio-button').title = text;
-  $('audio-button').textContent = audio.enabled ? '♫' : '♪';
+  $('audio-button').textContent = enabled ? '♫' : '♪';
 }
 function updateActions() {
-  playbackClock.setRunning(!!core && ['solo', 'online'].includes(mode));
+  playbackClock.setRunning((!!core || isStreamGuest() && streamReady) && ['solo', 'online'].includes(mode));
   const connected = peer?.opened && peer?.control?.readyState === 'open';
   $('guest-rom-card').hidden = isHost || !expectedGame;
   $('guest-rom-file').disabled = guestLoading || localReady || mode === 'online' || mode === 'paused';
@@ -129,16 +153,16 @@ function updateActions() {
   $('guest-demo-button').disabled = $('guest-rom-file').disabled;
   $('room-overclock').value = String(game?.overclock ?? expectedGame?.overclock ?? 100);
   $('room-overclock').disabled = !game || !isHost || !!peer || !!invites.connection || stateBusy;
-  $('overclock-note').textContent = !isHost ? 'De host kiest deze instelling. Jullie gebruiken allebei dezelfde waarde.' : peer || invites.connection ? 'Vastgezet zolang speler 2 verbonden is. Beide spelers gebruiken dezelfde waarde.' : 'Wijzigen begint de game opnieuw. Kies de waarde voordat speler 2 verbindt.';
+  $('overclock-note').textContent = playStyle === 'stream' && roomId ? 'Deze CPU-instelling geldt voor de emulator bij de host. Speler 2 ontvangt de stream.' : !isHost ? 'De host kiest deze instelling. Jullie gebruiken allebei dezelfde waarde.' : peer || invites.connection ? 'Vastgezet zolang speler 2 verbonden is. Beide spelers gebruiken dezelfde waarde.' : 'Wijzigen begint de game opnieuw. Kies de waarde voordat speler 2 verbindt.';
   $('solo-button').hidden = !isHost || !!connected;
   $('solo-button').disabled = stateBusy;
   $('solo-button').textContent = mode === 'paused' && pausedMode === 'solo' ? 'Verder spelen' : mode === 'solo' ? 'Solo opnieuw beginnen' : 'Speel solo';
-  $('pause-button').disabled = stateBusy || !core || !['solo', 'online', 'paused'].includes(mode);
+  $('pause-button').disabled = stateBusy || !(core || isStreamGuest() && streamReady) || !['solo', 'online', 'paused'].includes(mode);
   const canSave = canUseSavestates();
   $('export-state-button').disabled = $('import-state-file').disabled = !canSave || stateBusy;
   $('savestate-note').textContent = roomId || peer ? 'Savestates zijn alleen beschikbaar bij solo spelen. Online starten beide spelers gelijk.' : 'Download je speltoestand en laad hem later met dezelfde ROM, emulatorversie en overclock. Bestanden blijven lokaal.';
-  $('start-button').disabled = isHost ? !remoteReady || !connected || mode === 'online' : !game || !connected || localReady;
-  $('start-button').textContent = isHost ? (mode === 'online' ? 'Samen aan het spelen' : mode === 'paused' && session ? 'Verder spelen →' : 'Start samen →') : (mode === 'online' ? 'Samen aan het spelen' : localReady ? 'Wachten op de host…' : 'Ik ben klaar →');
+  $('start-button').disabled = isHost ? !remoteReady || !connected || mode === 'online' : !game || !connected || localReady || isStreamGuest() && !streamReady;
+  $('start-button').textContent = isHost ? (mode === 'online' ? 'Samen aan het spelen' : mode === 'paused' && (session || playStyle === 'stream') ? 'Verder spelen →' : 'Start samen →') : (mode === 'online' ? 'Samen aan het spelen' : localReady ? 'Wachten op de host…' : 'Ik ben klaar →');
   $('restart-button').hidden = !isHost || !connected || !remoteReady || !(mode === 'online' || mode === 'paused');
   $('guest-state').textContent = (isHost ? remoteReady : localReady) ? 'Klaar' : connected ? 'Verbonden' : '—';
 }
@@ -157,6 +181,7 @@ function beginOnline(newEpoch) {
 function pause(send = true) {
   if (!['online', 'solo'].includes(mode)) return;
   pausedMode = mode; mode = 'paused'; audio.clear(); pressed.clear(); touched.clear();
+  if (streamInput) { streamInput.buttons = 0; streamInput.received = -Infinity; }
   $('fps-value').textContent = '—';
   overlay('Even pauze.', roomId ? 'De host kan de game weer hervatten.' : 'Klaar voor nog een ronde?');
   $('room-status').textContent = 'Gepauzeerd'; $('pause-button').textContent = 'Verder spelen';
@@ -171,16 +196,18 @@ function resume(send = true) {
   fpsTime = performance.now(); fpsCount = 0;
   $('screen-overlay').hidden = true; $('pause-button').textContent = 'Pauzeren';
   $('room-status').textContent = mode === 'online' ? 'Samen aan het spelen' : 'Solo aan het spelen';
-  $('game').focus(); updateActions();
+  focusGame(); updateActions();
 }
 function resetPeer() {
+  closeGameStream();
   expectedGame = null; guestLoading = false;
   peer?.close(); peer = null; remoteReady = false; localReady = false;
   $('guest-rom-card').hidden = true; $('guest-rom-file').value = ''; $('ping-value').textContent = '—';
   $('route-value').textContent = 'Niet verbonden';
 }
 function leaveRoom() {
-  stop(); invites.leave(); resetPeer(); connectionStatus(false);
+  stop(); resetPeer(); invites.leave(); connectionStatus(false); playStyle = 'netplay';
+  $('stream-guest-card').hidden = true;
   roomId = null; game = null; core = null; pickedGame = null; isHost = true;
   pressed.clear(); touched.clear();
   $('home').hidden = false; $('room-view').hidden = true;
@@ -199,11 +226,20 @@ function setupPeer(connection, host) {
     $('room-message').textContent = host ? 'Speler 2 is verbonden en kiest nu een eigen ROM.' : 'Verbonden. Wachten op de gamegegevens van de host.';
     updateActions();
     if (host) {
-      try { current.send('control', createGameConfig(game)); }
+      try {
+        if (playStyle === 'stream') {
+          streamInfo = { type: 'stream-game', version: STREAM_VERSION, token: crypto.randomUUID(), name: game.name, system: game.system, overclock: game.overclock };
+          gameStream = makeGameStream(true, streamInfo.token);
+          current.send('control', streamInfo);
+          $('room-message').textContent = 'Speler 2 is verbonden. Beeld en geluid worden voorbereid; er is geen ROM nodig bij de gast.';
+        } else current.send('control', createGameConfig(game));
+      }
       catch (error) { fatal(error); }
     }
   });
   peer.addEventListener('input', ({ detail }) => {
+    if (current === peer && playStyle === 'stream' && isHost && detail?.type === 'stream-input' &&
+        detail.token === streamInfo?.token && mode === 'online') { streamInput?.receive(detail); return; }
     if (current !== peer || detail?.epoch !== epoch || !session || detail.type !== 'input') return;
     try { session.receive(detail.frame, detail.buttons); } catch (error) { fatal(error); }
   });
@@ -264,13 +300,87 @@ async function selectGuestRom(bytes, demo = false) {
     if (current === peer) { guestLoading = false; updateActions(); }
   }
 }
+function makeGameStream(host, token) {
+  const media = new GameStream({ endpoint: invites.endpoint, connection: peer.connection, host, token });
+  media.addEventListener('error', ({ detail }) => { if (gameStream === media) fatal(detail); });
+  media.addEventListener('stream', ({ detail }) => {
+    if (gameStream !== media || !isStreamGuest()) return;
+    streamVideo.srcObject = detail;
+    streamVideo.hidden = false; $('game').hidden = true;
+    const ready = () => {
+      if (gameStream !== media || streamVideo.readyState < 2 || !detail.getVideoTracks().length || !detail.getAudioTracks().length || streamReady) return;
+      streamReady = true; media.ready();
+      $('stream-status').textContent = 'Beeld en geluid zijn verbonden. Kies ‘Ik ben klaar’ om je controller en geluid te activeren.';
+      $('room-status').textContent = 'Stream verbonden';
+      overlay('Je plek staat klaar.', 'Je hebt geen ROM nodig. Kies ‘Ik ben klaar’; de host start de game.');
+      updateActions();
+    };
+    streamVideo.onloadeddata = ready; detail.addEventListener('addtrack', ready);
+    streamVideo.onerror = () => { if (gameStream === media) fatal('De browser kan deze videostream niet afspelen.'); };
+    streamVideo.play().then(ready).catch(() => {
+      if (gameStream === media) $('stream-status').textContent = 'Klik op het gamescherm om de stream te starten.';
+    });
+  });
+  return media;
+}
+function requireStream(message) {
+  if (!isStreamGuest() || !peer || peer.connection.relay) throw new Error('De stream hoort niet bij deze kamer.');
+  if (streamInfo) {
+    if (JSON.stringify(streamInfo) !== JSON.stringify(message)) throw new Error('De streaminstellingen zijn veranderd. Verbind opnieuw.');
+    return;
+  }
+  streamInfo = message; core = null; expectedGame = null;
+  game = { name: message.name, system: message.system, overclock: message.overclock, demo: false };
+  gameStream = makeGameStream(false, message.token);
+  showRoom(); updateAudio();
+  $('room-status').textContent = 'Stream verbinden…';
+  $('stream-status').textContent = 'Beeld en geluid verbinden via WebRTC…';
+  $('room-message').textContent = 'De host draait de emulator. Jouw controller bedient speler 2.';
+  overlay('Het beeld komt eraan.', 'Beeld en geluid komen rechtstreeks van de host. Je hoeft geen ROM te kiezen.');
+  peer.send('control', { type: 'stream-watch', token: message.token });
+}
+async function sendGameStream() {
+  const current = peer, media = gameStream;
+  if (!isHost || playStyle !== 'stream' || !media || media.call) return;
+  try {
+    const sound = await audio.capture();
+    if (current !== peer || media !== gameStream || media.closed) { if (!gameStream) audio.releaseCapture(); return; }
+    if (!media.call) media.start($('game'), sound);
+  } catch (error) { if (current === peer && media === gameStream) fatal(error); }
+}
+function beginStreaming(newEpoch) {
+  epoch = newEpoch; session = null; streamSequence = 0;
+  if (isHost) { core.load(game.bytes, game.system, game); audio.clear(); streamInput = new StreamInput(epoch); }
+  mode = 'online'; pausedMode = null; accumulator = 0; lastTime = 0;
+  fpsTime = performance.now(); fpsCount = 0;
+  $('screen-overlay').hidden = true; $('pause-button').textContent = 'Pauzeren';
+  $('room-status').textContent = 'Samen aan het spelen'; $('play-mode').textContent = 'WebRTC · beeld en geluid';
+  $('room-message').textContent = isHost ? 'Jij draait de game. Speler 2 ontvangt jouw beeld en geluid en stuurt knoppen terug.' : 'Je bestuurt speler 2 op de emulator van de host. Er is geen ROM-bestand ontvangen.';
+  if (isStreamGuest()) { $('stream-status').textContent = 'Je ontvangt live beeld en geluid. Je knoppen besturen speler 2.'; $('fps-value').textContent = 'Live video'; }
+  focusGame(); updateActions();
+}
+invites.addEventListener('call', ({ detail }) => {
+  if (!gameStream || !isStreamGuest()) detail.call.close();
+  else gameStream.accept(detail.call);
+});
+streamVideo.onclick = () => { if (isStreamGuest()) streamVideo.play().catch(report); };
 function handleControl(message) {
   if (!message || typeof message !== 'object') throw new Error('Ongeldig spelbericht.');
   if (message.type === 'ping' && typeof message.time === 'number') return peer.send('control', { type: 'pong', time: message.time });
   if (message.type === 'pong' && typeof message.time === 'number') {
     $('ping-value').textContent = Math.max(0, Math.round(performance.now() - message.time)) + ' ms'; return;
   }
-  if (message.type === 'game') { requireLocalRom(message); return; }
+  if (message.type === 'stream-game') { requireStream(message); return; }
+  if (message.type.startsWith('stream-')) {
+    if (playStyle !== 'stream' || message.token !== streamInfo?.token) throw new Error('De streamsessie komt niet overeen.');
+    if (message.type === 'stream-watch' && isHost) { void sendGameStream(); return; }
+    if (message.type === 'stream-ready' && isHost && gameStream?.call) {
+      remoteReady = true; gameStream.ready(); $('room-message').textContent = 'Speler 2 ontvangt de stream en is klaar. Je kunt starten.'; updateActions(); return;
+    }
+    if (message.type === 'stream-start' && !isHost && localReady && streamReady) { beginStreaming(message.epoch); return; }
+    throw new Error('Onverwacht streambericht.');
+  }
+  if (message.type === 'game') { if (playStyle !== 'netplay') throw new Error('Deze kamer gebruikt een stream.'); requireLocalRom(message); return; }
   if (message.type === 'game-matched' && isHost) {
     checkGameSettings(message);
     if (message.hash !== game.hash) throw new Error('De ROMs komen niet overeen.');
@@ -292,38 +402,27 @@ function handleControl(message) {
     if (checks.size < 8) checks.set(message.frame, message.hash); return;
   }
   if (message.type === 'interrupted' && message.epoch === epoch) {
-    stop('De game is onderbroken bij de andere speler. De host kan opnieuw starten.'); return;
+    if (playStyle === 'stream') {
+      closeGameStream(); remoteReady = localReady = false;
+      const message = 'De stream is onderbroken bij de andere speler. Verlaat de kamer en verbind opnieuw.';
+      stop(message); $('stream-status').textContent = message; updateActions();
+    } else stop('De game is onderbroken bij de andere speler. De host kan opnieuw starten.');
+    return;
   }
 }
 function checkGameSettings(message) {
   if (message.overclock !== game?.overclock) throw new Error('Jullie CPU-overclock komt niet overeen. Verbind opnieuw met de kamer.');
 }
-function buttons(map, padIndex = 0, touch = false) {
-  if (document.hidden) return 0;
-  let bits = 0;
-  for (const key of pressed) if (map[key] !== undefined) bits |= 1 << map[key];
-  if (touch) for (const b of touched) bits |= 1 << b;
-  const pad = [...(navigator.getGamepads?.() || [])].filter(Boolean)[padIndex];
-  if (pad) {
-    if (game?.system === 'snes') {
-      for (const [button, bit] of [[1, 0], [0, 1], [3, 8], [2, 9], [4, 10], [5, 11]]) if (pad.buttons[button]?.pressed) bits |= 1 << bit;
-    } else {
-      if (pad.buttons[0]?.pressed) bits |= 1;
-      if (pad.buttons[1]?.pressed || pad.buttons[2]?.pressed) bits |= 2;
-    }
-    if (pad.buttons[8]?.pressed) bits |= 4;
-    if (pad.buttons[9]?.pressed) bits |= 8;
-    if (pad.buttons[12]?.pressed || pad.axes[1] < -.45) bits |= 16;
-    if (pad.buttons[13]?.pressed || pad.axes[1] > .45) bits |= 32;
-    if (pad.buttons[14]?.pressed || pad.axes[0] < -.45) bits |= 64;
-    if (pad.buttons[15]?.pressed || pad.axes[0] > .45) bits |= 128;
-  }
-  // Opposite directions are undefined on physical NES controllers.
-  if ((bits & 48) === 48) bits &= ~48;
-  if ((bits & 192) === 192) bits &= ~192;
-  return game?.system === 'snes' ? bits : bits & 255;
-}
+
 function loop(time) {
+  if (isStreamGuest()) {
+    if (mode !== 'online' || !streamReady || !streamInfo) { lastTime = time; return; }
+    if (time - lastTime < 1000 / 60) return;
+    lastTime = time;
+    try { peer.send('input', { type: 'stream-input', token: streamInfo.token, epoch, sequence: streamSequence++, buttons: controls.buttons(0, true) }); }
+    catch (error) { fatal(error); }
+    return;
+  }
   if (!core || !['solo', 'online'].includes(mode)) { lastTime = time; return; }
   if (!lastTime) lastTime = time;
   accumulator = Math.min(accumulator + time - lastTime, 100); lastTime = time;
@@ -331,14 +430,15 @@ function loop(time) {
     let count = 0;
     while (accumulator >= 1000 / core.fps && count++ < 5) {
       let advanced = true;
-      if (mode === 'online') advanced = session.tick(buttons(keyMap, 0, true));
-      else core.run(buttons(keyMap, 0, true), buttons(secondKeys, 1));
+      if (mode === 'online' && playStyle === 'stream') core.run(controls.buttons(0, true), streamInput.current());
+      else if (mode === 'online') advanced = session.tick(controls.buttons(0, true));
+      else core.run(controls.buttons(0, true), controls.buttons(1));
       accumulator -= 1000 / core.fps;
       if (advanced) fpsCount++;
       else { accumulator = 0; break; }
     }
     audio.flush();
-    if (mode === 'online') {
+    if (mode === 'online' && playStyle === 'netplay') {
       $('room-status').textContent = session.waiting ? 'Wachten op de verbinding…' : 'Samen aan het spelen';
       for (const [frame, hash] of checks) {
         const local = session.hashAt(frame);
@@ -359,7 +459,7 @@ const playbackClock = new PlaybackClock(loop);
 
 function invitationUrl() {
   const url = new URL(location.href);
-  url.hash = new URLSearchParams({ room: roomId, key: invites.secret }).toString();
+  url.hash = new URLSearchParams({ room: roomId, key: invites.secret, mode: playStyle }).toString();
   return url.href;
 }
 function connectionStatus(online) {
@@ -386,7 +486,7 @@ invites.addEventListener('rejected', ({ detail }) => {
   report(detail.message); updateActions();
 });
 invites.addEventListener('created', ({ detail }) => {
-  roomId = detail.id; isHost = true;
+  roomId = detail.id; isHost = true; playStyle = detail.playMode;
   launchCommitted = true; setLaunchBusy(false); $('create-dialog').close();
   $('player-one').textContent = nickname; showRoom();
   $('room-message').textContent = 'Je privékamer staat klaar. Deel de uitnodigingslink en houd deze pagina open.';
@@ -399,14 +499,14 @@ invites.addEventListener('joining', ({ detail }) => {
   setupPeer(detail.connection, false);
 });
 invites.addEventListener('joined', ({ detail }) => {
-  roomId = detail.id;
+  roomId = detail.id; playStyle = detail.playMode;
   $('join-dialog').close(); $('home').hidden = true; $('room-view').hidden = false;
   $('game-title').textContent = detail.game; $('room-subtitle').textContent = detail.title;
   $('player-one').textContent = detail.host; $('player-two').textContent = nickname;
   $('guest-detail').textContent = 'Jij · controller 2'; $('invite-card').hidden = true;
-  $('room-message').textContent = 'Verbonden. Wachten op de gamegegevens van de host.'; $('room-status').textContent = 'Eigen ROM nodig';
+  $('room-message').textContent = 'Verbonden. Wachten op de gamegegevens van de host.'; $('room-status').textContent = playStyle === 'stream' ? 'Stream verbinden…' : 'Eigen ROM nodig';
   $('solo-controls').hidden = true; $('solo-button').hidden = true;
-  overlay('Schuif maar aan.', 'Je kiest zo je eigen ROM. Er worden geen ROM-bestanden gedeeld.');
+  overlay('Schuif maar aan.', playStyle === 'stream' ? 'De host streamt beeld en geluid. Je hebt geen ROM nodig.' : 'Je kiest zo je eigen ROM. Er worden geen ROM-bestanden gedeeld.');
   peer.approve(); updateActions(); window.scrollTo({ top: 0, behavior: 'instant' });
 });
 invites.addEventListener('guest-joined', ({ detail }) => {
@@ -423,13 +523,29 @@ invites.addEventListener('room-closed', () => { leaveRoom(); toast('De host heef
 function setLaunchBusy(busy) {
   launchBusy = busy;
   for (const id of ['create-submit', 'rom-file', 'choose-demo', 'back-console-button', 'host-overclock']) $(id).disabled = busy;
+  $('play-mode-settings-button').disabled = busy;
+  document.querySelectorAll('input[name="playMode"]').forEach(input => input.disabled = busy);
 }
+function selectedPlayMode() { return launchMode === 'solo' ? 'netplay' : validatePlayMode(document.querySelector('input[name="playMode"]:checked').value); }
+function updatePlayModeChoice() {
+  const streaming = selectedPlayMode() === 'stream';
+  $('play-mode-summary').textContent = streaming ? 'Beeld en geluid streamen · alleen de host heeft de ROM nodig' : 'Samen emuleren · ieder zijn eigen ROM';
+  $('launch-privacy-note').textContent = launchMode === 'solo' ? 'Je speelt lokaal. Je ROM en savestates worden niet geüpload.' : streaming ? 'Alleen jij laadt de ROM. Je vriend ontvangt gamebeeld en gamegeluid en stuurt knoppen terug. Geen camera, microfoon of ROM-overdracht.' : 'Alleen mensen met je uitnodigingslink kunnen meedoen. Beide spelers kiezen hun eigen ROM.';
+}
+$('play-mode-settings-button').onclick = () => {
+  const visible = $('play-mode-settings').hidden;
+  $('play-mode-settings').hidden = !visible; $('play-mode-settings-button').setAttribute('aria-expanded', String(visible));
+};
+document.querySelectorAll('input[name="playMode"]').forEach(input => input.onchange = updatePlayModeChoice);
 function openCreate(current = false, type = 'room') {
   if (roomId) { toast('Verlaat eerst je huidige kamer.'); return; }
   if (mode === 'solo') pause();
   launchGeneration++; launchMode = type; selectedSystem = null; pickedGame = null;
   currentGameRequested = current && !!game; useCurrentGame = false; launchCommitted = false;
   $('console-picker').hidden = false; $('launch-fields').hidden = true;
+  $('play-mode-settings-button').hidden = $('play-mode-summary').hidden = type === 'solo';
+  $('play-mode-settings').hidden = true; $('play-mode-settings-button').setAttribute('aria-expanded', 'false');
+  document.querySelector('input[name="playMode"][value="netplay"]').checked = true;
   $('launch-eyebrow').textContent = type === 'solo' ? 'EEN POTJE VOOR JEZELF' : 'SAMEN AAN DE START';
   $('launch-heading').textContent = 'Kies je console.';
   $('launch-intro').textContent = type === 'solo' ? 'Speel solo met je eigen game. Waar gaan we op spelen?' : 'Maak een kamer voor twee spelers. Kies eerst je console.';
@@ -438,7 +554,7 @@ function openCreate(current = false, type = 'room') {
   $('room-fields').hidden = type === 'solo';
   $('host-name').required = $('room-title-input').required = type === 'room';
   $('create-submit').textContent = type === 'solo' ? 'Start solo →' : 'Maak een kamer →';
-  $('launch-privacy-note').textContent = type === 'solo' ? 'Je speelt lokaal. Je ROM en savestates worden niet geüpload.' : 'Alleen mensen met je uitnodigingslink kunnen meedoen. Beide spelers kiezen hun eigen ROM.';
+  updatePlayModeChoice();
   setLaunchBusy(false); $('create-dialog').showModal();
 }
 function chooseConsole(system) {
@@ -531,14 +647,19 @@ $('create-form').onsubmit = async event => {
     const values = new FormData(event.target), selected = useCurrentGame ? game : pickedGame;
     if (selected.system !== selectedSystem) throw new Error('De ROM hoort niet bij de gekozen console.');
     setLaunchBusy(true);
-    if (type === 'solo') await enableAudio();
+    const chosenPlayMode = type === 'solo' ? 'netplay' : validatePlayMode(values.get('playMode'));
+    if (chosenPlayMode === 'stream' && (typeof $('game').captureStream !== 'function' || typeof MediaStream === 'undefined' || typeof RTCPeerConnection === 'undefined')) {
+      throw new Error('Deze browser ondersteunt het streamen van gamebeeld niet. Kies samen emuleren of gebruik een browser met WebRTC en canvas-capture.');
+    }
+    if (type === 'solo' || chosenPlayMode === 'stream') await enableAudio();
     if (!isCurrent()) return;
     if (type === 'room') { nickname = String(values.get('name')).trim(); saveSetting('name', nickname); }
     if (!await loadGame(selected.bytes, selected.name, selected.demo, selected.system, Number(values.get('overclock')), isCurrent)) return;
+    playStyle = chosenPlayMode;
     if (type === 'solo') {
       isHost = true; roomId = null; launchCommitted = true; setLaunchBusy(false); $('create-dialog').close();
       showRoom(); await startSolo();
-    } else await invites.create({ name: nickname, title: values.get('title'), game: game.name });
+    } else await invites.create({ name: nickname, title: values.get('title'), game: game.name, playMode: chosenPlayMode });
   } catch (error) { if (isCurrent()) { setLaunchBusy(false); report(error); } }
 };
 $('join-form').onsubmit = async event => {
@@ -553,7 +674,7 @@ $('join-form').onsubmit = async event => {
 };
 $('demo-button').onclick = async () => {
   try {
-    const demo = await demoData(); isHost = true; roomId = null;
+    const demo = await demoData(); isHost = true; roomId = null; playStyle = 'netplay';
     await loadGame(demo.bytes, demo.name, true); showRoom();
     $('room-message').textContent = 'Tik op A om te racen. Speel solo of maak een kamer om samen te testen.';
   } catch (error) { report(error); }
@@ -626,6 +747,24 @@ $('room-overclock').onchange = () => {
   } catch (error) { fatal(error); updateActions(); }
 };
 async function startTogether() {
+  if (playStyle === 'stream') {
+    if (!streamInfo || !gameStream || !peer?.opened) throw new Error('Wacht tot de WebRTC-stream verbonden is.');
+    if (!isHost) {
+      if (!streamReady) throw new Error('Wacht tot beeld en geluid binnenkomen.');
+      streamVideo.muted = false;
+      try { await streamVideo.play(); } catch { streamVideo.muted = true; toast('Gebruik de geluidsknop om het geluid aan te zetten.'); }
+      updateAudio(); localReady = true;
+      peer.send('control', { type: 'stream-ready', token: streamInfo.token });
+      $('stream-status').textContent = 'Beeld, geluid en controller zijn klaar. Wachten tot de host start.';
+      $('room-message').textContent = 'Je controller is klaar. De host kan starten.'; updateActions(); return;
+    }
+    await enableAudio();
+    if (!remoteReady) throw new Error('Wacht tot speler 2 de stream heeft geopend en klaar is.');
+    if (mode === 'paused') { resume(); return; }
+    const nextEpoch = crypto.randomUUID();
+    peer.send('control', { type: 'stream-start', token: streamInfo.token, epoch: nextEpoch, version: STREAM_VERSION });
+    beginStreaming(nextEpoch); return;
+  }
   await enableAudio();
   if (!isHost) {
     localReady = true; peer.send('control', { type: 'ready', hash: game.hash, overclock: game.overclock });
@@ -640,7 +779,14 @@ async function startTogether() {
 $('start-button').onclick = () => startTogether().catch(report);
 $('restart-button').onclick = () => { stop(); startTogether().catch(report); };
 $('pause-button').onclick = () => { if (stateBusy) return; try { mode === 'paused' ? resume() : pause(); } catch (error) { report(error); } };
-$('audio-button').onclick = async () => { if (audio.enabled) { audio.mute(); updateAudio(); } else await enableAudio(); };
+$('audio-button').onclick = async () => {
+  if (isStreamGuest()) {
+    streamVideo.muted = !streamVideo.muted;
+    try { await streamVideo.play(); } catch { streamVideo.muted = true; toast('Het streamgeluid kon niet worden gestart. Probeer opnieuw.'); }
+    updateAudio(); return;
+  }
+  if (audio.enabled) { audio.mute(); updateAudio(); } else await enableAudio();
+};
 const playPanel = $('play-panel');
 let fullscreenControlsTimer;
 function applyScreenFit(value) {
@@ -668,7 +814,7 @@ document.addEventListener('fullscreenchange', () => {
   const label = fullscreen ? 'Volledig scherm verlaten' : 'Volledig scherm';
   $('fullscreen-button').setAttribute('aria-label', label); $('fullscreen-button').title = label;
   clearTimeout(fullscreenControlsTimer); playPanel.classList.remove('fullscreen-controls-visible');
-  if (fullscreen) { $('game').focus(); revealFullscreenControls(); }
+  if (fullscreen) { focusGame(); revealFullscreenControls(); }
 });
 document.addEventListener('keydown', event => {
   if (event.key === 'Escape' && document.fullscreenElement === playPanel) document.exitFullscreen().catch(() => {});
@@ -684,7 +830,8 @@ $('copy-button').onclick = async () => {
 };
 document.addEventListener('keydown', event => {
   if ($('room-view').hidden || document.querySelector('dialog[open]') || /INPUT|TEXTAREA|SELECT/.test(event.target.tagName)) return;
-  if (keyMap[event.code] !== undefined || secondKeys[event.code] !== undefined) { event.preventDefault(); pressed.add(event.code); }
+  if (event.ctrlKey || event.metaKey || event.altKey || event.target.isContentEditable) return;
+  if (controls.hasKey(event.code)) { event.preventDefault(); pressed.add(event.code); }
 });
 document.addEventListener('keyup', event => pressed.delete(event.code));
 function releaseButtons() {
@@ -700,8 +847,7 @@ document.querySelectorAll('[data-pad]').forEach(button => {
   const release = () => { touched.delete(Number(button.dataset.pad)); button.classList.remove('pressed'); };
   button.onpointerup = release; button.onpointercancel = release; button.onlostpointercapture = release;
 });
-window.addEventListener('gamepadconnected', ({ gamepad }) => { $('gamepad-hint').textContent = 'Gamepad verbonden: ' + gamepad.id; });
-window.addEventListener('gamepaddisconnected', () => { $('gamepad-hint').textContent = 'Gamepad losgekoppeld. Je kunt het toetsenbord gebruiken.'; });
+
 
 setInterval(async () => {
   if (!peer || peer.control?.readyState !== 'open') return;
@@ -713,6 +859,7 @@ setInterval(async () => {
         peer.send('control', { type: 'hash', ...checkpoint, epoch }); lastHash = checkpoint.frame;
       }
     }
+    if (playStyle === 'stream') { $('route-value').textContent = 'WebRTC · stream'; return; }
     if (peer.route === 'Itty Sockets') { $('route-value').textContent = 'Itty Sockets'; return; }
     const stats = await peer.pc.getStats();
     for (const value of stats.values()) {
