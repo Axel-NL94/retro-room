@@ -8,7 +8,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 const project = fileURLToPath(new URL('../', import.meta.url));
 const mime = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
   '.mjs': 'text/javascript; charset=utf-8', '.wasm': 'application/wasm',
-  '.css': 'text/css; charset=utf-8', '.json': 'application/json', '.svg': 'image/svg+xml', '.nes': 'application/octet-stream' };
+  '.css': 'text/css; charset=utf-8', '.txt': 'text/plain; charset=utf-8', '.json': 'application/json', '.svg': 'image/svg+xml', '.nes': 'application/octet-stream' };
 const text = (value, max, fallback) => typeof value === 'string' ? value.trim().slice(0, max) || fallback : fallback;
 
 export function createRetroServer({ root = path.join(project, 'dist'), allowedOrigins = [], iceServers = [], maxClients = 200 } = {}) {
