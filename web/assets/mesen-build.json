@@ -4,7 +4,19 @@
   "toolchain": "Emscripten 4.0.19",
   "bridge": "retroroom-web-3",
   "wasmSha256": "c79ce4580a28a83328bdc4f7edc654c3bfa906d2151e10145775977d8c91ffbe",
+  "loaderSha256": "4d43909c96e1c85e1f9ad51f5b68574681b7e9bc442dcc45439d9352c0f97493",
   "sourceArchive": "mesen-source.tar.gz",
-  "sourceSha256": "8cdb7e2390b3fa03dcf6735f960b0a699c45ae2e37f7baf2af09913cde642368",
-  "license": "GPL-3.0-or-later"
+  "sourceSha256": "99fcc926f1d66d3edcd31689c06fe240846f200d919fb211482d2454580691f6",
+  "license": "GPL-3.0-only",
+  "upstreamLicense": "GPL-3.0-or-later",
+  "licenseSelection": "GNU GPL version 3 selected for the combined distribution, including xBRZ.",
+  "sourceScope": [
+    "Core",
+    "Utilities",
+    "SevenZip",
+    "Lua",
+    "Libretro"
+  ],
+  "modificationsDocumented": "2026-10-29",
+  "nativeCodeChangedByLicenseAudit": false
 }

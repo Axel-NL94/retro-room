@@ -1,0 +1,382 @@
+{
+  "auditDate": "2026-10-29",
+  "distributionLicense": "GPL-3.0-only",
+  "npm": [
+    {
+      "name": "peerjs",
+      "version": "1.5.5",
+      "licenseFile": "LICENSE",
+      "license": "MIT",
+      "noticeSha256": "9407807dba7f47a79bfb3ac55759d63d77c9371ebd0616d5a093e97d3e810397"
+    },
+    {
+      "name": "peerjs-js-binarypack",
+      "version": "2.1.0",
+      "licenseFile": "LICENSE",
+      "license": "MIT",
+      "noticeSha256": "9517e6f46b30231a62407f94a8c7adf8b4d14038c01807cd769f1d4de5911ba4"
+    },
+    {
+      "name": "eventemitter3",
+      "version": "4.0.7",
+      "licenseFile": "LICENSE",
+      "license": "MIT",
+      "noticeSha256": "3aecc12b1cb28832b5f65ab64291de96568c3f236a74d646281b4491f7bcadbf"
+    },
+    {
+      "name": "webrtc-adapter",
+      "version": "9.0.6",
+      "licenseFile": "LICENSE.md",
+      "license": "BSD-3-Clause",
+      "noticeSha256": "00a46c6cfc219593b97586398b477e188391556e70487225d3ff9d60ccda6dce"
+    },
+    {
+      "name": "sdp",
+      "version": "3.2.2",
+      "licenseFile": "LICENSE",
+      "license": "MIT",
+      "noticeSha256": "798e82590af6a84bfbde3d6bb0fb9162c519edf16122404fea00acefdc55cbd9"
+    },
+    {
+      "name": "@msgpack/msgpack",
+      "version": "2.8.0",
+      "licenseFile": "LICENSE",
+      "license": "ISC",
+      "noticeSha256": "d95a411bcdadac85d678a99367ff51719e53539fa5ee9994943cd760c4ae64e4"
+    },
+    {
+      "name": "jsnes",
+      "version": "2.1.0",
+      "licenseFile": "LICENSE",
+      "license": "Apache-2.0",
+      "noticeSha256": "530136cec696ac1fcdeb792a77472cb273f9f814ad0ed795dccdc95db7423e0a"
+    },
+    {
+      "name": "ws",
+      "version": "8.22.0",
+      "licenseFile": "LICENSE",
+      "license": "MIT",
+      "noticeSha256": "2b29dcfe0d6471f7e8c92c5fb38c9f93edee10330937055440192f1832b1ecef"
+    }
+  ],
+  "components": [
+    {
+      "id": "retroroom",
+      "name": "Original RetroRoom code, artwork and Room Rally",
+      "license": "MIT",
+      "source": "https://github.com/Axel-NL94/retro-room",
+      "noticeSha256": "09c3b81233aa831b383946fde9d946e0453cd4bfaebb81cca1bc44ab6302ce58"
+    },
+    {
+      "id": "mesen",
+      "name": "MesenCE 4c4e069f16a8ad6ed79e046046c56d51558c7daf",
+      "license": "GPL-3.0-or-later; version 3 selected for combined distribution",
+      "source": "https://github.com/libretro/MesenCE/tree/4c4e069f16a8ad6ed79e046046c56d51558c7daf",
+      "noticeSha256": "2271bec42023649cb08d110f6eca1a7d38872af6b0ca2194f65953f85f10d51f"
+    },
+    {
+      "id": "gpl-3.0",
+      "name": "Full GNU GPL version 3",
+      "license": "GPL-3.0",
+      "source": "https://www.gnu.org/licenses/gpl-3.0.html",
+      "noticeSha256": "c53a65c2fd561c87eaabf1072ef5dcab8653042bc15308465f52413585eb6271"
+    },
+    {
+      "id": "lgpl-2.1",
+      "name": "Full GNU LGPL version 2.1",
+      "license": "LGPL-2.1",
+      "source": "https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html",
+      "noticeSha256": "dcbea5e0d91fbe14fbdfcba9a478013d346a1bb8fb0007df87bfe0f14ef09b88"
+    },
+    {
+      "id": "npm:peerjs",
+      "name": "peerjs 1.5.5 (installed dependency; embedded versions are listed separately)",
+      "license": "MIT",
+      "source": "https://www.npmjs.com/package/peerjs/v/1.5.5",
+      "noticeSha256": "87c9f6fbc5bc8df297f5cfb4dba9495f378ff1502643bf6db15f219243117398"
+    },
+    {
+      "id": "npm:peerjs-js-binarypack",
+      "name": "peerjs-js-binarypack 2.1.0 (installed dependency; embedded versions are listed separately)",
+      "license": "MIT",
+      "source": "https://www.npmjs.com/package/peerjs-js-binarypack/v/2.1.0",
+      "noticeSha256": "9517e6f46b30231a62407f94a8c7adf8b4d14038c01807cd769f1d4de5911ba4"
+    },
+    {
+      "id": "npm:eventemitter3",
+      "name": "eventemitter3 4.0.7 (installed dependency; embedded versions are listed separately)",
+      "license": "MIT",
+      "source": "https://www.npmjs.com/package/eventemitter3/v/4.0.7",
+      "noticeSha256": "ce0337175145faf4475b35bc8679a1a4b7de01f05cabe2ac6a4780239a7d5ae1"
+    },
+    {
+      "id": "npm:webrtc-adapter",
+      "name": "webrtc-adapter 9.0.6 (installed dependency; embedded versions are listed separately)",
+      "license": "BSD-3-Clause",
+      "source": "https://www.npmjs.com/package/webrtc-adapter/v/9.0.6",
+      "noticeSha256": "6aafbf4de4183a2262d96588a053b9fe0e560f41be539bf7252e2dccab569766"
+    },
+    {
+      "id": "npm:sdp",
+      "name": "sdp 3.2.2 (installed dependency; embedded versions are listed separately)",
+      "license": "MIT",
+      "source": "https://www.npmjs.com/package/sdp/v/3.2.2",
+      "noticeSha256": "73e1c6146543bf7549047bf279f8e08d315778c7a464be96ad8058e784034c85"
+    },
+    {
+      "id": "npm:@msgpack/msgpack",
+      "name": "@msgpack/msgpack 2.8.0 (installed dependency; embedded versions are listed separately)",
+      "license": "ISC",
+      "source": "https://www.npmjs.com/package/@msgpack/msgpack/v/2.8.0",
+      "noticeSha256": "4781a87456a3578e8045cc3d89b7fec61886a490d808793d6cee90175b89b73d"
+    },
+    {
+      "id": "npm:jsnes",
+      "name": "jsnes 2.1.0 (installed dependency; embedded versions are listed separately)",
+      "license": "Apache-2.0",
+      "source": "https://www.npmjs.com/package/jsnes/v/2.1.0",
+      "noticeSha256": "3a6381e6b96d1988046e83173597014652a7feb2f9b1c07f392a8672ee415b3a"
+    },
+    {
+      "id": "npm:ws",
+      "name": "ws 8.22.0 (installed dependency; embedded versions are listed separately)",
+      "license": "MIT",
+      "source": "https://www.npmjs.com/package/ws/v/8.22.0",
+      "noticeSha256": "7adebaeee45b60d995843745060fe5486b76eb6c9e8fc7bca6fbc67b8680d96d"
+    },
+    {
+      "id": "libretro-api",
+      "name": "Libretro API header",
+      "license": "MIT",
+      "source": "MesenCE Libretro/libretro.h",
+      "noticeSha256": "e14ba2138fda02d95c740ba2bac9f50d830fb9fdbe45f5b8e289c5e84c42b4d3"
+    },
+    {
+      "id": "lua",
+      "name": "Lua",
+      "license": "MIT",
+      "source": "MesenCE Lua/lua.h",
+      "noticeSha256": "5f83f165ae56f0cb5ca4f8d486d1c1d92d18001df4e8badb6c02a8b9b1012e44"
+    },
+    {
+      "id": "luasocket",
+      "name": "LuaSocket and MIME",
+      "license": "MIT",
+      "source": "https://github.com/lunarmodules/luasocket/blob/master/LICENSE",
+      "noticeSha256": "bc9201c3c88edbe076e6929b8963b634d0a66c93c5c263e7530641a55ba827cc"
+    },
+    {
+      "id": "emu2413",
+      "name": "emu2413 1.5.9",
+      "license": "MIT",
+      "source": "https://github.com/digital-sound-antiques/emu2413/blob/1.5.9/LICENSE",
+      "noticeSha256": "53e1baecd0389f5c521c152e66806f98682ede74374c6178d2c6c4fb8d9fc6b1"
+    },
+    {
+      "id": "ymfm",
+      "name": "ymfm",
+      "license": "BSD-3-Clause",
+      "source": "MesenCE Utilities/Audio/ymfm/ymfm.h",
+      "noticeSha256": "60956d71eff534641896e3fe67898d12b56bc35bec7b2502921168a826fb2b28"
+    },
+    {
+      "id": "kissfft",
+      "name": "KISS FFT",
+      "license": "BSD-3-Clause",
+      "source": "https://github.com/mborgerding/kissfft/blob/master/COPYING and LICENSES/BSD-3-Clause",
+      "noticeSha256": "179a8d4d8852f1ad01685fa46113c038bcaada5779a384e615c9ac5da8b155cc"
+    },
+    {
+      "id": "libspng",
+      "name": "libspng 0.6.3",
+      "license": "BSD-2-Clause",
+      "source": "https://github.com/randy408/libspng/blob/v0.6.3/LICENSE",
+      "noticeSha256": "c048c435b2821643a9d2de5e6b788d9c593f1d5944768544a8e221f51a075d71"
+    },
+    {
+      "id": "libpng",
+      "name": "libpng-derived filter code",
+      "license": "libpng-2.0",
+      "source": "MesenCE Utilities/spng.c",
+      "noticeSha256": "674d9a2ecd6049428d66dce7672c93d7b8fdab8d5e2e9177035db44edfb698cb"
+    },
+    {
+      "id": "blip-buf",
+      "name": "blip_buf",
+      "license": "LGPL-2.1-or-later",
+      "source": "MesenCE Utilities/Audio/blip_buf.cpp",
+      "noticeSha256": "6b189bcef4b55cb878f044271e7f3165577539351d29577cf34830d18f03a1bf"
+    },
+    {
+      "id": "nes-ntsc",
+      "name": "nes_ntsc",
+      "license": "LGPL-2.1-or-later",
+      "source": "MesenCE Utilities/NTSC/nes_ntsc.cpp",
+      "noticeSha256": "46a345cbf939467a4b009d589a577c40b139066d41cb8e80851fc6ab6d260bdf"
+    },
+    {
+      "id": "snes-ntsc",
+      "name": "snes_ntsc",
+      "license": "LGPL-2.1-or-later",
+      "source": "MesenCE Utilities/NTSC/snes_ntsc.cpp",
+      "noticeSha256": "46a345cbf939467a4b009d589a577c40b139066d41cb8e80851fc6ab6d260bdf"
+    },
+    {
+      "id": "sms-ntsc",
+      "name": "sms_ntsc",
+      "license": "LGPL-2.1-or-later",
+      "source": "MesenCE Utilities/NTSC/sms_ntsc.cpp",
+      "noticeSha256": "46a345cbf939467a4b009d589a577c40b139066d41cb8e80851fc6ab6d260bdf"
+    },
+    {
+      "id": "hqx",
+      "name": "HQX filters",
+      "license": "LGPL-2.1-or-later",
+      "source": "MesenCE Utilities/HQX/common.h",
+      "noticeSha256": "65f0dc836aedc3d8f17a716ab04a620b5bdd791c8579567457595bb849564576"
+    },
+    {
+      "id": "scale2x",
+      "name": "Scale2x / Scale3x",
+      "license": "GPL-2.0-or-later",
+      "source": "MesenCE Utilities/Scale2x/scale2x.cpp",
+      "noticeSha256": "6fb5fe8ec9e5b2cb7226c3046bc46c4bad1aec8ca209a360e8c7caeda42db361"
+    },
+    {
+      "id": "kreed",
+      "name": "RetroArch-derived 2xSaI / SuperEagle",
+      "license": "GPL-3.0-or-later",
+      "source": "MesenCE Utilities/KreedSaiEagle/2xSai.cpp",
+      "noticeSha256": "8a69239284cad55b18e6772865e24d2bd0e2d49519938df5d30babeb0f839ca1"
+    },
+    {
+      "id": "zmbv",
+      "name": "DOSBox-derived AVI / ZMBV",
+      "license": "GPL-2.0-or-later",
+      "source": "MesenCE Utilities/Video/ZmbvCodec.cpp",
+      "noticeSha256": "12d02a1cf72a86eddaa18c01b22bbebd17f9b1a23cf05fee0af83b51b1b7969b"
+    },
+    {
+      "id": "xbrz",
+      "name": "xBRZ with additional MAME exception",
+      "license": "GPL-3.0-only WITH upstream MAME exception",
+      "source": "MesenCE Utilities/xBRZ/xbrz.h",
+      "noticeSha256": "ae1bd87b1cc0318000a05dfcde5d4ff10ad5c2c49e23e1d832cb08a7bcaaa925"
+    },
+    {
+      "id": "gba-multiply",
+      "name": "GBA multiplication by zaydlang",
+      "license": "Zlib",
+      "source": "MesenCE Core/GBA/GbaCpuMultiply.h",
+      "noticeSha256": "e997773eeb8bde2554fe02d9d0b193c8c77b251012e5533cf1e187586bdd12ad"
+    },
+    {
+      "id": "stb-vorbis",
+      "name": "stb_vorbis 1.22",
+      "license": "MIT OR Unlicense",
+      "source": "MesenCE Utilities/Audio/stb_vorbis.cpp",
+      "noticeSha256": "eec94c112986429d7524d1b9432d656bc8d13ebb8222d35acb13085404d43e00"
+    },
+    {
+      "id": "miniz",
+      "name": "miniz 1.15",
+      "license": "Unlicense",
+      "source": "MesenCE Utilities/miniz.cpp",
+      "noticeSha256": "54c4533e30a0ff146e70659cc46062955602a76c503c9ff03e2821ef28707a1e"
+    },
+    {
+      "id": "public-domain",
+      "name": "Public-domain helper sources",
+      "license": "Public domain; see original source notices",
+      "source": "MesenCE SevenZip/, Utilities/sha1.*, Utilities/Video/gif.h, Core/SNES/Coprocessors/SDD1/",
+      "noticeSha256": "1f86434eb3d61596d9ee8700ebd65282a8f22fb490fe7b2225c943bcc3128620"
+    },
+    {
+      "id": "crc32",
+      "name": "CRC32 adapted by Mesen from Stephan Brumme",
+      "license": "Zlib",
+      "source": "https://create.stephan-brumme.com/crc32/ and MesenCE Utilities/CRC32.cpp",
+      "noticeSha256": "96e9e4765d88dcf062bbe35c1d4bdc4d004e023ad109162665d9da6feaaf06e1"
+    },
+    {
+      "id": "sameboy-boot",
+      "name": "SameBoy open-source replacement boot ROM code by LIJI32",
+      "license": "MIT (Expat)",
+      "source": "https://github.com/LIJI32/SameBoy/blob/master/LICENSE and MesenCE Core/Gameboy/GbBootRom.h",
+      "noticeSha256": "29bb0c2526c0853beef582a2a77786bd69212ef2e7340114b04aefc112d8f899"
+    },
+    {
+      "id": "emscripten",
+      "name": "Emscripten 4.0.19 runtime and Node-derived path code",
+      "license": "MIT OR NCSA",
+      "source": "https://github.com/emscripten-core/emscripten/tree/4.0.19/LICENSE",
+      "noticeSha256": "ade0cde45d85897f0264b37e651256428b77b45ef0363d5b97be8fecb4b6805a"
+    },
+    {
+      "id": "musl",
+      "name": "musl libc",
+      "license": "MIT and notices in COPYRIGHT",
+      "source": "https://github.com/emscripten-core/emscripten/tree/4.0.19/system/lib/libc/musl/COPYRIGHT",
+      "noticeSha256": "50a343c1ce9e27cd6c58023f13b91d2cd679861fe7fb6bbbbfbec3dcafc3583f"
+    },
+    {
+      "id": "libcxx",
+      "name": "LLVM libc++",
+      "license": "Apache-2.0 WITH LLVM-exception; retained notices",
+      "source": "https://github.com/emscripten-core/emscripten/tree/4.0.19/system/lib/libcxx/LICENSE.TXT",
+      "noticeSha256": "9dc39e557a5399be6fdaef806b32fb027eadf125e24e12cd4f1aaf3bf2b07784"
+    },
+    {
+      "id": "libcxxabi",
+      "name": "LLVM libc++abi",
+      "license": "Apache-2.0 WITH LLVM-exception; retained notices",
+      "source": "https://github.com/emscripten-core/emscripten/tree/4.0.19/system/lib/libcxxabi/LICENSE.TXT",
+      "noticeSha256": "054cac72f704c092f3b4f5b4b4c04a3ed11f3305ef11a6dd79014d2f418d3ac2"
+    },
+    {
+      "id": "libunwind",
+      "name": "LLVM libunwind",
+      "license": "Apache-2.0 WITH LLVM-exception; retained notices",
+      "source": "https://github.com/emscripten-core/emscripten/tree/4.0.19/system/lib/libunwind/LICENSE.TXT",
+      "noticeSha256": "d26712ae3358c01f8b81c266b1b42b0fe21ba2514016ca573a44acb418609322"
+    },
+    {
+      "id": "compiler-rt",
+      "name": "LLVM compiler-rt",
+      "license": "Apache-2.0 WITH LLVM-exception; retained notices",
+      "source": "https://github.com/emscripten-core/emscripten/tree/4.0.19/system/lib/compiler-rt/LICENSE.TXT",
+      "noticeSha256": "84da0b2632d45749f68ac28bdb29a1ee1af85d9d0e9d94a0ffbc867f6bc0f0c4"
+    },
+    {
+      "id": "dlmalloc",
+      "name": "dlmalloc 2.8.6 by Doug Lea",
+      "license": "CC0 / public domain",
+      "source": "Emscripten 4.0.19 system/lib/dlmalloc.c",
+      "noticeSha256": "f63fd0af75503868e946c4c875aec2d8b6e9dceab986b67beface3e15a049645"
+    },
+    {
+      "id": "dm-sans",
+      "name": "DM Sans (remotely loaded Google Fonts)",
+      "license": "OFL-1.1",
+      "source": "https://github.com/google/fonts/tree/main/ofl/dmsans",
+      "noticeSha256": "81841bd9ca6d173ae0517b555d07edd0e1099b159570bdf3ae64d8c7f7cfc0e0"
+    },
+    {
+      "id": "space-grotesk",
+      "name": "Space Grotesk (remotely loaded Google Fonts)",
+      "license": "OFL-1.1",
+      "source": "https://github.com/google/fonts/tree/main/ofl/spacegrotesk",
+      "noticeSha256": "041cf58f576710d4f2a507b173b334b24f3d66a05d61068231ea57ed82be6b5a"
+    }
+  ],
+  "peerjsSourceSha256": "61f6c01a56cade072ae8a633864533a2ac7c385003c3cce2decc23ac1c96889b",
+  "peerjsBundleSha256": "7604d8c31bec4f134b0d15c2d80b1d095ea18af005354f439f14291fcd7b4168",
+  "peerjsSourceMapSha256": "54dafcd86388aa76a6e58525462e5d1a6941cf24e559123425d614a293b1af76",
+  "embeddedPeerjsDependencies": {
+    "webrtc-adapter": "9.0.1",
+    "sdp": "3.2.0",
+    "peerjs-js-binarypack": "2.1.0",
+    "eventemitter3": "4.0.7"
+  },
+  "note": "Embedded versions come from the official PeerJS v1.5.5 lockfile. Original bundled sources are preserved in the complete download. Installed dependency versions can differ."
+}
