@@ -75,7 +75,9 @@ Utilities, SevenZip, Lua and Libretro), applied patches, browser frontend,
 `CHANGES.md`, third-party notices and build scripts accompany the binary in
 `web/assets/mesen-source.tar.gz`. Unrelated desktop UI/platform trees are omitted.
 `web/assets/mesen-build.json` records the source revision, toolchain and SHA-256
-checksums, including the generated loader hash. No game ROM or BIOS is included in that source archive.
+checksums, including the generated loader hash. No commercial game ROM or proprietary BIOS is included in that source archive.
+The compiled multi-system source does include credited MIT/Expat-licensed
+replacement Game Boy boot code from LIJI32/SameBoy; see `../LICENSING.md`.
 
 Local savestate files use the uncompressed core snapshot with a versioned RetroRoom
 header, ROM SHA-256, CPU setting and payload SHA-256. They contain no ROM. Imported
