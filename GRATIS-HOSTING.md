@@ -1,10 +1,17 @@
-# RetroRoom: uitnodigingen met eigen ROMs
+# RetroRoom: uitnodigingen en verbindingen
 
 Codewijzigingen voeren alleen tests uit. De eigenaar kan de site handmatig publiceren.
 GitHub Pages kan uitsluitend handmatig worden gepubliceerd via de Pages-workflow
 (`workflow_dispatch`), nadat de eigenaar daar expliciet voor kiest.
 
-## Spelen
+De host kiest bij het tandwiel een speelwijze. **Samen emuleren** gebruikt de
+hieronder beschreven eigen ROMs en P2P/Itty-fallback. **Beeld en geluid streamen**
+gebruikt alleen WebRTC: alleen de host laadt de ROM, de gast ontvangt gamevideo en
+gameaudio en stuurt controllerinvoer terug. Streamkamers openen geen Itty-verbinding;
+Itty kan de media niet overnemen. Er is geen TURN-server ingesteld. Bij blokkering
+van WebRTC toont de streammodus een verbindingsfout.
+
+## Spelen met eigen ROMs
 
 1. De host maakt een kamer met een eigen NES- of SNES-ROM.
 2. De host deelt de uitnodigingslink en houdt de pagina open.

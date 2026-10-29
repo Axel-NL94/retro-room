@@ -4,21 +4,33 @@
 uitnodigingslinks. De site wordt handmatig gepubliceerd op https://axel-nl94.github.io/retro-room/. De bron staat op https://github.com/Axel-NL94/retro-room.
 
 De emulator is **MesenCE**, een moderne Mesen-core die naar WebAssembly is
-gecompileerd. NES is beschikbaar; SNES is een eerste **beta**. De host kiest een
-lokale ROM. De gast kiest zelf dezelfde ROM op het eigen apparaat. Een lokale
-SHA-256-controle vergelijkt het bestand met de hash van de host. ROM-bestanden
-worden niet tussen spelers verstuurd. Tijdens het spelen worden kleine
-controllerberichten en controlehashes uitgewisseld.
+gecompileerd. NES is beschikbaar; SNES is een eerste **beta**. De host kiest bij
+het tandwiel één speelwijze per kamer:
+
+- **Samen emuleren** (standaard): beide spelers laden dezelfde eigen ROM. Een lokale
+  SHA-256-controle vergelijkt de bestanden. Alleen knoppen en synchronisatiegegevens
+  gaan over het netwerk; bij geblokkeerd P2P is Itty Sockets een fallback.
+- **Beeld en geluid streamen**: alleen de host laadt de ROM en draait Mesen. De gast
+  ontvangt canvasvideo en gesynthetiseerd gamegeluid via WebRTC en stuurt de eigen
+  knoppen terug. De gast laadt geen ROM en start geen emulatorinstantie. Deze modus
+  kan meer invoervertraging en dataverbruik geven. Er is geen video-/audiofallback
+  via Itty en geen TURN-server ingesteld; een blokkerend netwerk kan streamen verhinderen.
+
+In beide modi worden ROM-bestanden niet tussen spelers verstuurd. Camera,
+microfoon en schermdeling worden niet aangevraagd. Er zijn geen commerciële
+ROMs of BIOS-bestanden inbegrepen.
 
 ## Samen spelen
 
-1. Kies **Maak een kamer**, kies NES of SNES en selecteer je ROM, of gebruik de NES-demo.
-2. Deel de uitnodigingslink en houd de kamer open.
+1. Kies **Maak een kamer**. Gebruik het **tandwiel** om de speelwijze te kiezen,
+   kies NES of SNES en selecteer je ROM, of gebruik de NES-demo.
+2. Deel de uitnodigingslink en houd de kamer open. De speelwijze staat nu vast.
 3. De gast opent de link, vult een naam in en kiest **Speel mee**.
-4. De gast kiest onder **Jouw ROM** hetzelfde lokale bestand en klikt na de
-   SHA-256-controle op **Ik ben klaar**. Een afwijkende versie, regio of hack
-   wordt geweigerd; er is geen overdrachtsfunctie of terugval naar downloaden.
-5. De host kiest **Start samen**.
+4. Bij samen emuleren kiest de gast hetzelfde lokale bestand onder **Jouw ROM**.
+   Een afwijkende versie, regio of hack wordt geweigerd. Bij streamen wacht de gast
+   op het gamebeeld; er is geen ROM-keuze. De gast kiest **Ik ben klaar** om geluid
+   en controller te activeren (of gebruikt daarna de geluidsknop als autoplay geblokkeerd is).
+5. De host kiest **Start samen**. Beide spelers kunnen pauzeren; de host hervat.
 
 Een kamer heeft plek voor twee spelers en staat niet in een openbare lijst.
 Wie de link heeft, kan proberen mee te doen. De link vervalt zodra de host de
@@ -26,7 +38,7 @@ kamer verlaat, de pagina vernieuwt of de browser sluit. Een nieuwe kamer krijgt
 een nieuwe willekeurige link.
 
 Er is geen eigen server of gebruikersaccount nodig. PeerJS Cloud verzorgt de
-signalering; Google STUN helpt een directe verbinding vinden. P2P is altijd de eerste keuze.
+signalering; Google STUN helpt een directe verbinding vinden. Bij samen emuleren is P2P de eerste keuze.
 Lukt dat niet binnen ongeveer 10 seconden, dan schakelen beide spelers automatisch
 over op Itty Sockets via WebSockets over TLS. Er is geen TURN-account of betaalde databundel. Externe diensten hebben geen garantie
 op beschikbaarheid of onbeperkt gratis gebruik. Zie [GRATIS-HOSTING.md](GRATIS-HOSTING.md).
@@ -35,14 +47,15 @@ op beschikbaarheid of onbeperkt gratis gebruik. Zie [GRATIS-HOSTING.md](GRATIS-H
 
 - Moderne MesenCE-core, vastgezet op `4c4e069f16a8ad6ed79e046046c56d51558c7daf`.
 - NES met iNES/NES 2.0 en SNES met `.sfc`/`.smc`; maximaal 8 MB per ROM.
-- Iedere speler laadt eigen gamebytes in tijdelijk WebAssembly-geheugen.
+- Bij samen emuleren laadt iedere speler eigen gamebytes in tijdelijk WebAssembly-geheugen;
+  bij streamen doet alleen de host dit.
   ROM-bytes worden niet verstuurd naar een andere speler of een spelserver.
   Alleen een expliciete set kleine protocolberichten mag het netwerk op.
   Er bestaat geen ROM-datakanaal, bestandszender of bestandsontvanger.
-- Twee lokale emulatorinstanties, 2 frames invoervertraging en maximaal 12
+- Samen emuleren: twee lokale emulatorinstanties, 2 frames invoervertraging en maximaal 12
   voorspellingsframes. Vertraagde invoer leidt tot rollback.
-- Native Mesen-snapshots; controlehashes stoppen de game als de toestanden afwijken.
-- Dezelfde startinstellingen bij beide spelers, waaronder deterministische NES/SNES-RAM.
+- Bij samen emuleren: native Mesen-snapshots; controlehashes stoppen de game als de toestanden afwijken.
+- Bij samen emuleren: dezelfde startinstellingen bij beide spelers, waaronder deterministische NES/SNES-RAM.
 - Toetsenbord, gamepads, aanraakknoppen, geluid, volledig scherm en samen pauzeren.
   Kies boven het beeld **Beeldformaat → Originele verhouding** (hele beeld met eventuele
   randen) of **Schermvullend · uitrekken** (hele scherm, zonder afsnijden). De keuze wordt
@@ -84,11 +97,28 @@ of PlayStation vereisen later andere emulatorcores.
 
 | Actie | Eigen speler | Tweede speler lokaal bij solo |
 |---|---|---|
-| Richtingen | Pijlen | WASD |
-| A / B | X / Z | G / F |
+| Richtingen | Pijlen | IJKL |
+| A / B | A / S | N / M |
 | Start / Select | Enter / Shift | T / R |
-| SNES X / Y | C / V | Y / H |
-| SNES L / R | Q / E | 1 / 2 |
+| SNES X / Y | D / F | U / O |
+| SNES L / R | Q / W | Y / H |
+
+Via **Besturing** op de startpagina of het tandwiel bij de game kun je iedere
+knop opnieuw koppelen aan een toets, controllerknop of stickrichting. Instellingen
+worden per console en lokaal profiel opgeslagen in `localStorage`. Online gebruikt
+ook speler 2 het profiel **Jouw besturing** op zijn eigen apparaat. Het tweede
+profiel is voor een extra speler op hetzelfde apparaat tijdens solo.
+
+Kies een controller per profiel, stel de stick-deadzone in en controleer de
+lampjes. Automatisch gebruikt profiel 1 controllerindex 0 en profiel 2 index 1;
+bij loskoppelen verschuift de toewijzing niet. Je kunt altijd expliciet een andere
+controller kiezen. Een controller bestuurt maximaal één lokaal profiel; een
+expliciete keuze gaat voor automatisch, bij dezelfde expliciete keuze gaat
+profiel 1 voor. Koppelen aan een al gebruikte toets of controllerinvoer verplaatst
+die koppeling binnen het profiel. Escape annuleert het koppelen; **Koppeling
+wissen** maakt een actie vrij. Tijdens dit venster krijgt jouw speler neutrale
+invoer, terwijl de game doorloopt. Na sluiten moet een ingedrukte controllerknop
+eerst worden losgelaten.
 
 Bij een standaardgamepad gebruikt SNES de gebruikelijke fysieke posities:
 B onder, A rechts, Y links en X boven. NES gebruikt de onderste knop voor A.
@@ -131,6 +161,8 @@ scripts/build-mesen.py  Native build met vastgezette Emscripten-toolchain
 web/src/rollback.js     Invoer per frame, voorspelling, rollback en hashes
 web/src/connection.js   Uitnodigingen, P2P eerst en automatische fallback
 web/src/relay.js        Itty WebSocket-transport, versleuteling en invoerbundeling
+web/src/game-stream.js  WebRTC-canvasvideo, gameaudio en media-levensduur
+web/src/stream-protocol.js Streammetadata, speelwijze en veilige controllerstatus
 web/src/protocol.js     Kleine netwerkberichten en vergelijking van lokale ROMs
 web/src/savestate.js    Lokaal savestateformaat, compatibiliteit en checksum
 web/src/playback-*.js   Voorgrond-/achtergrondklok, onafhankelijk van pauzeren
@@ -146,7 +178,7 @@ Een native rebuild staat beschreven in [native/README.md](native/README.md).
 De code vereist geen SharedArrayBuffer, desktopinstallatie of bijzondere
 COOP/COEP-headers. Daardoor kan de statische frontend op GitHub Pages draaien.
 
-PeerJS beheert het betrouwbare JSON-controlkanaal. Daarnaast bestaat alleen een
+In de ROM-modus beheert PeerJS het betrouwbare JSON-controlkanaal. Daarnaast bestaat een
 ongeordend betrouwbaar invoerkanaal op dezelfde RTCPeerConnection. Het protocol
 stuurt een gamenaam, console, bestandsgrootte, SHA-256-hash en overclockinstelling;
 geen bestandsinhoud, downloadadres of externe bestandspaden. De gast selecteert
@@ -186,9 +218,32 @@ vast; aanpassen zonder gast begint de game opnieuw. Niet iedere ROM-hack is
 compatibel en hogere waarden vragen meer rekenkracht. SNES-coprocessors zoals
 Super FX worden hiermee niet afzonderlijk overclockt.
 
+## WebRTC-streammodus
+
+De host stuurt via het controlkanaal een gamenaam, console, overclock en een
+willekeurig streamtoken; geen ROM-hash, bestandsgrootte, ROM-bytes of downloadadres.
+PeerJS maakt een aparte eenrichtings-mediaverbinding. De gast accepteert alleen de
+verwachte host met het token uit de huidige dataverbinding. Hij antwoordt zonder
+lokale media. Ongevraagde of tweede mediaverbindingen worden gesloten.
+
+De videobron is uitsluitend de emulatorcanvas. De audiobron is een aparte
+MediaStreamAudioDestinationNode vóór de lokale volumeregelaar: lokaal dempen bij
+de host laat het geluid van de gast intact. Bij afsluiten worden de capturetracks
+en de mediaverbinding gestopt. Een stille preview wordt ververst zodat de gast
+vóór de start kan zien of de stream werkt. De gast verstuurt alleen de recentste
+controllerstatus, met sessie en volgnummer. Verouderde of verkeerd geordende invoer
+wordt genegeerd; zonder heartbeat worden ingedrukte knoppen na 250 ms losgelaten.
+Pauze en opnieuw starten worden door de host gesynchroniseerd, zonder savestate-
+of ROM-overdracht. Online savestate-import/export blijft uitgeschakeld.
+
+Streamkamers openen geen Itty-wachtverbinding. Een mislukte directe verbinding
+of media-time-out toont een fout en biedt geen schijnbare werkende stream.
+Canvas-capture en WebRTC moeten door de browser worden ondersteund. Mobiele
+browsers en energiebesparing kunnen achtergrondvideo alsnog onderbreken.
+
 ## Itty Sockets als fallback
 
-De host opent bij het maken van een kamer een wachtverbinding naar de vaste dienst
+In de ROM-modus opent de host bij het maken van een kamer een wachtverbinding naar de vaste dienst
 `wss://itty.ws/c/retroroom-<kamer-id>?announce=true`. De gast probeert eerst PeerJS/WebRTC.
 Bij een fout of een time-out van 10 seconden opent de gast de relay en vraagt om toelating.
 Bij werkend P2P gaat geen spelinvoer, ROM-hash of gamemetadata via Itty. De wachtverbinding
