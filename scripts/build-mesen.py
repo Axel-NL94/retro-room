@@ -44,18 +44,5 @@ command=[str(sdk/'upstream/emscripten/em++'),*map(str,objects),'-O2','-fexceptio
 result=subprocess.run(command,cwd=src,env=env)
 if result.returncode:raise SystemExit(result.returncode)
 print('Built',out,flush=True)
-# Ship the complete corresponding source with the binary, not only a URL to it.
-import tarfile
-archive=out.parent/'mesen-source.tar.gz'
-def stable(info):
- info.uid=info.gid=0;info.uname=info.gname='';info.mtime=0;return info
-with tarfile.open(archive,'w:gz',compresslevel=9) as tar:
- for f in sorted(src.rglob('*')):
-  rel=f.relative_to(src)
-  if not f.is_file() or '.git' in rel.parts or 'web-obj' in rel.parts:continue
-  tar.add(f,arcname=pathlib.Path('mesen-src')/rel,recursive=False,filter=stable)
- for name in ['native/mesen-web.cpp','native/MESEN-LICENSE.txt','native/README.md','scripts/build-mesen.py']:
-  tar.add(root/name,arcname=pathlib.Path('retro-room')/name,filter=stable)
-meta={'engine':'MesenCE','revision':PIN,'toolchain':'Emscripten 4.0.19','bridge':'retroroom-web-3','wasmSha256':hashlib.sha256(out.with_suffix('.wasm').read_bytes()).hexdigest(),'sourceArchive':archive.name,'sourceSha256':hashlib.sha256(archive.read_bytes()).hexdigest(),'license':'GPL-3.0-or-later'}
-(out.parent/'mesen-build.json').write_text(json.dumps(meta,indent=2)+'\n')
-print('Packaged complete source and build checksums.',flush=True)
+# The source packager records the matching loader, Wasm and source checksums.
+subprocess.check_call([sys.executable, str(root/'scripts/package-mesen-source.py'), '--source', str(src)])
