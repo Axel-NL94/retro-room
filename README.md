@@ -167,6 +167,9 @@ web/src/protocol.js     Kleine netwerkberichten en vergelijking van lokale ROMs
 web/src/savestate.js    Lokaal savestateformaat, compatibiliteit en checksum
 web/src/playback-*.js   Voorgrond-/achtergrondklok, onafhankelijk van pauzeren
 web/src/app.js          Kamerinterface, invoer en spelverloop
+web/licenses.html       Publieke licenties, auteurs en broncodedownloads
+scripts/licensing.js    Controle van beoordeelde dependencies en notices
+scripts/source-archive.js Bronpakket van iedere websitebuild
 web/src/audio*.js       Web Audio-uitvoer op 48 kHz
 scripts/demo-rom.js     Originele Room Rally-ROM
 server/index.js         Ontwikkelpreview en eerdere lobbyimplementatie
@@ -195,17 +198,28 @@ de website voert de game uit met Mesen. Ook de oudere Node-lobby en Render/Docke
 bestanden blijven bewaard voor mogelijke latere uitbreiding. Ze worden niet
 gebruikt voor de huidige uitnodigingslinks en hoeven niet te worden uitgerold.
 
-## Licenties
+## Licenties en broncode
 
-De MesenCE-core en de gekoppelde native browserfrontend zijn GPL-3.0-or-later.
-De complete bijbehorende broncode, inclusief afhankelijkheden, patches, frontend
- en buildscript, staat naast de binary in `web/assets/mesen-source.tar.gz`.
-Zie [native/MESEN-LICENSE.txt](native/MESEN-LICENSE.txt), de upstream bronheaders
-en `web/assets/mesen-build.json` voor herkomst en checksums.
+De gecombineerde browserapp met de native Mesen-core wordt verspreid onder **GNU
+GPL versie 3**. Mesen-upstream en onze native bridge hebben GPL-3.0-or-later-grants;
+we kiezen GPLv3 voor de combinatie, waaronder xBRZ met zijn specifieke
+MAME-uitzondering. Die uitzondering geldt niet algemeen voor andere koppelingen.
+De eigen RetroRoom-bestanden, SVGs en Room Rally houden daarnaast hun afzonderlijke
+MIT-grant. Daarmee wordt de emulator of code van anderen niet MIT-gelicentieerd.
 
-De overige eigen projectcode en de originele demo zijn MIT, zie `LICENSE`.
-De bewaarde JSNES-afhankelijkheid is Apache-2.0; PeerJS en ws zijn MIT.
-Google Fonts zijn optioneel met systeemfonts als terugval.
+De site heeft een zichtbare pagina **Licenties en broncode**, bereikbaar via de
+footer en Over deze alpha. Die bevat de auteurs, rechten en garantievermelding,
+volledige licentieteksten, een componentenoverzicht en drie gratis downloads:
+het volledige RetroRoom-bronpakket van die build, de bijbehorende Mesen-broncode
+en de officiële PeerJS 1.5.5-broncode. Het volledige pakket bevat ook de exacte
+PeerJS-bronkaart met alle oorspronkelijke gebundelde bronbestanden. De normale
+build controleert licentieteksten, dependencyversies en bron-/binarycontrolesommen.
+
+Zie [LICENSING.md](LICENSING.md), [de volledige notices](web/THIRD-PARTY-NOTICES.txt),
+[de inventaris](web/assets/license-manifest.json) en [native/CHANGES.md](native/CHANGES.md).
+Deze softwarelicenties geven geen rechten op commerciële ROMs, BIOS-bestanden,
+ROM-hacks, merken of het streamen van gamebeelden. Eigen ROM-keuze of afwezigheid
+van ROM-overdracht is geen algemene juridische vrijwaring.
 
 ### CPU-overclock voor ROM-hacks
 
