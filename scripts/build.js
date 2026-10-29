@@ -2,9 +2,12 @@ import { cp, mkdir, writeFile, rm, readdir, readFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { makeDemoRom } from './demo-rom.js';
+import { checkLicensing } from './licensing.js';
+import { applicationSources, sourceTar } from './source-archive.js';
 const root = fileURLToPath(new URL('../', import.meta.url));
+await checkLicensing(root);
 const native = JSON.parse(await readFile(root + 'web/assets/mesen-build.json', 'utf8'));
-for (const [file, expected] of [['mesen-core.wasm', native.wasmSha256], [native.sourceArchive, native.sourceSha256]]) {
+for (const [file, expected] of [['mesen-core.wasm', native.wasmSha256], ['mesen-core.mjs', native.loaderSha256], [native.sourceArchive, native.sourceSha256]]) {
   const actual = createHash('sha256').update(await readFile(root + 'web/assets/' + file)).digest('hex');
   if (actual !== expected) throw new Error('Mesen-build en broncode komen niet overeen: ' + file);
 }
@@ -14,6 +17,7 @@ await mkdir(root + 'dist/vendor', { recursive: true });
 await cp(root + 'node_modules/peerjs/dist/peerjs.min.js', root + 'dist/vendor/peerjs.min.js');
 await cp(root + 'node_modules/peerjs/LICENSE', root + 'dist/vendor/PEERJS-LICENSE.txt');
 await writeFile(root + 'dist/assets/room-rally.nes', makeDemoRom());
+await writeFile(root + 'dist/assets/retro-room-source.tar.gz', sourceTar(await applicationSources(root)));
 // Keep all ES modules on the same build when GitHub Pages/browser caches differ.
 const sourceFiles = [];
 async function files(dir) {
