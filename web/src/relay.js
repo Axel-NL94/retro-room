@@ -1,16 +1,17 @@
-// Itty's documented WebSocket wire protocol; no account, keys or hosted backend.
+// Tailcat DERP transport; WireGuard plus the invitation's AES-GCM room key.
 // The invitation secret stays in the URL fragment, never in the relay URL.
+import { TailcatTransport } from './tailcat-transport.js';
 import { INVITE_VERSION, peerMessage } from './protocol.js';
 const encode = bytes => btoa(String.fromCharCode(...bytes)).replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', '');
 const decode = value => Uint8Array.from(atob(value.replaceAll('-', '+').replaceAll('_', '/')), c => c.charCodeAt(0));
 export const newRelaySecret = () => encode(crypto.getRandomValues(new Uint8Array(32)));
 export const validRelaySecret = value => typeof value === 'string' && /^[A-Za-z0-9_-]{43}$/.test(value);
 const encoder = new TextEncoder(), decoder = new TextDecoder();
-const failMessage = 'De Itty Sockets-fallback is niet bereikbaar. Probeer later opnieuw of gebruik een ander netwerk.';
+const failMessage = 'De Tailcat-fallback is niet bereikbaar. Probeer later opnieuw of gebruik een ander netwerk.';
 
 export class RelayRoom extends EventTarget {
-  constructor(id, secret, { WebSocketClass = globalThis.WebSocket, timeout = 10000 } = {}) {
-    super(); this.id = id; this.secret = secret; this.WebSocketClass = WebSocketClass; this.timeout = timeout;
+  constructor(id, secret, { TransportClass = TailcatTransport, host = false, address = '', timeout = 75000 } = {}) {
+    super(); this.id = id; this.secret = secret; this.TransportClass = TransportClass; this.host = host; this.address = address; this.timeout = timeout;
     this.outgoing = Promise.resolve(); this.incoming = Promise.resolve(); this.closed = false;
   }
   emit(type, detail = {}) { this.dispatchEvent(new CustomEvent(type, { detail })); }
@@ -23,35 +24,30 @@ export class RelayRoom extends EventTarget {
     if (!validRelaySecret(this.secret)) throw new Error('Deze uitnodiging mist de fallback-sleutel. Vraag de host om een nieuwe link.');
     this.key = await crypto.subtle.importKey('raw', decode(this.secret), 'AES-GCM', false, ['encrypt', 'decrypt']);
     if (this.closed) throw new Error('Kamer gesloten.');
-    return new Promise((resolve, reject) => {
-      const ws = this.ws = new this.WebSocketClass('wss://itty.ws/c/retroroom-' + this.id + '?announce=true');
-      let settled = false;
-      const timer = this.openTimer = setTimeout(() => { reject(new Error(failMessage)); this.close(); }, this.timeout);
-      ws.onopen = () => { settled = true; clearTimeout(timer); resolve(); };
-      ws.onerror = () => { if (!settled) reject(new Error(failMessage)); this.emit('unavailable'); this.close(); };
-      ws.onclose = () => { clearTimeout(timer); if (!settled) reject(new Error(failMessage)); if (!this.closed) { this.closed = true; this.emit('unavailable'); } };
-      ws.onmessage = event => {
-        if (this.closed || typeof event.data !== 'string' || event.data.length > 8192) return;
-        let envelope;
-        try { envelope = JSON.parse(event.data); } catch { return; }
-        if (envelope.type === 'error') { this.emit('unavailable'); this.close(); return; }
-        if (envelope.type === 'leave' && typeof envelope.uid === 'string') { this.emit('left', envelope.uid); return; }
-        const packet = envelope.message;
-        if (typeof envelope.uid !== 'string' || !packet || packet.v !== INVITE_VERSION ||
-            typeof packet.iv !== 'string' || !/^[A-Za-z0-9_-]{16}$/.test(packet.iv) ||
-            typeof packet.body !== 'string' || packet.body.length > 6000 || !/^[A-Za-z0-9_-]+$/.test(packet.body)) return;
-        // Web Crypto is async: serialize both directions so input/control ordering survives.
-        this.incoming = this.incoming.then(async () => {
-          try {
-            const bytes = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: decode(packet.iv), additionalData: encoder.encode(this.id) }, this.key, decode(packet.body));
-            if (!this.closed) this.emit('packet', { uid: envelope.uid, payload: JSON.parse(decoder.decode(bytes)) });
-          } catch { /* An unrelated client or a packet without the invitation key. */ }
-        });
-      };
+    const transport = this.transport = new this.TransportClass({ timeout: this.timeout });
+    transport.addEventListener('unavailable', () => { if (!this.closed) { this.emit('unavailable'); this.close(); } });
+    transport.addEventListener('left', ({ detail }) => this.emit('left', detail));
+    transport.addEventListener('packet', ({ detail: { uid, data } }) => {
+      if (this.closed || typeof data !== 'string' || data.length > 8192) return;
+      let packet;
+      try { packet = JSON.parse(data); } catch { return; }
+      if (typeof uid !== 'string' || packet.v !== INVITE_VERSION ||
+          typeof packet.iv !== 'string' || !/^[A-Za-z0-9_-]{16}$/.test(packet.iv) ||
+          typeof packet.body !== 'string' || packet.body.length > 6000 || !/^[A-Za-z0-9_-]+$/.test(packet.body)) return;
+      this.incoming = this.incoming.then(async () => {
+        try {
+          const bytes = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: decode(packet.iv), additionalData: encoder.encode(this.id) }, this.key, decode(packet.body));
+          if (!this.closed) this.emit('packet', { uid, payload: JSON.parse(decoder.decode(bytes)) });
+        } catch { /* Invalid key or packet; never pass unauthenticated game data. */ }
+      });
     });
+    this.address = await transport.open({ host: this.host, address: this.address });
+    if (this.closed) throw new Error('Kamer gesloten.');
+    this.connected = true;
   }
+
   send(payload, uid) {
-    if (this.closed || this.ws?.readyState !== 1) throw new Error(failMessage);
+    if (this.closed || !this.connected) throw new Error(failMessage);
     const bytes = encoder.encode(JSON.stringify(payload));
     if (bytes.length > 4096) throw new Error('Relaybericht te groot.');
     this.outgoing = this.outgoing.then(async () => {
@@ -59,12 +55,12 @@ export class RelayRoom extends EventTarget {
       const iv = crypto.getRandomValues(new Uint8Array(12));
       const body = await crypto.subtle.encrypt({ name: 'AES-GCM', iv, additionalData: encoder.encode(this.id) }, this.key, bytes);
       if (this.closed) return;
-      if (this.ws.readyState !== 1 || this.ws.bufferedAmount > 128 * 1024) throw new Error('De relayverbinding loopt te ver achter. Verbind opnieuw.');
+      if (!this.connected || this.transport.bufferedAmount > 128 * 1024) throw new Error('De relayverbinding loopt te ver achter. Verbind opnieuw.');
       const packet = JSON.stringify({ v: INVITE_VERSION, iv: encode(iv), body: encode(new Uint8Array(body)) });
-      this.ws.send((uid ? '\x1f' + uid + '\x1f' : '') + packet);
+      this.transport.send(packet, uid);
     }).catch(() => { if (!this.closed) { this.emit('unavailable'); this.close(); } });
   }
-  close() { this.closed = true; clearTimeout(this.openTimer); this.ws?.close(); }
+  close() { this.closed = true; this.connected = false; this.transport?.close(); }
 }
 
 // A paired, two-player connection with the same event interface as PeerJS.
@@ -109,7 +105,7 @@ export class RelayConnection {
     if (value.channel === 'input') {
       this.inputs.push({ channel: 'input', data });
       if (this.inputs.length >= 8) this.flush();
-      else this.flushTimer ||= setTimeout(() => this.flush(), 32);
+      else this.flushTimer ||= setTimeout(() => this.flush(), 4);
     } else {
       this.flush(); this.packet('play', [{ channel: 'control', data }]);
     }

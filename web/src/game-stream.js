@@ -8,7 +8,7 @@ export class GameStream extends EventTarget {
     super(); Object.assign(this, { endpoint, connection, host, token: streamToken(token), timeout, frameTimeout, reconnectTimeout, MediaStreamClass });
     this.closed = false; this.call = null; this.tracks = [];
     this.diagnostics = [];
-    if (!connection?.peer || connection.relay) throw new Error('Streamen heeft een directe WebRTC-verbinding nodig. Itty ondersteunt geen video of audio.');
+    if (!connection?.peer || connection.relay) throw new Error('Streamen heeft een directe WebRTC-verbinding nodig. Tailcat ondersteunt geen video of audio.');
   }
   emit(type, detail) { if (!this.closed) this.dispatchEvent(new CustomEvent(type, { detail })); }
   status(stage, message) {
@@ -52,7 +52,7 @@ export class GameStream extends EventTarget {
   bind(call) {
     this.call = call;
     this.status('negotiating', 'De verbinding voor beeld en geluid wordt opgezet…');
-    this.timer = setTimeout(() => this.fail('De mediaverbinding kon niet op tijd worden opgezet. Verbind opnieuw of probeer een ander netwerk. Itty kan de videostream niet overnemen.'), this.timeout);
+    this.timer = setTimeout(() => this.fail('De mediaverbinding kon niet op tijd worden opgezet. Verbind opnieuw of probeer een ander netwerk. Tailcat kan de videostream niet overnemen.'), this.timeout);
     call.on('stream', stream => {
       if (this.host || this.closed || this.remote === stream) return;
       this.remote = stream; this.emit('stream', stream);
