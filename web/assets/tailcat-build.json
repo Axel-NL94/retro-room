@@ -1,0 +1,104 @@
+{
+  "project": "Tailcat",
+  "revision": "52fbad323e9d352f1febb623e0975368e9a8cbdd",
+  "upstream": "https://github.com/tailscale/tailcat",
+  "go": "1.27.3",
+  "tags": "ts_omit_ace,ts_omit_acme,ts_omit_advertiseexitnode,ts_omit_advertiseroutes,ts_omit_androidbin,ts_omit_androiddns,ts_omit_appconnectors,ts_omit_aws,ts_omit_bakedroots,ts_omit_bird,ts_omit_c2n,ts_omit_cachenetmap,ts_omit_captiveportal,ts_omit_capture,ts_omit_cliconndiag,ts_omit_clientmetrics,ts_omit_clientupdate,ts_omit_cloud,ts_omit_colorable,ts_omit_completion,ts_omit_completion_scripts,ts_omit_conn25,ts_omit_connreject,ts_omit_dbus,ts_omit_debug,ts_omit_debugeventbus,ts_omit_debugportmapper,ts_omit_desktop_sessions,ts_omit_dns,ts_omit_dnsresolvecache,ts_omit_doctor,ts_omit_drive,ts_omit_favorites,ts_omit_flashappliance,ts_omit_gro,ts_omit_health,ts_omit_hujsonconf,ts_omit_identityfederation,ts_omit_ipnbus,ts_omit_iptables,ts_omit_kube,ts_omit_linkspeed,ts_omit_linuxdnsfight,ts_omit_listenrawdisco,ts_omit_logtail,ts_omit_nattraversal,ts_omit_netlog,ts_omit_networkmanager,ts_omit_oauthkey,ts_omit_osrouter,ts_omit_outboundproxy,ts_omit_peerapiclient,ts_omit_peerapiserver,ts_omit_portlist,ts_omit_portmapper,ts_omit_posture,ts_omit_qrcodes,ts_omit_relayserver,ts_omit_remoteconfig,ts_omit_resolved,ts_omit_routecheck,ts_omit_runtimemetrics,ts_omit_sdnotify,ts_omit_serve,ts_omit_serviceclientprefs,ts_omit_ssh,ts_omit_synology,ts_omit_syslog,ts_omit_syspolicy,ts_omit_systray,ts_omit_taildrop,ts_omit_tailnetlock,ts_omit_tap,ts_omit_tpm,ts_omit_tundevstats,ts_omit_udptransport,ts_omit_unixsocketidentity,ts_omit_useexitnode,ts_omit_useproxy,ts_omit_usermetrics,ts_omit_useroutes,ts_omit_wakeonlan,ts_omit_webbrowser,ts_omit_webclient",
+  "wasmSha256": "4d873fba1d672bbbb0e7444e58d4eeab350eb1a897806e161276addc314e062f",
+  "wasmGzipSha256": "464823c7a7244dcd71ec294ee1b06f86c994c20343e02aefe8bac97d11f10d30",
+  "runtimeSha256": "0c949f4996f9a89698e4b5c586de32249c3b69b7baadb64d220073cc04acba14",
+  "sourceArchive": "tailcat-source.tar.gz",
+  "sourceSha256": "f8b749d6c1383e35c7534a115349f525c903ff3ba7a077dc33be60bb223c79e4",
+  "noticesSha256": "b8f7c7e3bb90f0d0e6b34366dca87d906df211367f4272cbf489fa23aad661ed",
+  "modules": [
+    {
+      "path": "github.com/x448/float16",
+      "version": "v0.8.4"
+    },
+    {
+      "path": "github.com/fxamacker/cbor/v2",
+      "version": "v2.9.3"
+    },
+    {
+      "path": "golang.org/x/net",
+      "version": "v0.59.0"
+    },
+    {
+      "path": "github.com/tailscale/wireguard-go",
+      "version": "v0.0.0-20260924224943-0a83b87f7908"
+    },
+    {
+      "path": "golang.org/x/sys",
+      "version": "v0.48.0"
+    },
+    {
+      "path": "golang.org/x/crypto",
+      "version": "v0.57.0"
+    },
+    {
+      "path": "go4.org/mem",
+      "version": "v0.0.0-20240501181205-ae6ca9944745"
+    },
+    {
+      "path": "go4.org/netipx",
+      "version": "v0.0.0-20260823151212-3075585bcbeb"
+    },
+    {
+      "path": "gvisor.dev/gvisor",
+      "version": "v0.0.0-20260915211658-a6f909f08a72"
+    },
+    {
+      "path": "golang.org/x/exp",
+      "version": "v0.0.0-20260908205506-85c1c2202aba"
+    },
+    {
+      "path": "golang.org/x/time",
+      "version": "v0.16.0"
+    },
+    {
+      "path": "github.com/google/btree",
+      "version": "v1.1.3"
+    },
+    {
+      "path": "github.com/go-json-experiment/json",
+      "version": "v0.0.0-20260820222146-c27c302e5fc3"
+    },
+    {
+      "path": "tailscale.com",
+      "version": "v1.103.0-pre.0.20260929142145-a0e471a35b8f"
+    },
+    {
+      "path": "github.com/golang/groupcache",
+      "version": "v0.0.0-20241129210726-2c02b8208cf8"
+    },
+    {
+      "path": "github.com/gaissmai/bart",
+      "version": "v0.29.0"
+    },
+    {
+      "path": "github.com/coder/websocket",
+      "version": "v1.8.15"
+    },
+    {
+      "path": "golang.org/x/text",
+      "version": "v0.42.0"
+    },
+    {
+      "path": "github.com/klauspost/compress",
+      "version": "v1.20.0"
+    },
+    {
+      "path": "github.com/akutz/memconn",
+      "version": "v0.1.0"
+    },
+    {
+      "path": "golang.org/x/term",
+      "version": "v0.46.0"
+    },
+    {
+      "path": "github.com/tailscale/tailcat",
+      "version": "52fbad323e9d352f1febb623e0975368e9a8cbdd"
+    }
+  ],
+  "offlineRebuildVerified": true
+}
