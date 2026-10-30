@@ -1,8 +1,8 @@
 import { romHash } from './emulator.js';
 import { streamMessage } from './stream-protocol.js';
 
-export const NETPLAY_VERSION = 'retroroom-mesence-4c4e069-dos-d9c1356-6';
-export const INVITE_VERSION = 6;
+export const NETPLAY_VERSION = 'retroroom-mesence-4c4e069-dos-d9c1356-tailcat-7';
+export const INVITE_VERSION = 7;
 export const OVERCLOCK_VALUES = Object.freeze([100, 200, 300, 400, 500]);
 export function validateOverclock(value) {
   if (!OVERCLOCK_VALUES.includes(value)) throw new Error('Kies een CPU-overclock van 100%, 200%, 300%, 400% of 500%.');

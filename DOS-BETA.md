@@ -30,7 +30,7 @@ Toegevoegd op 30 oktober 2026: DOSBox Pure, naast NES/SNES.
   dan desktop-DOSBox met dynamische recompilatie; zware late DOS-games kunnen traag zijn.
 - **Brede gamecompatibiliteit:** alleen originele fixtures getest. Dit is geen
   belofte dat iedere DOS-game of iedere browser/netwerkcombinatie werkt.
-- **Relay voor DOS:** geen Itty. Video/audio heeft een directe WebRTC-verbinding
+- **Relay voor DOS:** geen Tailcat. Video/audio heeft een directe WebRTC-verbinding
   nodig; een echte firewall/NAT-blokkade wordt niet door de timingfix opgelost.
 
 ## WebRTC-timingfix

@@ -127,3 +127,18 @@ The original DOS Duo fixture is MIT-licensed; its complete editable source is
 `scripts/demo-dos.js`. Running a user's DOS program is separate from licensing
 the emulator and confers no additional game/software rights.
 
+
+
+## Tailcat fallback (30 oktober 2026)
+
+De browserfallback gebruikt ongewijzigde Tailcat-broncode van Tailscale Inc & contributors,
+commit `52fbad323e9d352f1febb623e0975368e9a8cbdd`, onder BSD-3-Clause.
+De geselecteerde Go-afhankelijkheden behouden hun afzonderlijke BSD/MIT/Apache-2.0-
+en andere vermeldingen; de volledige teksten staan in `web/TAILCAT-NOTICES.txt`.
+Go 1.27.3 levert de ongewijzigde `wasm_exec.js`-runtime onder de Go-licentie (BSD).
+De browserworker en RetroRoom-transportintegratie zijn eigen RetroRoom-code, onder de
+bestaande projectlicenties. De voorwaarden van de publieke DERP-dienst staan los van
+de softwarelicenties. Zie `native/TAILCAT.md` en `web/assets/tailcat-build.json`.
+Het downloadbare `tailcat-source.tar.gz` bevat upstream, alle daadwerkelijk meegebouwde
+afhankelijkheidsbronnen/embedded assets, behouden notices en een offline bouwinstructie.
+De bouwstap controleert dat deze bronnen exact dezelfde Wasm produceren.

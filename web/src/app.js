@@ -475,7 +475,7 @@ const playbackClock = new PlaybackClock(loop);
 
 function invitationUrl() {
   const url = new URL(location.href);
-  url.hash = new URLSearchParams({ room: roomId, key: invites.secret, mode: playStyle, ...(game?.system === 'dos' ? { direct: '1' } : {}) }).toString();
+  url.hash = new URLSearchParams({ room: roomId, key: invites.secret, mode: playStyle, ...(invites.relayRoom?.address ? { tc: invites.relayRoom.address } : {}), ...(game?.system === 'dos' ? { direct: '1' } : {}) }).toString();
   return url.href;
 }
 function connectionStatus(online) {
@@ -492,7 +492,7 @@ invites.addEventListener('fallback', ({ detail }) => {
   if (roomId) { $('route-value').textContent = 'Fallback verbinden…'; $('room-message').textContent = detail.message; }
 });
 invites.addEventListener('relay-unavailable', () => {
-  if (isHost && roomId) toast('Itty Sockets is niet bereikbaar. P2P blijft beschikbaar, maar de fallback werkt nu niet.');
+  if (isHost && roomId) toast('Tailcat is niet bereikbaar. P2P blijft beschikbaar, maar de fallback werkt nu niet.');
 });
 invites.addEventListener('error', ({ detail }) => { resetPeer(); report(detail.message); });
 invites.addEventListener('rejected', ({ detail }) => {
@@ -505,7 +505,7 @@ invites.addEventListener('created', ({ detail }) => {
   roomId = detail.id; isHost = true; playStyle = detail.playMode;
   launchCommitted = true; setLaunchBusy(false); $('create-dialog').close();
   $('player-one').textContent = nickname; showRoom();
-  $('room-message').textContent = 'Je privékamer staat klaar. Deel de uitnodigingslink en houd deze pagina open.';
+  $('room-message').textContent = 'Je privékamer staat klaar. Deel de uitnodigingslink en houd deze pagina open.' + (playStyle === 'netplay' && game?.system !== 'dos' && !invites.relayRoom ? ' Tailcat is nu niet bereikbaar; alleen rechtstreeks verbinden is beschikbaar.' : '');
   $('player-two').textContent = 'Nog een plekje vrij';
 });
 invites.addEventListener('negotiating', () => { isHost = false; $('join-error').textContent = 'Eerst rechtstreeks verbinden met de host…'; });
@@ -887,7 +887,7 @@ setInterval(async () => {
       }
     }
     if (playStyle === 'stream') { $('route-value').textContent = 'WebRTC · stream'; return; }
-    if (peer.route === 'Itty Sockets') { $('route-value').textContent = 'Itty Sockets'; return; }
+    if (peer.route === 'Tailcat') { $('route-value').textContent = 'Tailcat'; return; }
     const stats = await peer.pc.getStats();
     for (const value of stats.values()) {
       if (value.type === 'transport' && value.selectedCandidatePairId) {

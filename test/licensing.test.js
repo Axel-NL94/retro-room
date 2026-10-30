@@ -88,3 +88,18 @@ test('DOS download preserves matching bridge, build recipe, notices and dated up
   assert.ok(files.has('dosbox-pure/Makefile'));
   assert.ok(![...files.keys()].some(name=>/(?:\.git|web-obj|images)\//.test(name)));
 });
+
+
+test('Tailcat source kit retains every declared module, complete notices, and offline build inputs', async () => {
+  const meta=JSON.parse(await readFile(root+'web/assets/tailcat-build.json','utf8'));
+  const files=unpack(await readFile(root+'web/assets/'+meta.sourceArchive));
+  assert.equal(meta.offlineRebuildVerified,true);assert.equal(meta.modules.length,22);
+  for(const name of ['tailcat/LICENSE','tailcat/go.mod','tailcat/go.sum','tailcat/web/main_js.go','tailcat/vendor/modules.txt','tailcat/BUILD-TAGS.txt','BUILD-SOURCE.txt'])assert.ok(files.has(name),name);
+  assert.deepEqual(files.get('retro-room/scripts/build-tailcat.py'),await readFile(root+'scripts/build-tailcat.py'));
+  assert.equal(sha256(gunzipSync(await readFile(root+'web/assets/tailcat.wasm.gz'))),meta.wasmSha256);
+  assert.equal(files.get('tailcat/BUILD-TAGS.txt').toString().trim(),meta.tags);
+  const notices=await readFile(root+'web/TAILCAT-NOTICES.txt','utf8');
+  for(const m of meta.modules)assert.ok(notices.includes(m.path),m.path);
+  assert.ok(files.has('tailcat/vendor/gvisor.dev/gvisor/LICENSE'));
+  assert.ok(files.has('tailcat/vendor/github.com/tailscale/wireguard-go/LICENSE'));
+});
