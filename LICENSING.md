@@ -107,3 +107,23 @@ Primary references: [GNU GPLv3](https://www.gnu.org/licenses/gpl-3.0.html),
 [PeerJS v1.5.5 MIT](https://github.com/peers/peerjs/blob/v1.5.5/LICENSE),
 [WebRTC adapter BSD](https://github.com/webrtcHacks/adapter/blob/v9.0.1/LICENSE.md),
 [Emscripten](https://github.com/emscripten-core/emscripten/blob/4.0.19/LICENSE).
+# DOSBox Pure browser addition (2026-10-30)
+
+DOSBox Pure at `d9c1356a6376fc35bd9a900b46c4666b3f4500e6` is GPL-2.0-or-later.
+This distribution selects GPLv3; the RetroRoom native DOS bridge and cooperative
+thread adapter are GPL-3.0-or-later. Separate upstream grants are preserved.
+`web/DOS-NOTICES.txt` retains upstream authors, GPLv2 and 54 distinct source notice
+blocks, including TinySoundFont/stb MIT, Nuked OPL3 LGPL-2.1-or-later, Libretro MIT,
+MAME sound BSD-3-Clause, miniz public domain and optional/platform source notices.
+The existing compiler/runtime notices and full GPLv3/LGPL texts remain in
+`web/THIRD-PARTY-NOTICES.txt`.
+
+`web/assets/dos-source.tar.gz` contains the complete matching source trees,
+patched files, bridge and build scripts. `native/DOSBOX.md` explains the pinned
+Emscripten toolchain, modifications and disabled features. `dos-build.json` pins
+loader/Wasm/archive/notice hashes, checked by ordinary builds. No commercial DOS
+game, MS-DOS/Windows installation or proprietary MIDI/BIOS image is supplied.
+The original DOS Duo fixture is MIT-licensed; its complete editable source is
+`scripts/demo-dos.js`. Running a user's DOS program is separate from licensing
+the emulator and confers no additional game/software rights.
+

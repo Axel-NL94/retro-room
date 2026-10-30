@@ -2,6 +2,7 @@ import { cp, mkdir, writeFile, rm, readdir, readFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { makeDemoRom } from './demo-rom.js';
+import { makeDosDemo } from './demo-dos.js';
 import { checkLicensing } from './licensing.js';
 import { applicationSources, sourceTar } from './source-archive.js';
 const root = fileURLToPath(new URL('../', import.meta.url));
@@ -17,6 +18,7 @@ await mkdir(root + 'dist/vendor', { recursive: true });
 await cp(root + 'node_modules/peerjs/dist/peerjs.min.js', root + 'dist/vendor/peerjs.min.js');
 await cp(root + 'node_modules/peerjs/LICENSE', root + 'dist/vendor/PEERJS-LICENSE.txt');
 await writeFile(root + 'dist/assets/room-rally.nes', makeDemoRom());
+await writeFile(root + 'dist/assets/dos-duo.com', makeDosDemo());
 await writeFile(root + 'dist/assets/retro-room-source.tar.gz', sourceTar(await applicationSources(root)));
 // Keep all ES modules on the same build when GitHub Pages/browser caches differ.
 const sourceFiles = [];

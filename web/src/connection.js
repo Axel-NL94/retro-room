@@ -78,9 +78,9 @@ export class InviteConnection extends EventTarget {
     if (mode === 'stream' && !this.online) throw new Error('Voor streamen moet de WebRTC-verbindingsdienst bereikbaar zijn. Itty kan beeld en geluid niet overnemen.');
     this.host = true;
     this.room = { id: this.endpoint?.id?.slice(3) || crypto.randomUUID(), host: text(info.name, 24) || 'Speler 1',
-      title: text(info.title, 48) || 'Nog één potje', game: text(info.game, 80), playMode: mode };
+      title: text(info.title, 48) || 'Nog één potje', game: text(info.game, 80), playMode: mode, directOnly: info.directOnly === true };
     this.secret = newRelaySecret();
-    const relay = mode === 'netplay' ? this.relayFor(this.room.id, this.secret) : null;
+    const relay = mode === 'netplay' && !this.room.directOnly ? this.relayFor(this.room.id, this.secret) : null;
     if (!this.online && relay) {
       try { await relay.connect(); } catch (error) { this.leave(); throw error; }
     } else if (relay) void relay.connect().catch(() => { if (this.relayRoom === relay) this.emit('relay-unavailable'); });
@@ -92,7 +92,7 @@ export class InviteConnection extends EventTarget {
     if (this.room || this.connection || this.joinInfo) throw new Error('Verlaat eerst je huidige kamer.');
     const params = /^https?:\/\//i.test(String(value).trim()) ? new URLSearchParams(new URL(value).hash.slice(1)) : null;
     this.secret = params?.get('key') || '';
-    this.joinInfo = { id, name: text(name, 24) || 'Speler 2', attempt: crypto.randomUUID(), playMode: playMode(params?.get('mode') || undefined) };
+    this.joinInfo = { id, name: text(name, 24) || 'Speler 2', attempt: crypto.randomUUID(), playMode: playMode(params?.get('mode') || undefined), directOnly: params?.get('direct') === '1' };
     this.host = false; this.emit('negotiating');
     const generation = this.generation;
     try { await this.connect(); } catch { if (generation === this.generation) await this.fallback(); return; }
@@ -166,6 +166,7 @@ export class InviteConnection extends EventTarget {
   async fallback() {
     if (this.host || !this.joinInfo || this.connection?.netplayReady || this.fallbackStarting) return;
     if (this.joinInfo.playMode === 'stream') { this.rejectJoin('De directe WebRTC-verbinding voor streamen lukt niet. Probeer een ander netwerk of maak een kamer met eigen ROMs. Itty ondersteunt geen videostreams.'); return; }
+    if (this.joinInfo.directOnly) { this.rejectJoin('De directe DOS-verbinding lukt niet. Deze kamer gebruikt geen Itty-fallback. Probeer een ander netwerk.'); return; }
     if (!validRelaySecret(this.secret)) { this.rejectJoin('P2P lukt niet. Plak de volledige nieuwe uitnodigingslink om de fallback te gebruiken.'); return; }
     this.fallbackStarting = true; clearTimeout(this.joinTimeout);
     this.emit('fallback', { message: 'P2P lukt niet. Verbinden via Itty Sockets…' });

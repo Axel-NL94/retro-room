@@ -282,3 +282,10 @@ anti-misbruiklimieten toe. Ook WebSockets kunnen door een firewall worden geblok
 Er wordt dan een fout getoond; de UI claimt geen werkende verbinding.
 Zie [Itty-documentatie](https://ittysockets.com/docs),
 [prijzen](https://ittysockets.com/pricing) en [voorwaarden](https://ittysockets.com/terms).
+
+
+## DOSBox Pure (beta) en streamverbinding
+
+DOS is beschikbaar via een extra tegel voor solo en WebRTC-streamen. ZIP/DOSZ en losse COM/EXE/BAT tot 32 MB blijven lokaal. DOS Duo is onze originele tweespelertest. Fysieke toetsen/controllerprofielen worden per console opgeslagen. DOS gebruikt geen Itty. Samen emuleren met twee lokale DOS-instanties, DOS-save-export, muis en volledige tekstinvoer zijn nog niet vrijgegeven; zie [DOS-BETA.md](DOS-BETA.md) voor de precieze beperkingen. Native broncode/build: [native/DOSBOX.md](native/DOSBOX.md); auteurs en licenties: [web/DOS-NOTICES.txt](web/DOS-NOTICES.txt).
+
+De WebRTC-stream wacht apart op onderhandeling en het eerste beeld. Tijdelijke mediaonderbrekingen krijgen begrensde hersteltijd. Dit verhelpt reproduceerbare timinggevoeligheden, zonder directe connectiviteit door alle firewalls te beloven.
