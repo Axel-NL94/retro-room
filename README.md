@@ -9,12 +9,12 @@ het tandwiel één speelwijze per kamer:
 
 - **Samen emuleren** (standaard): beide spelers laden dezelfde eigen ROM. Een lokale
   SHA-256-controle vergelijkt de bestanden. Alleen knoppen en synchronisatiegegevens
-  gaan over het netwerk; bij geblokkeerd P2P is Itty Sockets een fallback.
+  gaan over het netwerk; bij geblokkeerd P2P is Tailcat een fallback.
 - **Beeld en geluid streamen**: alleen de host laadt de ROM en draait Mesen. De gast
   ontvangt canvasvideo en gesynthetiseerd gamegeluid via WebRTC en stuurt de eigen
   knoppen terug. De gast laadt geen ROM en start geen emulatorinstantie. Deze modus
   kan meer invoervertraging en dataverbruik geven. Er is geen video-/audiofallback
-  via Itty en geen TURN-server ingesteld; een blokkerend netwerk kan streamen verhinderen.
+  via Tailcat en geen TURN-server ingesteld; een blokkerend netwerk kan streamen verhinderen.
 
 In beide modi worden ROM-bestanden niet tussen spelers verstuurd. Camera,
 microfoon en schermdeling worden niet aangevraagd. Er zijn geen commerciële
@@ -40,7 +40,7 @@ een nieuwe willekeurige link.
 Er is geen eigen server of gebruikersaccount nodig. PeerJS Cloud verzorgt de
 signalering; Google STUN helpt een directe verbinding vinden. Bij samen emuleren is P2P de eerste keuze.
 Lukt dat niet binnen ongeveer 10 seconden, dan schakelen beide spelers automatisch
-over op Itty Sockets via WebSockets over TLS. Er is geen TURN-account of betaalde databundel. Externe diensten hebben geen garantie
+over op Tailcat via DERP/WebSockets over TLS. Er is geen TURN-account of betaalde databundel. Externe diensten hebben geen garantie
 op beschikbaarheid of onbeperkt gratis gebruik. Zie [GRATIS-HOSTING.md](GRATIS-HOSTING.md).
 
 ## Emulator en mogelijkheden
@@ -160,7 +160,7 @@ native/mesen-web.cpp    Libretro-frontend voor framebesturing, video, audio en i
 scripts/build-mesen.py  Native build met vastgezette Emscripten-toolchain
 web/src/rollback.js     Invoer per frame, voorspelling, rollback en hashes
 web/src/connection.js   Uitnodigingen, P2P eerst en automatische fallback
-web/src/relay.js        Itty WebSocket-transport, versleuteling en invoerbundeling
+web/src/relay.js        Tailcat-workertransport, versleuteling en invoerbundeling
 web/src/game-stream.js  WebRTC-canvasvideo, gameaudio en media-levensduur
 web/src/stream-protocol.js Streammetadata, speelwijze en veilige controllerstatus
 web/src/protocol.js     Kleine netwerkberichten en vergelijking van lokale ROMs
@@ -250,42 +250,50 @@ wordt genegeerd; zonder heartbeat worden ingedrukte knoppen na 250 ms losgelaten
 Pauze en opnieuw starten worden door de host gesynchroniseerd, zonder savestate-
 of ROM-overdracht. Online savestate-import/export blijft uitgeschakeld.
 
-Streamkamers openen geen Itty-wachtverbinding. Een mislukte directe verbinding
+Streamkamers openen geen Tailcat-wachtverbinding. Een mislukte directe verbinding
 of media-time-out toont een fout en biedt geen schijnbare werkende stream.
 Canvas-capture en WebRTC moeten door de browser worden ondersteund. Mobiele
 browsers en energiebesparing kunnen achtergrondvideo alsnog onderbreken.
 
-## Itty Sockets als fallback
+## Tailcat als fallback
 
-In de ROM-modus opent de host bij het maken van een kamer een wachtverbinding naar de vaste dienst
-`wss://itty.ws/c/retroroom-<kamer-id>?announce=true`. De gast probeert eerst PeerJS/WebRTC.
-Bij een fout of een time-out van 10 seconden opent de gast de relay en vraagt om toelating.
-Bij werkend P2P gaat geen spelinvoer, ROM-hash of gamemetadata via Itty. De wachtverbinding
-is nodig om de host te bereiken als de P2P-handshake zelf geblokkeerd wordt.
+Bij samen emuleren maakt de host een tijdelijke Tailcat-listener aan. De volledige
+uitnodigingslink bevat de kamer-id, een AES-GCM-sleutel en het Tailcat-adres uitsluitend
+in het URL-fragment. De gast probeert eerst PeerJS/WebRTC. Pas als dit mislukt of na
+10 seconden nog niet gereed is, laadt de gast Tailcat en verbindt met de host via de
+publieke DERP-relays. Bij werkend P2P gaat geen spelinvoer of gamemetadata via Tailcat.
+De hostlistener is nodig om ook zonder werkende P2P-handshake bereikbaar te zijn.
+Als de listener niet start, blijft een directe P2P-kamer mogelijk; de kamer meldt dat
+fallback ontbreekt. Bij een onbereikbare P2P-dienst moet de relay wel starten.
 
-De volledige uitnodigingslink bevat naast de kamer-id een willekeurige 256-bits sleutel
-in het URL-fragment. Deze sleutel wordt niet naar GitHub Pages, PeerJS of Itty verstuurd.
-Alle fallbackverzoeken en spelberichten zijn met AES-GCM versleuteld; de relay ziet nog wel
-IP-adressen, kamer-id, berichtgroottes en timing. Wie de link heeft kan proberen mee te doen;
-behandel hem als een privésleutel. De host accepteert één gast. Berichten zijn aan die
-verbinding/sessie gebonden; oude clients en berichten worden geweigerd.
+Tailcat draait in een tijdelijke Web Worker, met een lokaal meegeleverde Wasm-module
+(ongeveer 6,3 MB gecomprimeerd). Een Tailscale-account of installatie is niet nodig.
+De browservariant gebruikt uitsluitend DERP via WebSockets over TLS. Het is geen TURN-
+server en neemt geen WebRTC-video of audio over. DOS- en streamkamers gebruiken deze
+fallback niet. Solo start geen Tailcat-worker of listener.
 
-De netwerk-whitelist en lokale ROM-controle gelden voor beide routes. Invoer wordt op de
-relay maximaal 32 ms gebundeld (tot 8 frames), om kleine WebSocket-berichten te combineren.
-De bestaande rollback wacht zo nodig op vertraagde invoer. De relay kan hogere latency of
-haperingen geven. Een lopende P2P-game verhuist niet stilzwijgend naar een nieuwe sessie;
-bij uitval verlaat de gast de kamer en gebruikt dezelfde uitnodiging opnieuw. De nieuwe
-verbinding probeert wederom eerst P2P. Er is geen automatisch sessieherstel.
+Tailcat versleutelt verkeer met WireGuard en een tijdelijke adres-capability. Bovendien
+blijven RetroRoom-berichten met de uitnodigingssleutel via AES-GCM versleuteld en aan de
+kamer gebonden. Sleutels/adressen worden niet naar GitHub Pages of PeerJS gestuurd en
+niet opgeslagen of gelogd. Relaybeheerders kunnen verbindingsmetadata zoals IP-adressen,
+hoeveelheden en timing zien. Behandel de uitnodigingslink als een wachtwoord.
 
-De gratis communitydienst heeft geen beschikbaarheids- of leveringsgarantie en past
-anti-misbruiklimieten toe. Ook WebSockets kunnen door een firewall worden geblokkeerd.
-Er wordt dan een fout getoond; de UI claimt geen werkende verbinding.
-Zie [Itty-documentatie](https://ittysockets.com/docs),
-[prijzen](https://ittysockets.com/pricing) en [voorwaarden](https://ittysockets.com/terms).
+Alleen de bestaande gevalideerde control/input-berichten worden doorgelaten; ROMs worden
+niet verstuurd. TCP-frames zijn begrensd, uitgaande buffers maximaal 128 KiB en invoer
+wordt hoogstens 4 ms gebundeld (maximaal 8 frames). Eén gast kan de kamer bezetten.
+Vertrekken beëindigt de worker en tijdelijke sleutels. Nieuwe sessies hebben nieuwe links.
+Oude uitnodigingen moeten opnieuw worden aangemaakt. Een lopende P2P-game verhuist niet
+stilzwijgend naar een nieuwe sessie: verlaat de kamer en verbind opnieuw na uitval.
 
+De gratis publieke Tailcat-relays hebben snelheids-/misbruiklimieten en geen garantie op
+beschikbaarheid of lagere ping. Ook deze WebSockets kunnen geblokkeerd worden. De browser
+krijgt maximaal 75 seconden voor Wasm laden en het opzetten van een Tailcat-tunnel; de
+kamerhandshake daarna maximaal 12 seconden. Itty is verwijderd; er gaat geen verkeer meer naar die dienst.
+Zie [Tailcat](https://github.com/tailscale/tailcat), [dienstinformatie](https://tailscale.com/tailcat)
+en [bouw- en licentiedetails](native/TAILCAT.md).
 
 ## DOSBox Pure (beta) en streamverbinding
 
-DOS is beschikbaar via een extra tegel voor solo en WebRTC-streamen. ZIP/DOSZ en losse COM/EXE/BAT tot 32 MB blijven lokaal. DOS Duo is onze originele tweespelertest. Fysieke toetsen/controllerprofielen worden per console opgeslagen. DOS gebruikt geen Itty. Samen emuleren met twee lokale DOS-instanties, DOS-save-export, muis en volledige tekstinvoer zijn nog niet vrijgegeven; zie [DOS-BETA.md](DOS-BETA.md) voor de precieze beperkingen. Native broncode/build: [native/DOSBOX.md](native/DOSBOX.md); auteurs en licenties: [web/DOS-NOTICES.txt](web/DOS-NOTICES.txt).
+DOS is beschikbaar via een extra tegel voor solo en WebRTC-streamen. ZIP/DOSZ en losse COM/EXE/BAT tot 32 MB blijven lokaal. DOS Duo is onze originele tweespelertest. Fysieke toetsen/controllerprofielen worden per console opgeslagen. DOS gebruikt geen Tailcat. Samen emuleren met twee lokale DOS-instanties, DOS-save-export, muis en volledige tekstinvoer zijn nog niet vrijgegeven; zie [DOS-BETA.md](DOS-BETA.md) voor de precieze beperkingen. Native broncode/build: [native/DOSBOX.md](native/DOSBOX.md); auteurs en licenties: [web/DOS-NOTICES.txt](web/DOS-NOTICES.txt).
 
 De WebRTC-stream wacht apart op onderhandeling en het eerste beeld. Tijdelijke mediaonderbrekingen krijgen begrensde hersteltijd. Dit verhelpt reproduceerbare timinggevoeligheden, zonder directe connectiviteit door alle firewalls te beloven.
