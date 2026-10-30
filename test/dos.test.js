@@ -50,7 +50,7 @@ test('DOS input profiles persist independently and support both local people', (
   assert.deepEqual(restored.nes[0].keyboard[0],['KeyA']);
   assert.equal(inputBits(restored.dos[0],new Set(['KeyD']),null,'dos'),256);
 });
-test('DOS direct-only rooms do not open an Itty fallback', async () => {
+test('DOS direct-only rooms do not open an Tailcat fallback', async () => {
   class Data extends EventEmitter{close(){this.emit('close');}}
   class Peer extends EventEmitter {
     constructor(id){super();this.id=id;queueMicrotask(()=>{this.open=true;this.emit('open');});}
@@ -63,7 +63,7 @@ test('DOS direct-only rooms do not open an Itty fallback', async () => {
   const guest=new InviteConnection(Peer,{RelayRoomClass:Relay});let message;
   guest.addEventListener('rejected',e=>{message=e.detail.message;});
   await guest.join('https://example.com/#room='+host.room.id+'&direct=1','Guest');await guest.fallback();
-  assert.match(message,/geen Itty/);host.leave();guest.leave();
+  assert.match(message,/geen Tailcat/);host.leave();guest.leave();
 });
 test('DOS native COM and complete ZIP render and both players move on one virtual PC', async () => {
   const binary=await readFile(new URL('../web/assets/dos-core.wasm',import.meta.url));

@@ -72,12 +72,12 @@ test('guest answers only the approved host and token, without supplying local me
 test('missing or disconnected media fails explicitly and closes its tracks', async () => {
   const timed = new GameStream({ connection: { peer: 'approved' }, host: false, token, timeout: 5 });
   let message; timed.addEventListener('error', e => { message = e.detail; }); timed.accept(new Call());
-  await new Promise(resolve => setTimeout(resolve, 15)); assert.match(message, /Itty/); assert.ok(timed.closed);
+  await new Promise(resolve => setTimeout(resolve, 15)); assert.match(message, /Tailcat/); assert.ok(timed.closed);
   const disconnected = new GameStream({ connection: { peer: 'approved' }, host: false, token });
   const call = new Call(); disconnected.accept(call); disconnected.ready();
   call.peerConnection.connectionState = 'failed'; call.peerConnection.dispatchEvent(new Event('connectionstatechange'));
   assert.ok(disconnected.closed); assert.ok(call.closed);
-  assert.throws(() => new GameStream({ connection: { peer: 'approved', relay: true }, token }), /Itty/);
+  assert.throws(() => new GameStream({ connection: { peer: 'approved', relay: true }, token }), /Tailcat/);
 });
 class Data extends EventEmitter { constructor(options = {}) { super(); Object.assign(this, options); } close() { this.emit('close'); } }
 class Peer extends EventEmitter {
@@ -85,7 +85,7 @@ class Peer extends EventEmitter {
   connect(peer, options) { return new Data({ peer, ...options }); }
   destroy() { this.destroyed = true; }
 }
-test('stream invitations select the matching mode and never open an Itty fallback', async () => {
+test('stream invitations select the matching mode and never open an Tailcat fallback', async () => {
   let relays = 0;
   class Relay { constructor() { relays++; throw new Error('must not create relay'); } }
   const host = new InviteConnection(Peer, { RelayRoomClass: Relay });
@@ -95,7 +95,7 @@ test('stream invitations select the matching mode and never open an Itty fallbac
   guest.addEventListener('rejected', e => { rejection = e.detail.message; });
   await guest.join('https://example.com/#room=' + host.room.id + '&mode=stream&key=unused', 'Guest');
   assert.equal(guest.connection.metadata.playMode, 'stream'); assert.equal(guest.connection.metadata.version, INVITE_VERSION);
-  await guest.fallback(); assert.match(rejection, /Itty ondersteunt geen videostreams/); assert.equal(relays, 0);
+  await guest.fallback(); assert.match(rejection, /Tailcat ondersteunt geen videostreams/); assert.equal(relays, 0);
   host.leave(); guest.leave();
 });
 test('host speaker mute keeps synthesized audio feeding the stream until capture is released', async () => {
