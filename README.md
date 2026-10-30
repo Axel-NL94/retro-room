@@ -294,6 +294,8 @@ en [bouw- en licentiedetails](native/TAILCAT.md).
 
 ## DOSBox Pure (beta) en streamverbinding
 
-DOS is beschikbaar via een extra tegel voor solo en WebRTC-streamen. ZIP/DOSZ en losse COM/EXE/BAT tot 32 MB blijven lokaal. DOS Duo is onze originele tweespelertest. Fysieke toetsen/controllerprofielen worden per console opgeslagen. DOS gebruikt geen Tailcat. Samen emuleren met twee lokale DOS-instanties, DOS-save-export, muis en volledige tekstinvoer zijn nog niet vrijgegeven; zie [DOS-BETA.md](DOS-BETA.md) voor de precieze beperkingen. Native broncode/build: [native/DOSBOX.md](native/DOSBOX.md); auteurs en licenties: [web/DOS-NOTICES.txt](web/DOS-NOTICES.txt).
+DOS is beschikbaar via een extra tegel voor solo en WebRTC-streamen. ZIP/DOSZ en losse COM/EXE/BAT tot 32 MB blijven lokaal. DOS Duo is onze originele tweespelertest. DOS heeft het volledige fysieke toetsenbord, muis/pointer lock en controllerprofielen met DOS-toetsen, muisstand of DOS-joystick. Deze profielen worden lokaal opgeslagen. DOS gebruikt geen Tailcat. Samen emuleren met twee lokale DOS-instanties is experimenteel: identieke eigen gamebestanden, 6 frames invoerbuffer, wachten bij ontbrekende invoer en stoppen bij een statusafwijking. DOS-rollback en save-export zijn nog niet vrijgegeven; zie [DOS-BETA.md](DOS-BETA.md) voor de precieze beperkingen. Native broncode/build: [native/DOSBOX.md](native/DOSBOX.md); auteurs en licenties: [web/DOS-NOTICES.txt](web/DOS-NOTICES.txt).
 
 De WebRTC-stream wacht apart op onderhandeling en het eerste beeld. Tijdelijke mediaonderbrekingen krijgen begrensde hersteltijd. Dit verhelpt reproduceerbare timinggevoeligheden, zonder directe connectiviteit door alle firewalls te beloven.
+
+De synchronisatieproeven en beperkingen staan in [DOS-NETPLAY.md](DOS-NETPLAY.md).

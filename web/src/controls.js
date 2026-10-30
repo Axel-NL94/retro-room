@@ -1,3 +1,4 @@
+import {DOS_OUTPUTS,DOS_DEFAULT_OUTPUTS,dosPadInput} from './dos-input.js';
 import { actionsFor, defaultProfile, loadSettings, saveSettings, assignBinding, validKey,
   readGamepads, resolvePads, activeBindings, inputBits, keyLabel, padLabel } from './input.js';
 
@@ -19,7 +20,8 @@ export function createControls({ pressed, touched, release, currentSystem, local
     $('snes-controls-guide').textContent = describeKeys(system === 'dos' ? 'dos' : 'snes', 0, [8, 9, 10, 11]);
     $('snes-controls-guide').hidden = system === 'nes';
     $('solo-controls').textContent = 'Tweede speler op dit apparaat — ' + describeKeys(system, 1, actionsFor(system).map(action => action.bit));
-    $('game-hint').textContent = describeKeys(system, 0, [0, 1, 3]) + ' · Besturing instellen via ⚙';
+    if(system==='dos'){$('keyboard-guide').textContent='Volledig toetsenbord, inclusief Ctrl/Alt/Shift, F1–F12 en numeriek toetsenblok.';$('snes-controls-guide').hidden=true;$('solo-controls').textContent='Het toetsenbord en de muis zijn gedeeld. Een tweede lokale controller gebruikt profiel 2.';}
+    $('game-hint').textContent = system==='dos'?'Klik in het beeld voor het volledige toetsenbord. Vang de muis voor onbeperkt bewegen; Esc laat hem los.':' '+describeKeys(system, 0, [0, 1, 3]) + ' · Besturing instellen via ⚙';
   }
   function persist() {
     const saved = saveSettings(storage, settings);
@@ -56,6 +58,12 @@ export function createControls({ pressed, touched, release, currentSystem, local
       for (const kind of ['keyboard', 'gamepad']) {
         const cell = document.createElement('td'), button = document.createElement('button');
         button.type = 'button'; button.className = 'binding-button';
+        if(system==='dos'&&kind==='keyboard') {
+          const select=document.createElement('select');select.setAttribute('aria-label','DOS-toets voor '+name);
+          select.append(new Option('Niet ingesteld',''));
+          for(const code of Object.keys(DOS_OUTPUTS))select.append(new Option(keyLabel(code),code));
+          select.value=profile().dosOutputs[bit];select.onchange=()=>{profile().dosOutputs[bit]=select.value;persist();};cell.append(select);row.append(cell);continue;
+        }
         const text = profile()[kind][bit].map(kind === 'keyboard' ? keyLabel : padLabel).join(' / ') || 'Niet ingesteld';
         button.textContent = capture?.kind === kind && capture.bit === bit ? 'Wachten op invoer…' : text;
         button.setAttribute('aria-label', `${kind === 'keyboard' ? 'Toetsenbord' : 'Controller'} ${name}: ${text}`);
@@ -84,6 +92,8 @@ export function createControls({ pressed, touched, release, currentSystem, local
   }
   function renderProfile() {
     finishCapture(); renderDevices(readGamepads());
+    $('dos-controller-options').hidden=system!=='dos';$('control-dos-mode').value=profile().dosMode||'keyboard';
+    $('control-key-column').textContent=system==='dos'?'DOS-toets / muisknop':'Toetsenbord';
     $('control-deadzone').value = String(Math.round(profile().deadzone * 100));
     $('deadzone-value').textContent = `${$('control-deadzone').value}%`;
     $('control-profile-note').textContent = player === 0
@@ -126,6 +136,8 @@ export function createControls({ pressed, touched, release, currentSystem, local
     release(); renderProfile(); persist(); dialog.showModal(); dialog.scrollTop = 0; poll();
   }
   document.querySelectorAll('[data-controls]').forEach(button => { button.onclick = open; });
+  document.querySelectorAll('[data-dos-preset]').forEach(button=>{button.onclick=()=>{profile().dosOutputs=[...DOS_DEFAULT_OUTPUTS[Number(button.dataset.dosPreset)]];profile().dosMode='keyboard';renderProfile();persist();};});
+  $('control-dos-mode').onchange=event=>{profile().dosMode=event.target.value;persist();};
   $('control-system').onchange = event => { system = event.target.value; renderProfile(); };
   $('control-profile').onchange = event => { player = Number(event.target.value); renderProfile(); };
   $('control-device').onchange = event => {
@@ -169,7 +181,12 @@ export function createControls({ pressed, touched, release, currentSystem, local
       const profiles = settings[currentSystem()];
       return profiles.slice(0, localCoop() ? 2 : 1).some(profile => profile.keyboard.some(keys => keys.includes(code)));
     },
-    buttons(player, touch = false) {
+    dosPad(player,bits) {
+      const profiles=settings.dos;let pad=resolvePads(profiles,readGamepads(),localCoop()?2:1)[player];if(pad&&blockedPads.has(pad.index))pad=null;
+      const axis=index=>{const v=pad?.axes[index]||0,d=profiles[player].deadzone;return Math.abs(v)<=d?0:Math.sign(v)*Math.min(1,(Math.abs(v)-d)/(1-d));};
+      return dosPadInput(bits,profiles[player],{x:axis(0),y:axis(1)},player);
+    },
+    buttons(player, touch = false, keyboard = true) {
       if (document.hidden || document.querySelector('dialog[open]')) return 0;
       const system = currentSystem(), profiles = settings[system];
       let pad = resolvePads(profiles, readGamepads(), localCoop() ? 2 : 1)[player];
@@ -177,7 +194,7 @@ export function createControls({ pressed, touched, release, currentSystem, local
         if (!activeBindings(pad, profiles[player].deadzone).length) blockedPads.delete(pad.index);
         else pad = null;
       }
-      return inputBits(profiles[player], pressed, pad, system, touch ? touched : []);
+      return inputBits(profiles[player], keyboard?pressed:new Set(), pad, system, touch ? touched : []);
     }
   };
 }

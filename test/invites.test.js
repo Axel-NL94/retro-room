@@ -102,3 +102,12 @@ test('peer transport has only control/input channels and cannot send files', () 
   peer.input.onmessage({data:new ArrayBuffer(16)});assert.match(error,/Ongeldig/);
   peer.close();
 });
+
+
+test('DOS typing and lockstep use the reliable ordered path and still expose only validated input',()=>{
+ const connection=new FakeConnection();connection.dataChannel={readyState:'open',bufferedAmount:0};connection.peerConnection={createDataChannel(){return{label:'input',readyState:'open',bufferedAmount:0,send(){throw new Error('DOS must not use unordered input');}}}};
+ const peer=new PeerConnection(connection,true);connection.emit('open');
+ const state={keys:[97],modifiers:0,mouse:{x:0,y:0,wheel:0,buttons:0},joy:{enabled:false,x:0,y:0,buttons:0}};
+ peer.send('input',{type:'dos-input',frame:6,epoch:'test',dos:state});assert.equal(connection.messages.at(-1).type,'dos-input');
+ let received;peer.addEventListener('input',e=>{received=e.detail});connection.emit('data',{type:'dos-input',frame:7,epoch:'test',dos:{...state,rom:[1,2,3]}});assert.equal(received.frame,7);assert.equal(received.dos.rom,undefined);peer.close();
+});

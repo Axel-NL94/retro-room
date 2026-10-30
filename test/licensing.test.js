@@ -81,7 +81,7 @@ test('DOS download preserves matching bridge, build recipe, notices and dated up
   for(const file of ['native/dos-web.cpp','native/dos-threads.h','native/DOSBOX.md','scripts/build-dos.py','scripts/package-dos-source.py','web/DOS-NOTICES.txt','LICENSING.md']) {
     assert.deepEqual(files.get('retro-room/'+file),await readFile(root+file));
   }
-  for(const file of ['include/dbp_threads.h','include/config.h','src/gui/midi.cpp','dosbox_pure_libretro.cpp']) {
+  for(const file of ['include/dbp_threads.h','include/config.h','src/gui/midi.cpp','dosbox_pure_libretro.cpp','src/dbp_serialize.cpp']) {
     assert.match(files.get('dosbox-pure/'+file).toString().split('\n')[0],/RetroRoom.*2026-10-30/);
   }
   assert.ok(files.has('dosbox-pure/LICENSE'));

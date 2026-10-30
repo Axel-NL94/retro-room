@@ -1,4 +1,5 @@
-export const STREAM_VERSION = 'retroroom-stream-1';
+import {validateDosInput,DosInputAccumulator,emptyDosInput} from './dos-input.js';
+export const STREAM_VERSION = 'retroroom-stream-2-dos-input';
 export const PLAY_MODES = Object.freeze(['netplay', 'stream']);
 export function playMode(value = 'netplay') {
   if (!PLAY_MODES.includes(value)) throw new Error('Onbekende speelwijze. Vraag om een nieuwe uitnodigingslink.');
@@ -24,7 +25,7 @@ export function streamMessage(channel, data) {
   }
   if (channel === 'input' && data.type === 'stream-input' && Number.isSafeInteger(data.sequence) && data.sequence >= 0 &&
       Number.isInteger(data.buttons) && data.buttons >= 0 && data.buttons <= 4095) {
-    return { type: data.type, token, epoch: streamToken(data.epoch), sequence: data.sequence, buttons: data.buttons };
+    return { type: data.type, token, epoch: streamToken(data.epoch), sequence: data.sequence, buttons: data.buttons, ...(data.dos ? {dos:validateDosInput(data.dos)} : {}) };
   }
   throw new Error('Onbekend streambericht.');
 }
@@ -33,12 +34,14 @@ export function streamMessage(channel, data) {
 // stale input so a lost connection or hidden guest cannot leave a button held.
 export class StreamInput {
   constructor(epoch, { now = () => performance.now(), timeout = 250 } = {}) {
-    this.epoch = epoch; this.now = now; this.timeout = timeout; this.clear();
+    this.epoch = epoch; this.now = now; this.timeout = timeout; this.dos=new DosInputAccumulator();this.clear();
   }
-  clear() { this.sequence = -1; this.buttons = 0; this.received = -Infinity; }
+  clear() { this.sequence = -1; this.buttons = 0; this.received = -Infinity;this.dos.reset(); }
   receive(packet) {
     if (packet.epoch !== this.epoch || packet.sequence <= this.sequence) return;
+    if(packet.dos)this.dos.receive(packet.dos);
     this.sequence = packet.sequence; this.buttons = packet.buttons; this.received = this.now();
   }
+  dosCurrent(){if(this.now()-this.received>this.timeout){this.dos.release();return emptyDosInput();}return this.dos.take();}
   current() { return this.now() - this.received <= this.timeout ? this.buttons : 0; }
 }
