@@ -56,7 +56,7 @@ exposed. Physical keyboard/gamepad mappings are local browser profiles.
 
 Independent-instance/rollback probes did not produce matching state hashes and
 replay hashes. State buffers are around 28.8 MB for the original fixture. Local
-DOS netplay is therefore disabled, and DOS rooms do not use Itty Sockets.
+DOS netplay is therefore disabled, and DOS rooms do not use Tailcat.
 Native snapshot save/restore works for the running original COM fixture, but
 import into a freshly booted ZIP menu needs reliable program/drive preparation.
 DOS savestate UI is disabled pending that work. In-game progress remains in
