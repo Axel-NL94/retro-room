@@ -41,5 +41,10 @@ export async function checkLicensing(root) {
   if (map.sources.length !== map.sourcesContent.length || map.sourcesContent.some(source => typeof source !== 'string')) {
     throw new Error('De oorspronkelijke PeerJS-bronbestanden ontbreken in de sourcemap.');
   }
+  const dos = JSON.parse(await readFile(path.join(root, 'web/assets/dos-build.json'), 'utf8'));
+  if (dos.license !== 'GPL-3.0-only' || dos.upstreamLicense !== 'GPL-2.0-or-later') throw new Error('Controleer de DOS-licentie opnieuw.');
+  for (const [file, hash] of [['assets/dos-core.wasm', dos.wasmSha256], ['assets/dos-core.mjs', dos.loaderSha256], ['assets/' + dos.sourceArchive, dos.sourceSha256], ['DOS-NOTICES.txt', dos.noticesSha256]]) {
+    if (sha256(await readFile(path.join(root, 'web', file))) !== hash) throw new Error('DOS-build, notices en broncode komen niet overeen: ' + file);
+  }
   return manifest;
 }
