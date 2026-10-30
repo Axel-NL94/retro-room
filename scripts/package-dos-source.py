@@ -8,7 +8,7 @@ def decode(data):
  try:return data.decode('utf-8')
  except UnicodeDecodeError:return data.decode('latin-1')
 files={}
-for name in ['include/dbp_threads.h','include/config.h','src/gui/midi.cpp','dosbox_pure_libretro.cpp']:
+for name in ['include/dbp_threads.h','include/config.h','src/gui/midi.cpp','dosbox_pure_libretro.cpp','src/dbp_serialize.cpp']:
  file=src/name;header=b'// RetroRoom browser modifications, 2026-10-30; see native/DOSBOX.md in the accompanying source.\n'
  if not file.read_bytes().startswith(header):file.write_bytes(header+file.read_bytes())
 for f in sorted(src.rglob('*')):
@@ -45,6 +45,6 @@ with tarfile.open(fileobj=out,mode='w',format=tarfile.PAX_FORMAT) as tar:
 archive=gzip.compress(out.getvalue(),mtime=0)
 (root/'web/assets/dos-source.tar.gz').write_bytes(archive)
 sha=lambda data:hashlib.sha256(data).hexdigest()
-meta={'engine':'DOSBox Pure','revision':pin,'upstream':'https://codeberg.org/schelling/dosbox-pure','build':'dosbox-pure-d9c1356-web-1','emscripten':'4.0.19','license':'GPL-3.0-only','upstreamLicense':'GPL-2.0-or-later','sourceArchive':'dos-source.tar.gz','sourceSha256':sha(archive),'loaderSha256':sha((root/'web/assets/dos-core.mjs').read_bytes()),'wasmSha256':sha((root/'web/assets/dos-core.wasm').read_bytes()),'noticesSha256':sha(notice.encode()),'sourceFiles':len(files),'sourceLicenseBlocks':len(blocks)}
+meta={'engine':'DOSBox Pure','revision':pin,'upstream':'https://codeberg.org/schelling/dosbox-pure','build':'dosbox-pure-d9c1356-web-input-2','emscripten':'4.0.19','license':'GPL-3.0-only','upstreamLicense':'GPL-2.0-or-later','sourceArchive':'dos-source.tar.gz','sourceSha256':sha(archive),'loaderSha256':sha((root/'web/assets/dos-core.mjs').read_bytes()),'wasmSha256':sha((root/'web/assets/dos-core.wasm').read_bytes()),'noticesSha256':sha(notice.encode()),'sourceFiles':len(files),'sourceLicenseBlocks':len(blocks)}
 (root/'web/assets/dos-build.json').write_text(json.dumps(meta,indent=2)+'\n')
 print('DOS source packaged:',len(files),'files;',len(blocks),'retained notice blocks;',len(archive),'bytes')

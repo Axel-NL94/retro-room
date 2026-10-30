@@ -1,3 +1,5 @@
+import {DosLockstepSession} from './dos-lockstep.js';
+import {createDosControls} from './dos-controls.js';
 import { romHash } from './emulator.js';
 import { RollbackSession, NETPLAY_VERSION } from './rollback.js';
 import { InviteConnection, PeerConnection, parseInvitation } from './connection.js';
@@ -45,6 +47,11 @@ const controls = createControls({ pressed, touched, release: releaseButtons,
   localCoop: () => mode === 'solo'
 });
 
+const dosControls=createDosControls({
+  enabled:()=>game?.system==='dos'&&!$('room-view').hidden&&['solo','online'].includes(mode),
+  targets:()=>[$('game'),streamVideo],padInput:(player,bits)=>controls.dosPad(player,bits),requestFocus:focusGame
+});
+
 function readSetting(key) { try { return localStorage.getItem('retroroom-' + key); } catch { return null; } }
 function saveSetting(key, value) { try { localStorage.setItem('retroroom-' + key, value); } catch { /* Private browsing can disable persistence. */ } }
 function toast(message) { $('toast').textContent = message; $('toast').hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { $('toast').hidden = true; }, 5500); }
@@ -55,7 +62,8 @@ function overlay(title, description) {
 }
 function stop(message) {
   playbackClock.setRunning(false);
-  mode = 'idle'; session = null; pausedMode = null; audio.clear();
+  releaseButtons();dosControls?.unlock();
+  mode = 'idle'; session?.close?.();session = null; pausedMode = null; audio.clear();
   $('fps-value').textContent = '—';
   $('pause-button').disabled = true; $('pause-button').textContent = 'Pauzeren';
   if (message && game) { overlay('Even pas op de plaats.', message); $('room-message').textContent = message; $('room-status').textContent = 'Onderbroken'; }
@@ -101,6 +109,7 @@ function showRoom() {
   $('play-mode').textContent = roomId ? playStyle === 'stream' ? 'WebRTC · beeld en geluid' : 'Privékamer · twee spelers' : 'Lokaal · solo';
   $('stream-guest-card').hidden = !isStreamGuest();
   $('game').hidden = isStreamGuest(); streamVideo.hidden = !isStreamGuest();
+  $('dos-mouse-button').hidden=game?.system!=='dos';
   $('route-value').textContent = peer?.opened ? peer.route : roomId ? 'Verbinden…' : 'Lokaal';
   updateActions(); window.scrollTo({ top: 0, behavior: 'instant' });
 }
@@ -156,6 +165,7 @@ function updateActions() {
   $('guest-rom-card').hidden = isHost || !expectedGame;
   $('guest-rom-file').disabled = guestLoading || localReady || mode === 'online' || mode === 'paused';
   $('guest-demo-button').hidden = !expectedGame?.demo;
+  $('guest-demo-button').textContent = expectedGame?.system === 'dos' ? 'Gebruik DOS Duo-demo' : 'Gebruik Room Rally-demo';
   $('guest-demo-button').disabled = $('guest-rom-file').disabled;
   $('room-overclock').value = String(game?.overclock ?? expectedGame?.overclock ?? 100);
   $('room-overclock').disabled = !game || !isHost || !!peer || !!invites.connection || stateBusy;
@@ -176,17 +186,18 @@ function beginOnline(newEpoch) {
   core.load(game.bytes, game.system, game); audio.clear(); checks.clear(); lastHash = -1;
   epoch = newEpoch; mode = 'online'; pausedMode = null; accumulator = 0; lastTime = 0;
   fpsTime = performance.now(); fpsCount = 0;
-  session = new RollbackSession(core, { player: isHost ? 1 : 2,
+  dosControls.reset();
+  session = game.system==='dos'?new DosLockstepSession({core,player:isHost?0:1,send:message=>peer.send('input',{...message,epoch})}):new RollbackSession(core, { player: isHost ? 1 : 2,
     send: message => peer.send('input', { ...message, epoch }) });
   $('screen-overlay').hidden = true; $('pause-button').disabled = false;
   $('pause-button').textContent = 'Pauzeren'; $('room-status').textContent = 'Samen aan het spelen';
-  $('room-message').textContent = 'Jullie spelen allebei lokaal. De verbinding houdt jullie game gelijk.';
-  $('play-mode').textContent = 'Samen · rollback'; $('solo-controls').hidden = true;
+  $('room-message').textContent = game.system==='dos'?'Experimenteel DOS: ieder emuleert lokaal met 6 frames invoerbuffer. Bij vertraging wacht het spel; er is geen rollback.':'Jullie spelen allebei lokaal. De verbinding houdt jullie game gelijk.';
+  $('play-mode').textContent = game.system==='dos'?'Samen · DOS-invoerbuffer':'Samen · rollback'; $('solo-controls').hidden = true;
   $('game').focus(); updateActions();
 }
 function pause(send = true) {
   if (!['online', 'solo'].includes(mode)) return;
-  pausedMode = mode; mode = 'paused'; audio.clear(); pressed.clear(); touched.clear();
+  pausedMode = mode; mode = 'paused'; audio.clear(); releaseButtons();dosControls.unlock();
   if (streamInput) { streamInput.buttons = 0; streamInput.received = -Infinity; }
   $('fps-value').textContent = '—';
   overlay('Even pauze.', roomId ? 'De host kan de game weer hervatten.' : 'Klaar voor nog een ronde?');
@@ -216,7 +227,7 @@ function leaveRoom() {
   core?.destroy?.();
   $('stream-guest-card').hidden = true;
   roomId = null; game = null; core = null; pickedGame = null; isHost = true;
-  pressed.clear(); touched.clear();
+  pressed.clear(); touched.clear();dosControls?.release();
   $('home').hidden = false; $('room-view').hidden = true;
   $('player-two').textContent = 'Nog een plekje vrij'; $('guest-detail').textContent = 'Nodig je favoriete rivaal uit';
   $('room-message').textContent = 'Je kunt alvast solo spelen.';
@@ -246,9 +257,10 @@ function setupPeer(connection, host) {
   });
   peer.addEventListener('input', ({ detail }) => {
     if (current === peer && playStyle === 'stream' && isHost && detail?.type === 'stream-input' &&
-        detail.token === streamInfo?.token && mode === 'online') { streamInput?.receive(detail); return; }
-    if (current !== peer || detail?.epoch !== epoch || !session || detail.type !== 'input') return;
-    try { session.receive(detail.frame, detail.buttons); } catch (error) { fatal(error); }
+        detail.token === streamInfo?.token && mode === 'online') { try{streamInput?.receive(detail);}catch(error){fatal(error);} return; }
+    if (current !== peer || detail?.epoch !== epoch || !session || !['input','dos-input'].includes(detail.type)) return;
+    if((game?.system==='dos')!==(detail.type==='dos-input'))return;
+    try { session.receive(detail.frame, detail.type==='dos-input'?detail.dos:detail.buttons); } catch (error) { fatal(error); }
   });
   peer.addEventListener('control', ({ detail }) => {
     if (current !== peer) return;
@@ -275,6 +287,8 @@ function requireLocalRom(message) {
   }
   expectedGame = config; game = null; core = null; localReady = false;
   $('guest-rom-file').value = '';
+  $('guest-rom-file').accept = config.system === 'dos' ? '.zip,.dosz,.com,.exe,.bat' : config.system === 'snes' ? '.sfc,.smc' : '.nes';
+  $('guest-file-description').textContent = config.system === 'dos' ? '.zip / .dosz / .com / .exe / .bat · maximaal 32 MB · geen bestandsoverdracht' : config.system === 'snes' ? '.sfc / .smc · maximaal 8 MB · geen bestandsoverdracht' : '.nes · maximaal 8 MB · geen bestandsoverdracht';
   $('game-title').textContent = config.name;
   $('console-badge').textContent = consoleBadge(config.system);
   $('guest-rom-note').textContent = `Kies jouw ${config.system.toUpperCase()}-ROM voor ${config.name}. De versie, regio en eventuele hack moeten overeenkomen.`;
@@ -365,7 +379,7 @@ async function sendGameStream() {
   } catch (error) { if (current === peer && media === gameStream) fatal(error); }
 }
 function beginStreaming(newEpoch) {
-  epoch = newEpoch; session = null; streamSequence = 0;
+  epoch = newEpoch; session = null; streamSequence = 0;dosControls.reset();
   if (isHost) { core.load(game.bytes, game.system, game); audio.clear(); streamInput = new StreamInput(epoch); }
   mode = 'online'; pausedMode = null; accumulator = 0; lastTime = 0;
   fpsTime = performance.now(); fpsCount = 0;
@@ -435,7 +449,7 @@ function loop(time) {
     if (mode !== 'online' || !streamReady || !streamInfo) { lastTime = time; return; }
     if (time - lastTime < 1000 / 60) return;
     lastTime = time;
-    try { peer.send('input', { type: 'stream-input', token: streamInfo.token, epoch, sequence: streamSequence++, buttons: controls.buttons(0, true) }); }
+    try {const dos=game?.system==='dos',buttons=controls.buttons(0,true,!dos);peer.send('input',{type:'stream-input',token:streamInfo.token,epoch,sequence:streamSequence++,buttons,...(dos?{dos:dosControls.packet(0,buttons)}:{})});}
     catch (error) { fatal(error); }
     return;
   }
@@ -446,9 +460,9 @@ function loop(time) {
     let count = 0;
     while (accumulator >= 1000 / core.fps && count++ < 5) {
       let advanced = true;
-      if (mode === 'online' && playStyle === 'stream') core.run(controls.buttons(0, true), streamInput.current());
-      else if (mode === 'online') advanced = session.tick(controls.buttons(0, true));
-      else core.run(controls.buttons(0, true), controls.buttons(1));
+      if (mode === 'online' && playStyle === 'stream') {const dos=game.system==='dos',p1=controls.buttons(0,true,!dos),p2=streamInput.current();core.run(p1,p2,false,dos?[dosControls.frame(0,p1),streamInput.dosCurrent()]:null);}
+      else if (mode === 'online') advanced = game.system==='dos'?session.tick(()=>dosControls.frame(0,controls.buttons(0,true,false))):session.tick(controls.buttons(0, true));
+      else {const dos=game.system==='dos',p1=controls.buttons(0,true,!dos),p2=controls.buttons(1,false,!dos);core.run(p1,p2,false,dos?[dosControls.frame(0,p1),dosControls.frame(1,p2)]:null);}
       accumulator -= 1000 / core.fps;
       if (advanced) fpsCount++;
       else { accumulator = 0; break; }
@@ -549,7 +563,7 @@ function updatePlayModeChoice() {
   netplayChoice.disabled = unavailable;
   if (unavailable) document.querySelector('input[name="playMode"][value="stream"]').checked = true;
   const streaming = selectedPlayMode() === 'stream';
-  $('play-mode-summary').textContent = streaming ? 'Beeld en geluid streamen · alleen de host heeft de ROM nodig' : 'Samen emuleren · ieder zijn eigen ROM';
+  $('play-mode-summary').textContent = streaming ? 'Beeld en geluid streamen · alleen de host heeft de ROM nodig' : selectedSystem==='dos'?'Experimenteel samen emuleren · 6 frames invoerbuffer · eigen gamebestanden':'Samen emuleren · ieder zijn eigen ROM';
   $('launch-privacy-note').textContent = launchMode === 'solo' ? 'Je speelt lokaal. Je ROM en savestates worden niet geüpload.' : streaming ? 'Alleen jij laadt de ROM. Je vriend ontvangt gamebeeld en gamegeluid en stuurt knoppen terug. Geen camera, microfoon of ROM-overdracht.' : 'Alleen mensen met je uitnodigingslink kunnen meedoen. Beide spelers kiezen hun eigen ROM.';
   $('dos-limit-note').hidden = selectedSystem !== 'dos';
 }
@@ -582,11 +596,12 @@ function chooseConsole(system) {
   if (!['nes', 'snes', 'dos'].includes(system) || launchBusy) return;
   launchGeneration++; selectedSystem = system; pickedGame = null; $('rom-file').value = '';
   useCurrentGame = currentGameRequested && game?.system === system;
+  if(system==='dos'&&launchMode!=='solo')document.querySelector('input[name="playMode"][value="stream"]').checked=true;
   $('console-picker').hidden = true; $('launch-fields').hidden = false;
   $('launch-heading').textContent = launchMode === 'solo' ? 'Jouw game. Jouw tempo.' : 'Maak het gezellig.';
   $('launch-intro').textContent = `Je kiest ${system.toUpperCase()}. Laad je eigen ${system === 'dos' ? 'gamebestanden' : 'ROM'} en stel de emulator in.`;
   $('host-overclock-note').textContent = system === 'dos' ? 'DOS gebruikt 3000 CPU-cycles bij 100%, tot 15000 bij 500%. De juiste snelheid verschilt per game; hoger kan het spel versnellen.' : '100% is standaard. Meer CPU-tijd kan slowdown verminderen en vraagt meer van je apparaat. Niet iedere game werkt goed met overclocking.';
-  $('launch-console').textContent = system === 'dos' ? 'DOS · BETA' : system === 'snes' ? 'SNES · BETA' : 'NES';
+  $('launch-console').textContent = system === 'dos' ? 'DOS · EXPERIMENTEEL' : system === 'snes' ? 'SNES · BETA' : 'NES';
   $('rom-file').accept = system === 'dos' ? '.zip,.dosz,.exe,.com,.bat' : system === 'nes' ? '.nes' : '.sfc,.smc';
   $('file-name').textContent = system === 'dos' ? 'Kies je DOS-game' : `Kies je ${system.toUpperCase()}-ROM`;
   $('rom-file-hint').textContent = system === 'dos' ? 'Complete game als ZIP, of .exe / .com / .bat · maximaal 32 MB · blijft lokaal' : (system === 'nes' ? '.nes' : '.sfc / .smc') + ' · maximaal 8 MB · blijft op jouw apparaat';
@@ -655,7 +670,7 @@ $('guest-rom-file').onchange = async () => {
   } catch (error) { $('guest-rom-status').textContent = error.message; report(error); }
 };
 $('guest-demo-button').onclick = async () => {
-  try { const demo = await demoData(); await selectGuestRom(demo.bytes, true); }
+  try { const demo = await demoData(expectedGame?.system); await selectGuestRom(demo.bytes, true); }
   catch (error) { $('guest-rom-status').textContent = error.message; report(error); }
 };
 $('choose-demo').onclick = async () => {
@@ -712,7 +727,7 @@ async function startSolo() {
   await enableAudio();
   if (core !== currentCore || game !== currentGame) return;
   if (mode === 'paused' && pausedMode === 'solo') { resume(); return; }
-  core.load(game.bytes, game.system, game); session = null; mode = 'solo'; accumulator = 0; lastTime = 0;
+  dosControls.reset();core.load(game.bytes, game.system, game); session = null; mode = 'solo'; accumulator = 0; lastTime = 0;
   fpsTime = performance.now(); fpsCount = 0;
   $('screen-overlay').hidden = true; $('pause-button').disabled = false;
   $('pause-button').textContent = 'Pauzeren'; $('room-status').textContent = 'Solo aan het spelen';
@@ -862,7 +877,7 @@ document.addEventListener('keydown', event => {
 });
 document.addEventListener('keyup', event => pressed.delete(event.code));
 function releaseButtons() {
-  pressed.clear(); touched.clear();
+  pressed.clear(); touched.clear();dosControls?.release();
   document.querySelectorAll('[data-pad].pressed').forEach(button => button.classList.remove('pressed'));
 }
 window.addEventListener('blur', releaseButtons);

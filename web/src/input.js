@@ -1,3 +1,4 @@
+import {DOS_DEFAULT_OUTPUTS,DOS_OUTPUTS} from './dos-input.js';
 // Input profiles describe local people, not network ports. The guest also uses profile 0.
 export const INPUT_STORAGE_KEY = 'retroroom-controls-v1';
 export const ACTIONS = [
@@ -22,7 +23,7 @@ export function defaultProfile(system, player) {
       if (bit >= 4 && bit <= 7) bindings.push({ type: 'axis', index: bit < 6 ? 1 : 0, direction: bit % 2 ? 1 : -1 });
       return bindings;
     }),
-    device: { mode: 'auto' }, deadzone: 0.45
+    device: { mode: 'auto' }, deadzone: 0.45, ...(system === 'dos' ? {dosMode:'keyboard',dosOutputs:[...DOS_DEFAULT_OUTPUTS[player]]} : {})
   };
 }
 export function defaultSettings() {
@@ -56,6 +57,10 @@ export function normalizeSettings(value) {
         }).map(item => kind === 'keyboard' ? item : item.type === 'axis'
           ? { type: 'axis', index: item.index, direction: item.direction } : { type: 'button', index: item.index });
       });
+    }
+    if(system==='dos') {
+      if(['keyboard','mouse','joystick'].includes(source.dosMode))target.dosMode=source.dosMode;
+      if(Array.isArray(source.dosOutputs)&&source.dosOutputs.length===12)target.dosOutputs=source.dosOutputs.map((key,bit)=>key===''||Object.hasOwn(DOS_OUTPUTS,key)?key:DOS_DEFAULT_OUTPUTS[player][bit]);
     }
     if (Number.isFinite(source.deadzone)) target.deadzone = Math.min(0.9, Math.max(0.15, source.deadzone));
     if (source.device?.mode === 'none') target.device = { mode: 'none' };
@@ -131,7 +136,7 @@ export function inputBits(profile, keys, pad, system, touch = []) {
 }
 export function keyLabel(code) {
   return ({ ArrowUp: '↑', ArrowDown: '↓', ArrowLeft: '←', ArrowRight: '→', ShiftLeft: 'Shift links', ShiftRight: 'Shift rechts', Space: 'Spatie',
-    BracketLeft: '[', BracketRight: ']', Semicolon: ';', Quote: "'", Comma: ',', Period: '.', Slash: '/', Backslash: '\\', Minus: '-', Equal: '=', Backquote: '`' })[code] || code?.replace(/^Key|^Digit/, '').replace('Numpad', 'Num ');
+    ControlLeft:'Ctrl links',ControlRight:'Ctrl rechts',AltLeft:'Alt links',AltRight:'Alt rechts',Escape:'Esc',MouseLeft:'Muis links',MouseRight:'Muis rechts',MouseMiddle:'Muis midden',BracketLeft: '[', BracketRight: ']', Semicolon: ';', Quote: "'", Comma: ',', Period: '.', Slash: '/', Backslash: '\\', Minus: '-', Equal: '=', Backquote: '`' })[code] || code?.replace(/^Key|^Digit/, '').replace('Numpad', 'Num ');
 }
 export function padLabel(binding) {
   return binding.type === 'button' ? `Knop ${binding.index + 1}` : `As ${binding.index + 1} ${binding.direction < 0 ? '−' : '+'}`;

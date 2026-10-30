@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { DosCore, DOS_NETPLAY_AVAILABLE, validateDos } from '../web/src/dos.js';
+import {emptyDosInput} from '../web/src/dos-input.js';
+import {makeDosInputFixture} from '../scripts/dos-input-fixture.js';
 import { makeDosDemo } from '../scripts/demo-dos.js';
 import { defaultSettings, normalizeSettings, inputBits } from '../web/src/input.js';
 import { createGameConfig, peerMessage } from '../web/src/protocol.js';
@@ -40,7 +42,7 @@ test('DOS validates local content and game metadata never includes files', () =>
   const config=createGameConfig({bytes:demo,name:'DOS Duo.com',system:'dos',hash:'a'.repeat(64),demo:true,overclock:100});
   assert.equal(config.system,'dos');assert.ok(!('bytes' in config));
   const stream=peerMessage('control',{type:'stream-game',version:STREAM_VERSION,token:'44444444-4444-4444-8444-444444444444',name:'Demo',system:'dos',overclock:100,bytes:demo});
-  assert.ok(!('bytes' in stream));assert.equal(DOS_NETPLAY_AVAILABLE,false);
+  assert.ok(!('bytes' in stream));assert.equal(DOS_NETPLAY_AVAILABLE,true);
 });
 test('DOS input profiles persist independently and support both local people', () => {
   const settings=defaultSettings();settings.dos[0].keyboard[0]=['KeyZ'];
@@ -83,6 +85,12 @@ test('DOS native COM and complete ZIP render and both players move on one virtua
     const files=zip([['DEMO.COM',demo],['DOSBOX.BAT',new TextEncoder().encode('@DEMO.COM\r\n')]]);
     a.load(files,'dos',{name:'complete.zip',overclock:100});for(let i=0;i<60;i++)a.run(0,0);
     assert.deepEqual(positions(frameA),[19250,38450]);
+    // The ZIP start menu must accept a physical keyboard, not only a gamepad.
+    const menu=zip([['INPUT.COM',makeDosInputFixture()],['OTHER.COM',makeDosInputFixture()]]);
+    a.load(menu,'dos',{name:'menu.zip',overclock:100});
+    const step=(keys,n)=>{for(let i=0;i<n;i++)a.run(0,0,true,[{...emptyDosInput(),keys},emptyDosInput()]);};
+    step([],60);step([13],3);step([],60);
+    assert.equal(a.module._rr_peek(0x90008)|a.module._rr_peek(0x90009)<<8,0xffff,'physical Enter launches the selected DOS program');
     // Original tiny COM fixture: program PIT channel 2, enable PC speaker,
     // then loop. No third-party game/audio content is used.
     const tone=new Uint8Array([0xb0,0xb6,0xe6,0x43,0xb0,0x98,0xe6,0x42,0xb0,0x0a,0xe6,0x42,0xe4,0x61,0x0c,0x03,0xe6,0x61,0xeb,0xfe]);

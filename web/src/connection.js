@@ -261,7 +261,7 @@ export class PeerConnection extends EventTarget {
     this.pc.onconnectionstatechange = () => this.emit('state', this.pc.connectionState);
     connection.on('data', data => {
       if (this.closed || ['room', 'rejected'].includes(data?.type)) return;
-      try { this.emit('control', peerMessage('control', data)); }
+      try {const channel=data?.type==='dos-input'||data?.type==='stream-input'&&data.dos?'input':'control';this.emit(channel,peerMessage(channel,data));}
       catch (error) { this.emit('error', error.message); }
     });
     connection.on('close', () => { if (!this.closed) this.emit('state', 'disconnected'); });
@@ -287,7 +287,7 @@ export class PeerConnection extends EventTarget {
     channel.onerror = channel.onclose = () => { if (!this.closed) this.emit('state', 'disconnected'); };
     channel.onmessage = event => {
       try {
-        if (typeof event.data !== 'string' || event.data.length > 512) throw new Error('Invalid input');
+        if (typeof event.data !== 'string' || event.data.length > 4096) throw new Error('Invalid input');
         this.emit('input', peerMessage('input', JSON.parse(event.data)));
       } catch { this.emit('error', 'Ongeldig bericht van de andere speler.'); }
     };
@@ -298,7 +298,7 @@ export class PeerConnection extends EventTarget {
     if (target?.readyState !== 'open') throw new Error('De andere speler is niet verbonden.');
     if (target.bufferedAmount > 4 * 1024 * 1024) throw new Error('De verbinding loopt te ver achter.');
     if (this.connection.relay) this.connection.send({ channel, data: message });
-    else if (channel === 'control') this.connection.send(message);
+    else if (channel === 'control' || message.type === 'dos-input' || message.type === 'stream-input' && message.dos) this.connection.send(message);
     else target.send(JSON.stringify(message));
   }
   close() { this.closed = true; this.connection.close(); }

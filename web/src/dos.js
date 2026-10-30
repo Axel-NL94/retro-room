@@ -1,7 +1,8 @@
+import {validateDosInput} from './dos-input.js';
 // DOSBox Pure browser frontend. GPL-3.0-or-later; see native/DOSBOX.md.
-export const DOS_BUILD = 'dosbox-pure-d9c1356-web-1';
-// Enabled only after independent-instance and rollback tests pass.
-export const DOS_NETPLAY_AVAILABLE = false;
+export const DOS_BUILD = 'dosbox-pure-d9c1356-web-input-2';
+// Experimental lockstep only: independent instances pass; rollback remains disabled.
+export const DOS_NETPLAY_AVAILABLE = true;
 export const MAX_DOS_FILE = 32 * 1024 * 1024;
 let binary;
 function coreBinary() {
@@ -42,8 +43,16 @@ export class DosCore {
       this.fps = m._rr_frame_rate(); this.overclock = overclock; this.name = name;
     } finally { m._free(ptr); }
   }
-  run(p1, p2, replay = false) {
+  input(port, state) {
+    const value=validateDosInput(state),m=this.module,ptr=m._malloc(256);
+    try {
+      const keys=new Uint16Array([...new Set([...value.keys,...(value.mouse.wheel<0?[280]:value.mouse.wheel>0?[281]:[])])]);m.HEAPU8.set(new Uint8Array(keys.buffer),ptr);
+      m._rr_set_input(port,ptr,keys.length,value.modifiers,value.mouse.x,value.mouse.y,value.mouse.wheel,value.mouse.buttons,value.joy.enabled,Math.round(value.joy.x*32767),Math.round(value.joy.y*32767),value.joy.buttons);
+    } finally {m._free(ptr);}
+  }
+  run(p1, p2, replay = false, inputs = null) {
     const m = this.module;
+    if(inputs){this.input(0,inputs[0]);this.input(1,inputs[1]);}
     m._rr_frame(p1, p2);
     if (!m._rr_last_result()) throw this.error('DOSBox Pure kon het frame niet uitvoeren.');
     if (!replay) {
@@ -53,6 +62,7 @@ export class DosCore {
       for (let i=0;i<count;i+=2) this.onAudio(samples[i]/32768, samples[i+1]/32768);
     }
   }
+  stateSections(){const m=this.module;return Array.from({length:m._rr_section_count()},(_,i)=>({name:m.UTF8ToString(m._rr_section_name(i)),start:m._rr_section_start(i),end:m._rr_section_end(i)}));}
   save() {
     const m = this.module; m._rr_save(); const size = m._rr_last_result();
     if (!size || size > 64*1024*1024) throw this.error('DOSBox Pure kon deze speltoestand niet opslaan.');

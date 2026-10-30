@@ -18,6 +18,11 @@ if config.read_text()!=s:config.write_text(s)
 patch('src/gui/midi.cpp','midi.handler != &Midi_tsf && midi.handler != &Midi_mt32 && midi.handler != &Midi_sc55',
       '/* RetroRoom 2026-10-30: optional ROM-based MIDI backends omitted. */ midi.handler != &Midi_tsf')
 patch('dosbox_pure_libretro.cpp',"if (active_mchar == 's')\n\t{", "if (false) // RetroRoom 2026-10-30: no optional 3dfx PCI section.\n\t{")
+# Read-only serialization section diagnostics for deterministic-netplay research.
+patch('src/dbp_serialize.cpp','void (*func)(DBPArchive& ar); //const char* func_name;', 'void (*func)(DBPArchive& ar); const char* func_name; // RetroRoom 2026-10-30: named state sections.')
+patch('src/dbp_serialize.cpp','func = FUNC; //func_name = #FUNC','func = FUNC; func_name = #FUNC')
+patch('src/dbp_serialize.cpp','\t\t//size_t old_off = ar.GetOffset();','\t\tsize_t old_off = ar.GetOffset();')
+patch('src/dbp_serialize.cpp','\t\tfunc(ar);','\t\tfunc(ar);\n#ifdef RETROROOM_WEB\n\t\textern void rr_snapshot_section(const char*,size_t,size_t);\n\t\tif(ar.mode==DBPArchive::MODE_SAVE)rr_snapshot_section(func_name,old_off,ar.GetOffset());\n#endif')
 thread_header=src/'include/rr-dos-threads.h';thread_bytes=(root/'native/dos-threads.h').read_bytes()
 if not thread_header.exists() or thread_header.read_bytes()!=thread_bytes:thread_header.write_bytes(thread_bytes)
 obj=src/'web-obj';obj.mkdir(exist_ok=True)
@@ -40,8 +45,8 @@ with concurrent.futures.ThreadPoolExecutor(max_workers=a.jobs) as pool:
   if i%10==0:print(f'Compiled {i}/{len(files)}',flush=True)
 out=root/'web/assets/dos-core.mjs'
 exports=['_malloc','_free','_rr_init','_rr_load','_rr_frame','_rr_save','_rr_state_ptr','_rr_restore','_rr_video_ptr','_rr_video_width','_rr_video_height','_rr_audio_ptr','_rr_audio_count','_rr_frame_rate','_rr_sample_rate','_rr_error_ptr','_rr_destroy']
-exports.append('_rr_last_result')
-cmd=[str(sdk/'upstream/emscripten/em++'),*map(str,objects),'-O2','-fexceptions','--no-entry','-Wl,--wrap=time','-Wl,--wrap=clock_gettime','-sASYNCIFY=1','-sASYNCIFY_STACK_SIZE=2097152','-sMODULARIZE=1','-sEXPORT_ES6=1','-sEXPORT_NAME=createDOS','-sENVIRONMENT=web,node','-sALLOW_MEMORY_GROWTH=1','-sINITIAL_MEMORY=134217728','-sMAXIMUM_MEMORY=536870912','-sSTACK_SIZE=4194304','-sEXPORTED_FUNCTIONS='+json.dumps(exports),'-sEXPORTED_RUNTIME_METHODS='+json.dumps(['FS','UTF8ToString','HEAPU8']),'-o',str(out)]
+exports.extend(['_rr_last_result','_rr_set_input','_rr_key_down','_rr_joystick','_rr_peek','_rr_section_count','_rr_section_name','_rr_section_start','_rr_section_end'])
+cmd=[str(sdk/'upstream/emscripten/em++'),*map(str,objects),'-O2','-fexceptions','--no-entry','-Wl,--wrap=time','-Wl,--wrap=clock_gettime','-Wl,--wrap=gettimeofday','-sASYNCIFY=1','-sASYNCIFY_STACK_SIZE=2097152','-sMODULARIZE=1','-sEXPORT_ES6=1','-sEXPORT_NAME=createDOS','-sENVIRONMENT=web,node','-sALLOW_MEMORY_GROWTH=1','-sINITIAL_MEMORY=134217728','-sMAXIMUM_MEMORY=536870912','-sSTACK_SIZE=4194304','-sEXPORTED_FUNCTIONS='+json.dumps(exports),'-sEXPORTED_RUNTIME_METHODS='+json.dumps(['FS','UTF8ToString','HEAPU8']),'-o',str(out)]
 cmd.insert(1,'--profiling-funcs')
 subprocess.check_call(cmd,cwd=src,env=env)
 print('Built '+str(out),flush=True)
