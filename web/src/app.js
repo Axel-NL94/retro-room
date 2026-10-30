@@ -3,6 +3,7 @@ import { RollbackSession, NETPLAY_VERSION } from './rollback.js';
 import { InviteConnection, PeerConnection, parseInvitation } from './connection.js';
 import { AudioSink } from './audio.js';
 import { MesenCore, MESEN_BUILD, cartridgeSystem, validateOverclock } from './mesen.js';
+import { DosCore, DOS_BUILD, DOS_NETPLAY_AVAILABLE, MAX_DOS_FILE } from './dos.js';
 import { encodeSavestate, decodeSavestate, savestateFilename, MAX_SAVESTATE_FILE } from './savestate.js';
 import { createGameConfig, validateGameConfig, verifyLocalRom } from './protocol.js';
 import { PlaybackClock } from './playback-clock.js';
@@ -26,6 +27,9 @@ let stateBusy = false;
 let playStyle = 'netplay', gameStream = null, streamInfo = null, streamReady = false;
 let streamInput = null, streamSequence = 0;
 const streamVideo = $('stream-video');
+const coreClass = system => system === 'dos' ? DosCore : MesenCore;
+const coreBuild = system => system === 'dos' ? DOS_BUILD : MESEN_BUILD;
+const consoleBadge = system => system === 'dos' ? 'DOS · DOSBOX PURE · BETA' : system.toUpperCase() + ' · MESEN · ALPHA';
 streamVideo.volume = 0.65;
 function isStreamGuest() { return playStyle === 'stream' && !isHost; }
 function focusGame() { (isStreamGuest() ? streamVideo : $('game')).focus(); }
@@ -77,9 +81,10 @@ function showRoom() {
   $('savestate-status').textContent = '';
   $('home').hidden = true; $('room-view').hidden = false;
   $('game-title').textContent = game.name;
-  $('console-badge').textContent = (game.system === 'snes' ? 'SNES' : 'NES') + ' · MESEN · ALPHA';
+  $('console-badge').textContent = consoleBadge(game.system);
+  $('dos-controls-guide').hidden = game.system !== 'dos';
   $('game').setAttribute('aria-label', `${game.system.toUpperCase()}-gamescherm`);
-  $('snes-touch').hidden = game.system !== 'snes';
+  $('snes-touch').hidden = game.system === 'nes';
   controls.guide();
   $('player-one').textContent = isHost ? nickname || 'Jij' : $('player-one').textContent;
   $('solo-controls').hidden = !!roomId;
@@ -114,25 +119,25 @@ function draw(frame, width = 256, height = 240) {
 }
 async function loadGame(bytes, name, demo = false, system = 'nes', overclock = 100, isCurrent = () => true) {
   validateOverclock(overclock);
-  if (!['nes', 'snes'].includes(system)) throw new Error('Dit systeem wordt nog niet ondersteund.');
-  cartridgeSystem(bytes, system === 'snes' ? 'game.sfc' : 'game.nes');
-  const next = await MesenCore.create({ onFrame: draw, onAudio: (l, r) => audio.push(l, r) });
+  if (!['nes', 'snes', 'dos'].includes(system)) throw new Error('Dit systeem wordt nog niet ondersteund.');
+  cartridgeSystem(bytes, system === 'dos' ? name : system === 'snes' ? 'game.sfc' : 'game.nes');
+  const next = await coreClass(system).create({ onFrame: draw, onAudio: (l, r) => audio.push(l, r) });
   const hash = await romHash(bytes);
-  if (!isCurrent()) return false;
-  next.load(bytes, system, { overclock });
-  stop(); core = next;
+  if (!isCurrent()) { next.destroy?.(); return false; }
+  next.load(bytes, system, { overclock, name });
+  stop(); core?.destroy?.(); core = next;
   game = { bytes, name: String(name).slice(0, 80), demo, system, overclock, hash };
   audio.clear();
   for (let i = 0; i < 6; i++) core.run(0, 0);
-  audio.clear(); core.load(bytes, system, { overclock });
+  audio.clear(); core.load(bytes, system, { overclock, name });
   overlay('Klaar voor de start.', 'Start solo of nodig een vriend uit.');
   $('rollback-value').textContent = '0'; $('fps-value').textContent = '—';
   return true;
 }
-async function demoData() {
-  const response = await fetch(new URL('../assets/room-rally.nes', import.meta.url));
+async function demoData(system = 'nes') {
+  const response = await fetch(new URL(system === 'dos' ? '../assets/dos-duo.com' : '../assets/room-rally.nes', import.meta.url));
   if (!response.ok) throw new Error('De demo kon niet worden geladen.');
-  return { bytes: new Uint8Array(await response.arrayBuffer()), name: 'Room Rally', demo: true, system: 'nes' };
+  return { bytes: new Uint8Array(await response.arrayBuffer()), name: system === 'dos' ? 'DOS Duo.com' : 'Room Rally', demo: true, system };
 }
 async function enableAudio() {
   try { await audio.enable(); updateAudio(); }
@@ -145,6 +150,7 @@ function updateAudio() {
   $('audio-button').textContent = enabled ? '♫' : '♪';
 }
 function updateActions() {
+  $('overclock-description').textContent = game?.system === 'dos' ? 'DOS: 100% is 3000 CPU-cycles; 500% is 15000. Een hoger CPU-budget kan een DOS-game versnellen. Compatibiliteit verschilt per spel.' : 'Meer CPU-tijd per frame kan slowdown in ROM-hacks verminderen. De game blijft op normale snelheid. Hogere waarden vragen meer van je apparaat en kunnen gamebugs veroorzaken.';
   playbackClock.setRunning((!!core || isStreamGuest() && streamReady) && ['solo', 'online'].includes(mode));
   const connected = peer?.opened && peer?.control?.readyState === 'open';
   $('guest-rom-card').hidden = isHost || !expectedGame;
@@ -160,7 +166,7 @@ function updateActions() {
   $('pause-button').disabled = stateBusy || !(core || isStreamGuest() && streamReady) || !['solo', 'online', 'paused'].includes(mode);
   const canSave = canUseSavestates();
   $('export-state-button').disabled = $('import-state-file').disabled = !canSave || stateBusy;
-  $('savestate-note').textContent = roomId || peer ? 'Savestates zijn alleen beschikbaar bij solo spelen. Online starten beide spelers gelijk.' : 'Download je speltoestand en laad hem later met dezelfde ROM, emulatorversie en overclock. Bestanden blijven lokaal.';
+  $('savestate-note').textContent = game?.system === 'dos' ? 'DOS-savestates en export van in-game saves zijn nog niet vrijgegeven. Je voortgang gaat verloren wanneer je de game sluit.' : roomId || peer ? 'Savestates zijn alleen beschikbaar bij solo spelen. Online starten beide spelers gelijk.' : 'Download je speltoestand en laad hem later met dezelfde ROM, emulatorversie en overclock. Bestanden blijven lokaal.';
   $('start-button').disabled = isHost ? !remoteReady || !connected || mode === 'online' : !game || !connected || localReady || isStreamGuest() && !streamReady;
   $('start-button').textContent = isHost ? (mode === 'online' ? 'Samen aan het spelen' : mode === 'paused' && (session || playStyle === 'stream') ? 'Verder spelen →' : 'Start samen →') : (mode === 'online' ? 'Samen aan het spelen' : localReady ? 'Wachten op de host…' : 'Ik ben klaar →');
   $('restart-button').hidden = !isHost || !connected || !remoteReady || !(mode === 'online' || mode === 'paused');
@@ -207,6 +213,7 @@ function resetPeer() {
 }
 function leaveRoom() {
   stop(); resetPeer(); invites.leave(); connectionStatus(false); playStyle = 'netplay';
+  core?.destroy?.();
   $('stream-guest-card').hidden = true;
   roomId = null; game = null; core = null; pickedGame = null; isHost = true;
   pressed.clear(); touched.clear();
@@ -261,6 +268,7 @@ function setupPeer(connection, host) {
 function requireLocalRom(message) {
   if (isHost) throw new Error('Alleen de host kiest de game-instellingen.');
   const config = validateGameConfig(message);
+  if (config.system === 'dos' && !DOS_NETPLAY_AVAILABLE) throw new Error('Samen emuleren met DOS is nog niet vrijgegeven. Vraag de host om een DOS-streamkamer te maken.');
   if (expectedGame) {
     if (JSON.stringify(config) !== JSON.stringify(expectedGame)) throw new Error('De game-instellingen zijn veranderd. Verbind opnieuw.');
     return;
@@ -268,7 +276,7 @@ function requireLocalRom(message) {
   expectedGame = config; game = null; core = null; localReady = false;
   $('guest-rom-file').value = '';
   $('game-title').textContent = config.name;
-  $('console-badge').textContent = config.system.toUpperCase() + ' · MESEN · ALPHA';
+  $('console-badge').textContent = consoleBadge(config.system);
   $('guest-rom-note').textContent = `Kies jouw ${config.system.toUpperCase()}-ROM voor ${config.name}. De versie, regio en eventuele hack moeten overeenkomen.`;
   $('guest-rom-status').textContent = 'Er wordt geen ROM van de host ontvangen. Jouw bestand blijft op dit apparaat.';
   $('room-message').textContent = 'Kies je eigen ROM. Daarna controleren we of jullie hetzelfde bestand gebruiken.';
@@ -303,6 +311,9 @@ async function selectGuestRom(bytes, demo = false) {
 function makeGameStream(host, token) {
   const media = new GameStream({ endpoint: invites.endpoint, connection: peer.connection, host, token });
   media.addEventListener('error', ({ detail }) => { if (gameStream === media) fatal(detail); });
+  media.addEventListener('status', ({ detail }) => {
+    if (gameStream === media && (!streamReady || detail.stage === 'recovering' || detail.stage === 'playing')) $('stream-status').textContent = detail.message;
+  });
   media.addEventListener('stream', ({ detail }) => {
     if (gameStream !== media || !isStreamGuest()) return;
     streamVideo.srcObject = detail;
@@ -315,7 +326,12 @@ function makeGameStream(host, token) {
       overlay('Je plek staat klaar.', 'Je hebt geen ROM nodig. Kies ‘Ik ben klaar’; de host start de game.');
       updateActions();
     };
-    streamVideo.onloadeddata = ready; detail.addEventListener('addtrack', ready);
+    const events = ['loadeddata', 'loadedmetadata', 'canplay', 'playing'];
+    events.forEach(event => streamVideo.addEventListener(event, ready)); detail.addEventListener('addtrack', ready);
+    media.playbackCleanup = () => {
+      events.forEach(event => streamVideo.removeEventListener(event, ready));
+      detail.removeEventListener('addtrack', ready); streamVideo.onerror = null;
+    };
     streamVideo.onerror = () => { if (gameStream === media) fatal('De browser kan deze videostream niet afspelen.'); };
     streamVideo.play().then(ready).catch(() => {
       if (gameStream === media) $('stream-status').textContent = 'Klik op het gamescherm om de stream te starten.';
@@ -459,7 +475,7 @@ const playbackClock = new PlaybackClock(loop);
 
 function invitationUrl() {
   const url = new URL(location.href);
-  url.hash = new URLSearchParams({ room: roomId, key: invites.secret, mode: playStyle }).toString();
+  url.hash = new URLSearchParams({ room: roomId, key: invites.secret, mode: playStyle, ...(game?.system === 'dos' ? { direct: '1' } : {}) }).toString();
   return url.href;
 }
 function connectionStatus(online) {
@@ -524,13 +540,18 @@ function setLaunchBusy(busy) {
   launchBusy = busy;
   for (const id of ['create-submit', 'rom-file', 'choose-demo', 'back-console-button', 'host-overclock']) $(id).disabled = busy;
   $('play-mode-settings-button').disabled = busy;
-  document.querySelectorAll('input[name="playMode"]').forEach(input => input.disabled = busy);
+  document.querySelectorAll('input[name="playMode"]').forEach(input => input.disabled = busy || input.value === 'netplay' && selectedSystem === 'dos' && !DOS_NETPLAY_AVAILABLE && launchMode !== 'solo');
 }
 function selectedPlayMode() { return launchMode === 'solo' ? 'netplay' : validatePlayMode(document.querySelector('input[name="playMode"]:checked').value); }
 function updatePlayModeChoice() {
+  const unavailable = selectedSystem === 'dos' && !DOS_NETPLAY_AVAILABLE && launchMode !== 'solo';
+  const netplayChoice = document.querySelector('input[name="playMode"][value="netplay"]');
+  netplayChoice.disabled = unavailable;
+  if (unavailable) document.querySelector('input[name="playMode"][value="stream"]').checked = true;
   const streaming = selectedPlayMode() === 'stream';
   $('play-mode-summary').textContent = streaming ? 'Beeld en geluid streamen · alleen de host heeft de ROM nodig' : 'Samen emuleren · ieder zijn eigen ROM';
   $('launch-privacy-note').textContent = launchMode === 'solo' ? 'Je speelt lokaal. Je ROM en savestates worden niet geüpload.' : streaming ? 'Alleen jij laadt de ROM. Je vriend ontvangt gamebeeld en gamegeluid en stuurt knoppen terug. Geen camera, microfoon of ROM-overdracht.' : 'Alleen mensen met je uitnodigingslink kunnen meedoen. Beide spelers kiezen hun eigen ROM.';
+  $('dos-limit-note').hidden = selectedSystem !== 'dos';
 }
 $('play-mode-settings-button').onclick = () => {
   const visible = $('play-mode-settings').hidden;
@@ -558,17 +579,21 @@ function openCreate(current = false, type = 'room') {
   setLaunchBusy(false); $('create-dialog').showModal();
 }
 function chooseConsole(system) {
-  if (!['nes', 'snes'].includes(system) || launchBusy) return;
+  if (!['nes', 'snes', 'dos'].includes(system) || launchBusy) return;
   launchGeneration++; selectedSystem = system; pickedGame = null; $('rom-file').value = '';
   useCurrentGame = currentGameRequested && game?.system === system;
   $('console-picker').hidden = true; $('launch-fields').hidden = false;
   $('launch-heading').textContent = launchMode === 'solo' ? 'Jouw game. Jouw tempo.' : 'Maak het gezellig.';
-  $('launch-intro').textContent = `Je kiest ${system.toUpperCase()}. Laad je eigen ROM en stel de emulator in.`;
-  $('launch-console').textContent = system === 'snes' ? 'SNES · BETA' : 'NES';
-  $('rom-file').accept = system === 'nes' ? '.nes' : '.sfc,.smc';
-  $('file-name').textContent = `Kies je ${system.toUpperCase()}-ROM`;
-  $('rom-file-hint').textContent = (system === 'nes' ? '.nes' : '.sfc / .smc') + ' · maximaal 8 MB · blijft op jouw apparaat';
-  $('choose-demo').hidden = system !== 'nes'; $('game-picker').hidden = useCurrentGame;
+  $('launch-intro').textContent = `Je kiest ${system.toUpperCase()}. Laad je eigen ${system === 'dos' ? 'gamebestanden' : 'ROM'} en stel de emulator in.`;
+  $('host-overclock-note').textContent = system === 'dos' ? 'DOS gebruikt 3000 CPU-cycles bij 100%, tot 15000 bij 500%. De juiste snelheid verschilt per game; hoger kan het spel versnellen.' : '100% is standaard. Meer CPU-tijd kan slowdown verminderen en vraagt meer van je apparaat. Niet iedere game werkt goed met overclocking.';
+  $('launch-console').textContent = system === 'dos' ? 'DOS · BETA' : system === 'snes' ? 'SNES · BETA' : 'NES';
+  $('rom-file').accept = system === 'dos' ? '.zip,.dosz,.exe,.com,.bat' : system === 'nes' ? '.nes' : '.sfc,.smc';
+  $('file-name').textContent = system === 'dos' ? 'Kies je DOS-game' : `Kies je ${system.toUpperCase()}-ROM`;
+  $('rom-file-hint').textContent = system === 'dos' ? 'Complete game als ZIP, of .exe / .com / .bat · maximaal 32 MB · blijft lokaal' : (system === 'nes' ? '.nes' : '.sfc / .smc') + ' · maximaal 8 MB · blijft op jouw apparaat';
+  updatePlayModeChoice();
+  $('choose-demo').hidden = system === 'snes';
+  $('choose-demo').textContent = system === 'dos' ? 'Of probeer DOS Duo, onze eigen DOS-demo ↗' : 'Of gebruik Room Rally, onze eigen demo ↗';
+  $('game-picker').hidden = useCurrentGame;
   $('current-game-note').hidden = !useCurrentGame; $('create-error').textContent = '';
 }
 $('solo-home-button').onclick = () => openCreate(false, 'solo');
@@ -578,6 +603,7 @@ $('back-console-button').onclick = () => {
   launchGeneration++; selectedSystem = null; pickedGame = null; useCurrentGame = false;
   $('console-picker').hidden = false; $('launch-fields').hidden = true;
   $('launch-heading').textContent = 'Kies je console.'; $('create-error').textContent = '';
+  updatePlayModeChoice();
 };
 $('create-dialog').addEventListener('close', () => {
   launchGeneration++;
@@ -612,19 +638,19 @@ $('reconnect-button').onclick = () => invites.connect().then(() => toast('Uitnod
 $('rom-file').onchange = async () => {
   try {
     const file = $('rom-file').files[0]; if (!file) return;
-    if (file.size > 8 * 1024 * 1024) throw new Error('De ROM mag maximaal 8 MB zijn.');
+    if (file.size > (selectedSystem === 'dos' ? MAX_DOS_FILE : 8 * 1024 * 1024)) throw new Error('Dit gamebestand is te groot. DOS: maximaal 32 MB; NES/SNES: maximaal 8 MB.');
     const generation = launchGeneration;
     const bytes = new Uint8Array(await file.arrayBuffer()); const system = cartridgeSystem(bytes, file.name);
     if (generation !== launchGeneration) return;
     if (system !== selectedSystem) throw new Error(`Dit is een ${system.toUpperCase()}-ROM. Kies een ${selectedSystem.toUpperCase()}-ROM of ga terug naar de consolekeuze.`);
-    pickedGame = { bytes, name: file.name.replace(/\.(nes|sfc|smc)$/i, ''), demo: false, system };
+    pickedGame = { bytes, name: file.name.replace(/\.(nes|sfc|smc)$/i, '').slice(0,80), demo: false, system };
     $('file-name').textContent = file.name; $('create-error').textContent = '';
   } catch (error) { pickedGame = null; report(error); }
 };
 $('guest-rom-file').onchange = async () => {
   try {
     const file = $('guest-rom-file').files[0]; if (!file) return;
-    if (file.size > 8 * 1024 * 1024) throw new Error('De ROM mag maximaal 8 MB zijn.');
+    if (file.size > (expectedGame?.system === 'dos' ? MAX_DOS_FILE : 8 * 1024 * 1024)) throw new Error('Dit gamebestand is te groot.');
     await selectGuestRom(new Uint8Array(await file.arrayBuffer()));
   } catch (error) { $('guest-rom-status').textContent = error.message; report(error); }
 };
@@ -633,7 +659,7 @@ $('guest-demo-button').onclick = async () => {
   catch (error) { $('guest-rom-status').textContent = error.message; report(error); }
 };
 $('choose-demo').onclick = async () => {
-  try { const generation = launchGeneration; const demo = await demoData(); if (generation !== launchGeneration || selectedSystem !== 'nes') return; pickedGame = demo; $('file-name').textContent = 'Room Rally · originele NES-demo'; $('rom-file').value = ''; $('create-error').textContent = ''; }
+  try { const generation = launchGeneration, system = selectedSystem; const demo = await demoData(system); if (generation !== launchGeneration || selectedSystem !== system) return; pickedGame = demo; $('file-name').textContent = system === 'dos' ? 'DOS Duo · originele DOS-demo' : 'Room Rally · originele NES-demo'; $('rom-file').value = ''; $('create-error').textContent = ''; }
   catch (error) { report(error); }
 };
 $('create-form').onsubmit = async event => {
@@ -642,12 +668,13 @@ $('create-form').onsubmit = async event => {
   const generation = launchGeneration, type = launchMode;
   const isCurrent = () => generation === launchGeneration && $('create-dialog').open;
   try {
-    if (!selectedSystem) throw new Error('Kies eerst NES of SNES.');
+    if (!selectedSystem) throw new Error('Kies eerst NES, SNES of DOS.');
     if (!useCurrentGame && !pickedGame) throw new Error(`Kies eerst een ${selectedSystem.toUpperCase()}-ROM${selectedSystem === 'nes' ? ' of gebruik onze demo' : ''}.`);
     const values = new FormData(event.target), selected = useCurrentGame ? game : pickedGame;
     if (selected.system !== selectedSystem) throw new Error('De ROM hoort niet bij de gekozen console.');
     setLaunchBusy(true);
     const chosenPlayMode = type === 'solo' ? 'netplay' : validatePlayMode(values.get('playMode'));
+    if (type === 'room' && selectedSystem === 'dos' && chosenPlayMode === 'netplay' && !DOS_NETPLAY_AVAILABLE) throw new Error('DOS samen emuleren is nog niet beschikbaar. Kies beeld en geluid streamen.');
     if (chosenPlayMode === 'stream' && (typeof $('game').captureStream !== 'function' || typeof MediaStream === 'undefined' || typeof RTCPeerConnection === 'undefined')) {
       throw new Error('Deze browser ondersteunt het streamen van gamebeeld niet. Kies samen emuleren of gebruik een browser met WebRTC en canvas-capture.');
     }
@@ -659,7 +686,7 @@ $('create-form').onsubmit = async event => {
     if (type === 'solo') {
       isHost = true; roomId = null; launchCommitted = true; setLaunchBusy(false); $('create-dialog').close();
       showRoom(); await startSolo();
-    } else await invites.create({ name: nickname, title: values.get('title'), game: game.name, playMode: chosenPlayMode });
+    } else await invites.create({ name: nickname, title: values.get('title'), game: game.name, playMode: chosenPlayMode, directOnly: game.system === 'dos' });
   } catch (error) { if (isCurrent()) { setLaunchBusy(false); report(error); } }
 };
 $('join-form').onsubmit = async event => {
@@ -692,13 +719,13 @@ async function startSolo() {
   $('game').focus(); $('play-mode').textContent = 'Lokaal · solo'; $('solo-controls').hidden = false; updateActions();
 }
 $('solo-button').onclick = () => startSolo().catch(fatal);
-function canUseSavestates() { return !!core && !!game && isHost && !roomId && !peer && !invites.connection; }
+function canUseSavestates() { return !!core && !!game && game.system !== 'dos' && isHost && !roomId && !peer && !invites.connection; }
 $('export-state-button').onclick = async () => {
   if (!canUseSavestates() || stateBusy) return;
   stateBusy = true; if (mode === 'solo') pause(); updateActions();
   const currentGame = game;
   try {
-    const bytes = await encodeSavestate(core.save(), currentGame, MESEN_BUILD);
+    const bytes = await encodeSavestate(core.save(), currentGame, coreBuild(currentGame.system));
     const url = URL.createObjectURL(new Blob([bytes], { type: 'application/octet-stream' }));
     const link = document.createElement('a'); link.href = url; link.download = savestateFilename(currentGame.name);
     document.body.append(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 60000);
@@ -715,11 +742,11 @@ $('import-state-file').onchange = async () => {
   $('savestate-status').textContent = 'Savestate controleren…';
   try {
     if (file.size > MAX_SAVESTATE_FILE) throw new Error('Dit savestatebestand is te groot.');
-    const { state } = await decodeSavestate(new Uint8Array(await file.arrayBuffer()), currentGame, MESEN_BUILD);
+    const { state } = await decodeSavestate(new Uint8Array(await file.arrayBuffer()), currentGame, coreBuild(currentGame.system));
     if (!isCurrent()) return;
     // Restore into a separate instance. Invalid snapshots cannot damage the active game.
     let preview;
-    const candidate = await MesenCore.create({ onFrame: (frame, width, height) => { preview = { frame: frame.slice(), width, height }; } });
+    const candidate = await coreClass(currentGame.system).create({ onFrame: (frame, width, height) => { preview = { frame: frame.slice(), width, height }; } });
     if (!isCurrent()) return;
     candidate.load(currentGame.bytes, currentGame.system, currentGame); candidate.restore(state); candidate.run(0, 0);
     if (!isCurrent()) return;
@@ -738,7 +765,7 @@ $('room-overclock').onchange = () => {
   if (!game || !isHost || peer || invites.connection || stateBusy) { updateActions(); return; }
   try {
     const overclock = validateOverclock(Number($('room-overclock').value));
-    stop(); core.load(game.bytes, game.system, { overclock });
+    stop(); core.load(game.bytes, game.system, { ...game, overclock });
     game.overclock = overclock; localReady = remoteReady = false;
     overlay('CPU-overclock ingesteld.', `${overclock}% CPU-ruimte. Start de game opnieuw om te spelen.`);
     $('room-status').textContent = 'Klaar om te spelen';

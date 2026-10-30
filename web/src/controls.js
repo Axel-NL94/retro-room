@@ -16,14 +16,14 @@ export function createControls({ pressed, touched, release, currentSystem, local
   function guide() {
     const system = currentSystem();
     $('keyboard-guide').textContent = describeKeys(system, 0, [4, 5, 6, 7, 0, 1, 3, 2]);
-    $('snes-controls-guide').textContent = describeKeys('snes', 0, [8, 9, 10, 11]);
-    $('snes-controls-guide').hidden = system !== 'snes';
+    $('snes-controls-guide').textContent = describeKeys(system === 'dos' ? 'dos' : 'snes', 0, [8, 9, 10, 11]);
+    $('snes-controls-guide').hidden = system === 'nes';
     $('solo-controls').textContent = 'Tweede speler op dit apparaat — ' + describeKeys(system, 1, actionsFor(system).map(action => action.bit));
     $('game-hint').textContent = describeKeys(system, 0, [0, 1, 3]) + ' · Besturing instellen via ⚙';
   }
   function persist() {
     const saved = saveSettings(storage, settings);
-    $('controls-storage').textContent = saved ? 'Automatisch opgeslagen in deze browser, apart voor NES en SNES.' : 'Opslaan is geblokkeerd in deze browser. Je instellingen werken tot je deze pagina sluit.';
+    $('controls-storage').textContent = saved ? 'Automatisch opgeslagen in deze browser, apart voor NES, SNES en DOS.' : 'Opslaan is geblokkeerd in deze browser. Je instellingen werken tot je deze pagina sluit.';
     guide(); onChange?.();
   }
   function finishCapture(message = 'Kies een knop om opnieuw in te stellen.') {

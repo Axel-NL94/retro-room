@@ -12,7 +12,7 @@ export function streamToken(value) {
 export function streamMessage(channel, data) {
   const token = streamToken(data.token);
   if (channel === 'control' && data.type === 'stream-game') {
-    if (data.version !== STREAM_VERSION || !['nes', 'snes'].includes(data.system) ||
+    if (data.version !== STREAM_VERSION || !['nes', 'snes', 'dos'].includes(data.system) ||
         typeof data.name !== 'string' || !data.name.length || data.name.length > 80 ||
         ![100,200,300,400,500].includes(data.overclock)) throw new Error('Ongeldige streamgegevens.');
     return { type: data.type, version: STREAM_VERSION, token, name: data.name, system: data.system, overclock: data.overclock };

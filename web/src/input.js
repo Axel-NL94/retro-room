@@ -8,7 +8,7 @@ export const ACTIONS = [
   { bit: 10, name: 'L' }, { bit: 11, name: 'R' },
   { bit: 2, name: 'Select' }, { bit: 3, name: 'Start' }
 ];
-export function actionsFor(system) { return ACTIONS.filter(a => system === 'snes' || a.bit < 8); }
+export function actionsFor(system) { return ACTIONS.filter(a => system !== 'nes' || a.bit < 8); }
 const clone = value => JSON.parse(JSON.stringify(value));
 export function defaultProfile(system, player) {
   const keys = player === 0
@@ -26,7 +26,7 @@ export function defaultProfile(system, player) {
   };
 }
 export function defaultSettings() {
-  return { version: 1, nes: [defaultProfile('nes', 0), defaultProfile('nes', 1)], snes: [defaultProfile('snes', 0), defaultProfile('snes', 1)] };
+  return { version: 1, nes: [defaultProfile('nes', 0), defaultProfile('nes', 1)], snes: [defaultProfile('snes', 0), defaultProfile('snes', 1)], dos: [defaultProfile('dos', 0), defaultProfile('dos', 1)] };
 }
 export function validKey(code) {
   return typeof code === 'string' && /^(Key[A-Z]|Digit[0-9]|Numpad(?:[0-9]|Add|Subtract|Multiply|Divide|Decimal|Enter)|Arrow(?:Up|Down|Left|Right)|Shift(?:Left|Right)|Enter|Space|Tab|Backspace|CapsLock|BracketLeft|BracketRight|Semicolon|Quote|Comma|Period|Slash|Backslash|Minus|Equal|Backquote|Home|End|PageUp|PageDown|Insert|Delete)$/.test(code);
@@ -40,7 +40,7 @@ export function bindingId(binding) { return `${binding.type}:${binding.index}:${
 export function normalizeSettings(value) {
   const defaults = defaultSettings();
   if (!value || value.version !== 1) return defaults;
-  for (const system of ['nes', 'snes']) for (let player = 0; player < 2; player++) {
+  for (const system of ['nes', 'snes', 'dos']) for (let player = 0; player < 2; player++) {
     const source = value[system]?.[player], target = defaults[system][player];
     if (!source || typeof source !== 'object') continue;
     for (const kind of ['keyboard', 'gamepad']) {
@@ -127,7 +127,7 @@ export function inputBits(profile, keys, pad, system, touch = []) {
   for (const bit of touch) if (Number.isInteger(bit) && bit >= 0 && bit < 12) bits |= 1 << bit;
   if ((bits & 48) === 48) bits &= ~48;
   if ((bits & 192) === 192) bits &= ~192;
-  return bits & (system === 'snes' ? 4095 : 255);
+  return bits & (system === 'nes' ? 255 : 4095);
 }
 export function keyLabel(code) {
   return ({ ArrowUp: '↑', ArrowDown: '↓', ArrowLeft: '←', ArrowRight: '→', ShiftLeft: 'Shift links', ShiftRight: 'Shift rechts', Space: 'Spatie',
