@@ -15,7 +15,7 @@
   <header class="topbar wrap">
     <a href="#" class="brand" aria-label="RetroRoom startpagina"><span class="brand-icon" aria-hidden="true">▦</span>Retro<span>Room</span><span class="alpha">ALPHA</span></a>
     <nav aria-label="Hoofdnavigatie"><a href="#invite" class="active">Samen spelen</a><a href="#how">Hoe werkt het?</a></nav>
-    <div class="topbar-actions"><button class="button quiet small" data-controls aria-label="Besturing instellen"><span aria-hidden="true">⚙</span> Besturing</button><button class="button quiet small" id="connection-info-button" aria-label="Verbindingsinformatie"><span aria-hidden="true">↔</span> Verbinding</button></div>
+    <div class="topbar-actions"><button class="button quiet small" id="game-patcher-button">Game patcher <span aria-hidden="true">↗</span></button></div>
   </header>
 
   <main class="wrap" id="home">
@@ -100,7 +100,28 @@
     <section class="controls-guide"><div><span class="eyebrow">JOUW BESTURING</span><p id="keyboard-guide"></p></div><button class="button outline small" data-controls>Besturing instellen ⚙</button><p id="snes-controls-guide" hidden></p><p id="dos-controls-guide" hidden>DOS: klik in het beeld voor alle toetsen, functietoetsen en het numerieke toetsenblok. Muis vangen geeft onbeperkte relatieve beweging. Open het DOS-menu voor toetsverdeling, beurten en fullscreen-Escape. Stel controller-toetsen, muis of DOS-joystick in bij Besturing. Beide spelers delen de virtuele pc.</p><span class="gamepad-hint" id="gamepad-hint"></span><p class="solo-controls" id="solo-controls"></p></section>
   </main>
 
-  <footer class="wrap footer"><a href="#" class="brand">Retro<span>Room</span><span class="footer-tagline">Oude games. Samen opnieuw.</span></a><span>Gemaakt voor nog één potje. <span class="footer-dot">✳</span></span><div class="footer-links"><a class="text-button" href="./licenses.html">Licenties en broncode</a><button class="text-button" id="about-button">Over deze alpha ↗</button></div></footer>
+  <footer class="wrap footer"><a href="#" class="brand">Retro<span>Room</span><span class="footer-tagline">Oude games. Samen opnieuw.</span></a><span>Gemaakt voor nog één potje. <span class="footer-dot">✳</span></span><div class="footer-links"><button class="text-button" data-controls aria-label="Besturing instellen">Besturing</button><button class="text-button" id="connection-info-button" aria-label="Verbindingsinformatie">Verbinding</button><a class="text-button" href="./licenses.html">Licenties en broncode</a><button class="text-button" id="about-button">Over deze alpha ↗</button></div></footer>
+
+  <dialog id="patcher-dialog" aria-labelledby="patcher-heading">
+    <div class="dialog-heading"><div><p class="eyebrow">JOUW GAME. JOUW VARIANT.</p><h2 id="patcher-heading">Game patcher.</h2></div><button type="button" class="icon-button" data-close aria-label="Game patcher sluiten">×</button></div>
+    <p class="dialog-intro">Maak een gepatchte kopie met je eigen game en patchbestand. Alles gebeurt lokaal in je browser; je originele bestand blijft intact.</p>
+    <div class="console-picker" id="patch-console-picker"></div>
+    <div id="patch-fields" hidden>
+      <div class="console-step-heading"><button type="button" class="text-button" id="patch-back">← Andere console</button><span class="badge" id="patch-system-name"></span></div>
+      <div class="patch-files">
+        <label class="patch-file-card"><strong id="patch-source-label">1. Jouw originele ROM</strong><small id="patch-source-note"></small><input type="file" id="patch-source-file"></label>
+        <label class="patch-file-card"><strong>2. Jouw patchbestand</strong><small id="patch-format-note"></small><input type="file" id="patch-file"></label>
+      </div>
+      <div id="patch-snes-options" hidden><label class="patch-checkbox"><input type="checkbox" id="patch-snes-header" disabled><span>512-byte SNES-kopieerheader verwijderen vóór het patchen</span></label><p class="setting-note">Alleen kiezen als de patch een ROM zonder kopieerheader vereist. Het resultaat wordt dan een .sfc-bestand zonder die header.</p></div>
+      <p class="setting-note" id="patch-rom-note">Gebruik de ROM-versie die de maker van de hack noemt. BPS controleert origineel, patch en resultaat. IPS heeft geen versiecontrole: vergelijk de CRC32 of SHA-256 hieronder met de informatie van de maker.</p>
+      <div class="setting-note" id="patch-dos-note" hidden><p>Gebruik een losse .exe, .com of ander gamebestand met een RetroRoom JSON v1-patch. Dit is een eigen formaat voor bytevervangingen met SHA-256-controles; andere JSON-patchformaten worden niet ondersteund. Pak een game-ZIP eerst uit en plaats de gepatchte kopie zelf terug onder de oorspronkelijke bestandsnaam voordat je de complete game opnieuw inpakt.</p><p>Probeer onze eigen demo: <a href="./assets/dos-duo.com" download>DOS Duo downloaden</a> · <a href="./assets/dos-duo-example-patch.json" download>Voorbeeldpatch downloaden</a>. De patch verandert de titel naar DOS MOD.</p></div>
+      <pre class="patch-fingerprint" id="patch-source-details"></pre>
+      <div class="patch-actions"><button type="button" class="button primary" id="patch-apply" disabled>Patch toepassen →</button><button type="button" class="text-button" id="patch-cancel" hidden>Annuleren</button></div>
+      <div class="patch-result" id="patch-result" hidden><strong>Je gepatchte kopie is klaar.</strong><pre class="patch-fingerprint" id="patch-result-details"></pre><a class="button primary small" id="patch-download" download>Gepatcht bestand downloaden ↓</a><p class="setting-note">Laad de gedownloade kopie daarna bij solo of in je kamer. Bij samen emuleren patcht iedere speler zijn eigen bestand op dezelfde manier.</p></div>
+    </div>
+    <p class="patch-status" id="patch-status" role="status" aria-live="polite"></p>
+    <p class="setting-note"><a href="https://github.com/Axel-NL94/retro-room/blob/main/PATCHER.md" target="_blank" rel="noopener">Handleiding en DOS JSON-formaat ↗</a></p>
+  </dialog>
 
   <dialog id="create-dialog"><form id="create-form">
     <div class="dialog-heading"><div><p class="eyebrow" id="launch-eyebrow">JOUW VOLGENDE POTJE</p><h2 id="launch-heading">Kies je console.</h2></div><div class="launch-actions"><button type="button" class="icon-button" id="play-mode-settings-button" aria-label="Speelwijze instellen" title="Speelwijze instellen" aria-expanded="false" aria-controls="play-mode-settings" hidden>⚙</button><button type="button" class="icon-button" data-close aria-label="Sluiten">×</button></div></div>

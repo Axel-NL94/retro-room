@@ -1,0 +1,19 @@
+{
+  "format": "RetroRoomBinaryPatch",
+  "version": 1,
+  "description": "Original RetroRoom DOS Duo demo: change title to DOS MOD.",
+  "source": {
+    "size": 299,
+    "sha256": "799af9403d4172e15dca500d815b94f8f9956daaff4e2fd5eb0212a1e67abda4"
+  },
+  "target": {
+    "sha256": "67f2e0b3c1054d1f32d5c692c499658d07c5371e77435a8c2de3faa69f87b857"
+  },
+  "patches": [
+    {
+      "offset": 249,
+      "before": "524554524f20524f4f4d202d20444f532044554f",
+      "after": "524554524f20524f4f4d202d20444f53204d4f44"
+    }
+  ]
+}
