@@ -1,3 +1,4 @@
+import {createGamePatcher} from './patcher.js';
 import {defaultDosPolicy,validateDosPolicy,nextDosPolicy,canPassDosControl,validDosReturn,DosPolicyFilter} from './dos-policy.js';
 import {createDosMenu} from './dos-menu.js';
 import {createFullscreenKeyboard} from './fullscreen-keyboard.js';
@@ -999,3 +1000,4 @@ function init() {
   if (invitation.get('room')) openJoin(location.href);
 }
 init();
+createGamePatcher({onOpen:()=>{releaseButtons();dosControls.unlock();}});

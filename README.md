@@ -45,6 +45,12 @@ op beschikbaarheid of onbeperkt gratis gebruik. Zie [GRATIS-HOSTING.md](GRATIS-H
 
 ## Emulator en mogelijkheden
 
+**Game patcher** rechtsboven maakt lokaal een gepatchte kopie: NES/SNES met
+IPS/BPS, MS-DOS met het eigen RetroRoom JSON-formaat voor losse bestanden.
+Kies eerst de console en daarna je eigen game en patch. Zie [PATCHER.md](PATCHER.md)
+voor controles, beperkingen, SNES-headers en het DOS-voorbeeld. Besturing en
+verbindingsinformatie staan als kleine tekstlinks onderaan de pagina.
+
 - Moderne MesenCE-core, vastgezet op `4c4e069f16a8ad6ed79e046046c56d51558c7daf`.
 - NES met iNES/NES 2.0 en SNES met `.sfc`/`.smc`; maximaal 8 MB per ROM.
 - Bij samen emuleren laadt iedere speler eigen gamebytes in tijdelijk WebAssembly-geheugen;
