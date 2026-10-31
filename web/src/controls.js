@@ -21,7 +21,7 @@ export function createControls({ pressed, touched, release, currentSystem, local
     $('snes-controls-guide').hidden = system === 'nes';
     $('solo-controls').textContent = 'Tweede speler op dit apparaat — ' + describeKeys(system, 1, actionsFor(system).map(action => action.bit));
     if(system==='dos'){$('keyboard-guide').textContent='Volledig toetsenbord, inclusief Ctrl/Alt/Shift, F1–F12 en numeriek toetsenblok.';$('snes-controls-guide').hidden=true;$('solo-controls').textContent='Het toetsenbord en de muis zijn gedeeld. Een tweede lokale controller gebruikt profiel 2.';}
-    $('game-hint').textContent = system==='dos'?'Klik in het beeld voor het volledige toetsenbord. Vang de muis voor onbeperkt bewegen; Esc laat hem los.':' '+describeKeys(system, 0, [0, 1, 3]) + ' · Besturing instellen via ⚙';
+    $('game-hint').textContent = system==='dos'?'Klik in het beeld voor het toetsenbord. DOS-menu: Alt+Shift+M · toetsverdeling, beurten en Escape.':' '+describeKeys(system, 0, [0, 1, 3]) + ' · Besturing instellen via ⚙';
   }
   function persist() {
     const saved = saveSettings(storage, settings);

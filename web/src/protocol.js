@@ -1,9 +1,10 @@
+import {validateDosPolicy} from './dos-policy.js';
 import {validateDosInput} from './dos-input.js';
 import { romHash } from './emulator.js';
 import { streamMessage } from './stream-protocol.js';
 
-export const NETPLAY_VERSION = 'retroroom-mesence-4c4e069-dos-input-2-tailcat-8';
-export const INVITE_VERSION = 8;
+export const NETPLAY_VERSION = 'retroroom-mesence-4c4e069-dos-sharing-3-tailcat-9';
+export const INVITE_VERSION = 9;
 export const OVERCLOCK_VALUES = Object.freeze([100, 200, 300, 400, 500]);
 export function validateOverclock(value) {
   if (!OVERCLOCK_VALUES.includes(value)) throw new Error('Kies een CPU-overclock van 100%, 200%, 300%, 400% of 500%.');
@@ -41,12 +42,14 @@ export function peerMessage(channel, data) {
     if (typeof data.epoch !== 'string' || !data.epoch.length || data.epoch.length > 64) throw new Error('Ongeldige spelsessie.');
     return data.epoch;
   };
-  if(channel==='input'&&data.type==='dos-input'&&Number.isSafeInteger(data.frame)&&data.frame>=0)return {type:'dos-input',frame:data.frame,dos:validateDosInput(data.dos),epoch:epoch()};
+  if(channel==='input'&&data.type==='dos-input'&&Number.isSafeInteger(data.frame)&&data.frame>=0)return {type:'dos-input',frame:data.frame,dos:validateDosInput(data.dos),epoch:epoch(),...(data.policy?{policy:validateDosPolicy(data.policy)}:{})};
   if (channel === 'input' && data.type === 'input' && Number.isSafeInteger(data.frame) && data.frame >= 0 &&
       Number.isInteger(data.buttons) && data.buttons >= 0 && data.buttons <= 4095) {
     return { type: 'input', frame: data.frame, buttons: data.buttons, epoch: epoch() };
   }
   if (channel !== 'control') throw new Error('Onbekend spelkanaal.');
+  if(data.type==='dos-policy'&&typeof data.room==='string'&&data.room.length>0&&data.room.length<=64)return {type:data.type,room:data.room,policy:validateDosPolicy(data.policy)};
+  if(data.type==='dos-pass'&&typeof data.room==='string'&&data.room.length>0&&data.room.length<=64&&Number.isSafeInteger(data.revision)&&data.revision>=0&&data.revision<=1e9)return {type:data.type,room:data.room,revision:data.revision,epoch:epoch()};
   if (data.type === 'game') return validateGameConfig(data);
   if (['game-matched', 'ready', 'start'].includes(data.type)) {
     if (!/^[a-f0-9]{64}$/.test(data.hash)) throw new Error('Ongeldige ROM-controle.');

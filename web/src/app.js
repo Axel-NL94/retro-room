@@ -1,3 +1,7 @@
+import {defaultDosPolicy,validateDosPolicy,nextDosPolicy,canPassDosControl,validDosReturn,DosPolicyFilter} from './dos-policy.js';
+import {createDosMenu} from './dos-menu.js';
+import {createFullscreenKeyboard} from './fullscreen-keyboard.js';
+import {DOS_KEYS} from './dos-input.js';
 import {DosLockstepSession} from './dos-lockstep.js';
 import {createDosControls} from './dos-controls.js';
 import { romHash } from './emulator.js';
@@ -28,6 +32,10 @@ let launchMode = 'room', selectedSystem = null, launchGeneration = 0, launchBusy
 let stateBusy = false;
 let playStyle = 'netplay', gameStream = null, streamInfo = null, streamReady = false;
 let streamInput = null, streamSequence = 0;
+let dosPolicyReceived=false;
+let dosPolicy=defaultDosPolicy(),dosAppliedPolicy=dosPolicy,dosFilter=new DosPolicyFilter(dosPolicy);
+let dosEscapeKey=readSetting('dos-escape-key')||'';
+if(!DOS_KEYS[dosEscapeKey]||/^(Escape|Shift|Control|Alt|Meta|CapsLock|NumLock|ScrollLock)/.test(dosEscapeKey))dosEscapeKey='';
 const streamVideo = $('stream-video');
 const coreClass = system => system === 'dos' ? DosCore : MesenCore;
 const coreBuild = system => system === 'dos' ? DOS_BUILD : MESEN_BUILD;
@@ -49,8 +57,49 @@ const controls = createControls({ pressed, touched, release: releaseButtons,
 
 const dosControls=createDosControls({
   enabled:()=>game?.system==='dos'&&!$('room-view').hidden&&['solo','online'].includes(mode),
-  targets:()=>[$('game'),streamVideo],padInput:(player,bits)=>controls.dosPad(player,bits),requestFocus:focusGame
+  targets:()=>[$('game'),streamVideo],padInput:(player,bits)=>controls.dosPad(player,bits),requestFocus:focusGame,
+  escapeKey:()=>dosEscapeKey,openMenu:()=>dosMenu.open()
 });
+
+const dosMenu=createDosMenu({
+  context:()=>({policy:dosPolicy,applied:dosAppliedPolicy,host:isHost,solo:!roomId,connected:!!peer?.opened,playing:['online','paused','solo'].includes(mode),system:game?.system||expectedGame?.system}),
+  change:changeDosPolicy,pass:passDosControl,
+  release:()=>{releaseButtons();dosControls.unlock();},
+  escape:()=>dosControls.tap('Escape'),exitFullscreen:()=>document.exitFullscreen?.().catch(report),
+  escapeKey:()=>dosEscapeKey,setEscapeKey:code=>{dosEscapeKey=code;saveSetting('dos-escape-key',code);}
+});
+function applyDosPolicy(policy){
+  const handoff=policy.mode!==dosAppliedPolicy.mode||policy.owner!==dosAppliedPolicy.owner;
+  dosAppliedPolicy=validateDosPolicy(policy);
+  if(dosAppliedPolicy.revision>dosPolicy.revision)dosPolicy=dosAppliedPolicy;
+  if(handoff){releaseButtons();if(policy.mode==='turns'&&policy.owner!==(isHost?0:1))dosControls.unlock();}
+  dosMenu.update();
+}
+function resetDosSharing(){
+  let blocked=[];try{blocked=validateDosPolicy(defaultDosPolicy(JSON.parse(readSetting('dos-reserved-keys')||'[]'))).blocked;}catch{/* Ignore old/invalid preferences. */}
+  dosPolicy=defaultDosPolicy(blocked);dosAppliedPolicy=dosPolicy;dosFilter=new DosPolicyFilter(dosPolicy);
+  dosMenu.update();
+}
+function sendDosPolicy(){if(game?.system==='dos'&&isHost&&peer?.opened)peer.send('control',{type:'dos-policy',room:roomId,policy:dosPolicy});}
+function changeDosPolicy(change){
+  if(!isHost||game?.system!=='dos')return;
+  const handoff=change.mode!==undefined&&change.mode!==dosPolicy.mode||change.owner!==undefined&&change.owner!==dosPolicy.owner;
+  dosPolicy=nextDosPolicy(dosPolicy,change);saveSetting('dos-reserved-keys',JSON.stringify(dosPolicy.blocked));
+  if(!(mode==='online'&&playStyle==='netplay')&&!['solo','online'].includes(mode))dosAppliedPolicy=dosPolicy;
+  if(playStyle==='stream'&&handoff)streamInput?.dos.release();
+  dosMenu.update();sendDosPolicy();
+}
+function passDosControl(){
+  if(dosPolicy.mode!=='turns'||roomId&&!['online','paused'].includes(mode))return;
+  if(!roomId||isHost&&canPassDosControl(dosPolicy,0))changeDosPolicy({owner:1-dosPolicy.owner});
+  else if(!isHost&&canPassDosControl(dosPolicy,1))peer?.send('control',{type:'dos-pass',room:roomId,revision:dosPolicy.revision,epoch});
+}
+function dosFrames(inputs){
+  const changed=dosFilter.policy.revision!==dosPolicy.revision;
+  const frames=dosFilter.apply(inputs,dosPolicy);
+  if(changed)applyDosPolicy(dosPolicy);
+  return frames;
+}
 
 function readSetting(key) { try { return localStorage.getItem('retroroom-' + key); } catch { return null; } }
 function saveSetting(key, value) { try { localStorage.setItem('retroroom-' + key, value); } catch { /* Private browsing can disable persistence. */ } }
@@ -92,7 +141,11 @@ function showRoom() {
   $('console-badge').textContent = consoleBadge(game.system);
   $('dos-controls-guide').hidden = game.system !== 'dos';
   $('game').setAttribute('aria-label', `${game.system.toUpperCase()}-gamescherm`);
-  $('snes-touch').hidden = game.system === 'nes';
+  $('snes-touch').hidden = game.system !== 'snes';
+  $('console-touch-controls').hidden=game.system==='dos';
+  $('dos-session-controls').hidden=game.system!=='dos';
+  $('play-panel').dataset.dos=String(game.system==='dos');
+  document.querySelectorAll('[data-dos-menu]').forEach(button=>button.hidden=game.system!=='dos');
   controls.guide();
   $('player-one').textContent = isHost ? nickname || 'Jij' : $('player-one').textContent;
   $('solo-controls').hidden = !!roomId;
@@ -136,6 +189,7 @@ async function loadGame(bytes, name, demo = false, system = 'nes', overclock = 1
   next.load(bytes, system, { overclock, name });
   stop(); core?.destroy?.(); core = next;
   game = { bytes, name: String(name).slice(0, 80), demo, system, overclock, hash };
+  if(isHost)resetDosSharing();
   audio.clear();
   for (let i = 0; i < 6; i++) core.run(0, 0);
   audio.clear(); core.load(bytes, system, { overclock, name });
@@ -159,6 +213,7 @@ function updateAudio() {
   $('audio-button').textContent = enabled ? '♫' : '♪';
 }
 function updateActions() {
+  dosMenu.update();
   $('overclock-description').textContent = game?.system === 'dos' ? 'DOS: 100% is 3000 CPU-cycles; 500% is 15000. Een hoger CPU-budget kan een DOS-game versnellen. Compatibiliteit verschilt per spel.' : 'Meer CPU-tijd per frame kan slowdown in ROM-hacks verminderen. De game blijft op normale snelheid. Hogere waarden vragen meer van je apparaat en kunnen gamebugs veroorzaken.';
   playbackClock.setRunning((!!core || isStreamGuest() && streamReady) && ['solo', 'online'].includes(mode));
   const connected = peer?.opened && peer?.control?.readyState === 'open';
@@ -184,10 +239,11 @@ function updateActions() {
 }
 function beginOnline(newEpoch) {
   core.load(game.bytes, game.system, game); audio.clear(); checks.clear(); lastHash = -1;
+  dosAppliedPolicy=dosPolicy;
   epoch = newEpoch; mode = 'online'; pausedMode = null; accumulator = 0; lastTime = 0;
   fpsTime = performance.now(); fpsCount = 0;
   dosControls.reset();
-  session = game.system==='dos'?new DosLockstepSession({core,player:isHost?0:1,send:message=>peer.send('input',{...message,epoch})}):new RollbackSession(core, { player: isHost ? 1 : 2,
+  session = game.system==='dos'?new DosLockstepSession({core,player:isHost?0:1,policy:dosPolicy,getPolicy:()=>dosPolicy,onPolicy:applyDosPolicy,send:message=>peer.send('input',{...message,epoch})}):new RollbackSession(core, { player: isHost ? 1 : 2,
     send: message => peer.send('input', { ...message, epoch }) });
   $('screen-overlay').hidden = true; $('pause-button').disabled = false;
   $('pause-button').textContent = 'Pauzeren'; $('room-status').textContent = 'Samen aan het spelen';
@@ -228,6 +284,7 @@ function leaveRoom() {
   $('stream-guest-card').hidden = true;
   roomId = null; game = null; core = null; pickedGame = null; isHost = true;
   pressed.clear(); touched.clear();dosControls?.release();
+  $('dos-menu-dialog').close();resetDosSharing();fullscreenKeyboard.release();
   $('home').hidden = false; $('room-view').hidden = true;
   $('player-two').textContent = 'Nog een plekje vrij'; $('guest-detail').textContent = 'Nodig je favoriete rivaal uit';
   $('room-message').textContent = 'Je kunt alvast solo spelen.';
@@ -251,6 +308,7 @@ function setupPeer(connection, host) {
           current.send('control', streamInfo);
           $('room-message').textContent = 'Speler 2 is verbonden. Beeld en geluid worden voorbereid; er is geen ROM nodig bij de gast.';
         } else current.send('control', createGameConfig(game));
+        sendDosPolicy();
       }
       catch (error) { fatal(error); }
     }
@@ -260,7 +318,7 @@ function setupPeer(connection, host) {
         detail.token === streamInfo?.token && mode === 'online') { try{streamInput?.receive(detail);}catch(error){fatal(error);} return; }
     if (current !== peer || detail?.epoch !== epoch || !session || !['input','dos-input'].includes(detail.type)) return;
     if((game?.system==='dos')!==(detail.type==='dos-input'))return;
-    try { session.receive(detail.frame, detail.type==='dos-input'?detail.dos:detail.buttons); } catch (error) { fatal(error); }
+    try { session.receive(detail.frame, detail.type==='dos-input'?detail.dos:detail.buttons,detail.policy); } catch (error) { fatal(error); }
   });
   peer.addEventListener('control', ({ detail }) => {
     if (current !== peer) return;
@@ -380,6 +438,7 @@ async function sendGameStream() {
 }
 function beginStreaming(newEpoch) {
   epoch = newEpoch; session = null; streamSequence = 0;dosControls.reset();
+  dosFilter=new DosPolicyFilter(dosPolicy);dosAppliedPolicy=dosPolicy;
   if (isHost) { core.load(game.bytes, game.system, game); audio.clear(); streamInput = new StreamInput(epoch); }
   mode = 'online'; pausedMode = null; accumulator = 0; lastTime = 0;
   fpsTime = performance.now(); fpsCount = 0;
@@ -399,6 +458,20 @@ function handleControl(message) {
   if (message.type === 'ping' && typeof message.time === 'number') return peer.send('control', { type: 'pong', time: message.time });
   if (message.type === 'pong' && typeof message.time === 'number') {
     $('ping-value').textContent = Math.max(0, Math.round(performance.now() - message.time)) + ' ms'; return;
+  }
+  if(message.type==='dos-policy'){
+    if(isHost||message.room!==roomId||!['dos'].includes(game?.system||expectedGame?.system))throw new Error('Deze DOS-toetsverdeling hoort niet bij de host.');
+    const next=validateDosPolicy(message.policy);
+    if(next.revision<dosPolicy.revision)return;
+    if(next.revision===dosPolicy.revision&&JSON.stringify(next)!==JSON.stringify(dosPolicy)&&dosPolicyReceived)throw new Error('Tegenstrijdige DOS-toetsverdeling.');
+    dosPolicy=next;dosPolicyReceived=true;
+    if(playStyle==='stream'||!session)applyDosPolicy(dosPolicy);
+    dosMenu.update();return;
+  }
+  if(message.type==='dos-pass'){
+    if(!isHost||game?.system!=='dos'||message.room!==roomId)throw new Error('Ongeldige overdracht van DOS-besturing.');
+    if(validDosReturn(dosPolicy,message,epoch)&&['online','paused'].includes(mode))changeDosPolicy({owner:0});
+    return;
   }
   if (message.type === 'stream-game') { requireStream(message); return; }
   if (message.type.startsWith('stream-')) {
@@ -460,9 +533,9 @@ function loop(time) {
     let count = 0;
     while (accumulator >= 1000 / core.fps && count++ < 5) {
       let advanced = true;
-      if (mode === 'online' && playStyle === 'stream') {const dos=game.system==='dos',p1=controls.buttons(0,true,!dos),p2=streamInput.current();core.run(p1,p2,false,dos?[dosControls.frame(0,p1),streamInput.dosCurrent()]:null);}
+      if (mode === 'online' && playStyle === 'stream') {const dos=game.system==='dos',p1=controls.buttons(0,true,!dos),p2=streamInput.current();if(dos)core.run(0,0,false,dosFrames([dosControls.frame(0,p1),streamInput.dosCurrent()]));else core.run(p1,p2);}
       else if (mode === 'online') advanced = game.system==='dos'?session.tick(()=>dosControls.frame(0,controls.buttons(0,true,false))):session.tick(controls.buttons(0, true));
-      else {const dos=game.system==='dos',p1=controls.buttons(0,true,!dos),p2=controls.buttons(1,false,!dos);core.run(p1,p2,false,dos?[dosControls.frame(0,p1),dosControls.frame(1,p2)]:null);}
+      else {const dos=game.system==='dos',p1=controls.buttons(0,true,!dos),p2=controls.buttons(1,false,!dos);if(dos)core.run(0,0,false,dosFrames([dosControls.frame(0,p1),dosControls.frame(1,p2)]));else core.run(p1,p2);}
       accumulator -= 1000 / core.fps;
       if (advanced) fpsCount++;
       else { accumulator = 0; break; }
@@ -524,7 +597,7 @@ invites.addEventListener('created', ({ detail }) => {
 });
 invites.addEventListener('negotiating', () => { isHost = false; $('join-error').textContent = 'Eerst rechtstreeks verbinden met de host…'; });
 invites.addEventListener('joining', ({ detail }) => {
-  isHost = false; game = null; roomId = null;
+  isHost = false; game = null; roomId = null;dosPolicyReceived=false;dosPolicy=defaultDosPolicy();dosAppliedPolicy=dosPolicy;
   $('join-error').textContent = 'Verbinding maken met de host…';
   setupPeer(detail.connection, false);
 });
@@ -727,6 +800,7 @@ async function startSolo() {
   await enableAudio();
   if (core !== currentCore || game !== currentGame) return;
   if (mode === 'paused' && pausedMode === 'solo') { resume(); return; }
+  dosFilter=new DosPolicyFilter(dosPolicy);dosAppliedPolicy=dosPolicy;
   dosControls.reset();core.load(game.bytes, game.system, game); session = null; mode = 'solo'; accumulator = 0; lastTime = 0;
   fpsTime = performance.now(); fpsCount = 0;
   $('screen-overlay').hidden = true; $('pause-button').disabled = false;
@@ -830,7 +904,14 @@ $('audio-button').onclick = async () => {
   if (audio.enabled) { audio.mute(); updateAudio(); } else await enableAudio();
 };
 const playPanel = $('play-panel');
-let fullscreenControlsTimer;
+let fullscreenControlsTimer,dosMenuTimer;
+const fullscreenKeyboard=createFullscreenKeyboard({keyboard:navigator.keyboard,active:()=>document.fullscreenElement===playPanel&&game?.system==='dos',onStatus:locked=>{
+  $('dos-fullscreen-note').textContent=locked?'Korte Escape gaat naar DOS. Houd Escape circa twee seconden ingedrukt om de browservergrendeling te verlaten. DOS-menu: Alt+Shift+M of de bovenrand van het beeld.':'De browser kan Escape gebruiken om fullscreen te verlaten. Kies zo nodig een vervangende DOS-Escape-toets. DOS-menu: Alt+Shift+M of de bovenrand van het beeld.';
+}});
+playPanel.addEventListener('pointermove',event=>{
+  if(document.fullscreenElement!==playPanel||game?.system!=='dos'||event.clientY>64)return;
+  playPanel.classList.add('dos-menu-visible');clearTimeout(dosMenuTimer);dosMenuTimer=setTimeout(()=>playPanel.classList.remove('dos-menu-visible'),3000);
+});
 function applyScreenFit(value) {
   const fit = value === 'fill' ? 'fill' : 'contain';
   playPanel.dataset.screenFit = fit; $('screen-fit').value = fit;
@@ -856,13 +937,11 @@ document.addEventListener('fullscreenchange', () => {
   const label = fullscreen ? 'Volledig scherm verlaten' : 'Volledig scherm';
   $('fullscreen-button').setAttribute('aria-label', label); $('fullscreen-button').title = label;
   clearTimeout(fullscreenControlsTimer); playPanel.classList.remove('fullscreen-controls-visible');
-  if (fullscreen) { focusGame(); revealFullscreenControls(); }
-});
-document.addEventListener('keydown', event => {
-  if (event.key === 'Escape' && document.fullscreenElement === playPanel) document.exitFullscreen().catch(() => {});
+  dosMenu.update();
+  if (fullscreen) { focusGame(); revealFullscreenControls(); }else{fullscreenKeyboard.release();playPanel.classList.remove('dos-menu-visible');}
 });
 $('fullscreen-button').onclick = async () => {
-  try { document.fullscreenElement ? await document.exitFullscreen() : await playPanel.requestFullscreen(); }
+  try { if(document.fullscreenElement)await document.exitFullscreen();else{await playPanel.requestFullscreen();if(game?.system==='dos')await fullscreenKeyboard.acquire();} }
   catch { toast('Volledig scherm is hier niet beschikbaar.'); }
 };
 $('copy-button').onclick = async () => {
@@ -871,7 +950,7 @@ $('copy-button').onclick = async () => {
   catch { $('invite-link').focus(); $('invite-link').select(); toast('Selecteer en kopieer de link in het tekstvak.'); }
 };
 document.addEventListener('keydown', event => {
-  if ($('room-view').hidden || document.querySelector('dialog[open]') || /INPUT|TEXTAREA|SELECT/.test(event.target.tagName)) return;
+  if (game?.system==='dos' || $('room-view').hidden || document.querySelector('dialog[open]') || /INPUT|TEXTAREA|SELECT/.test(event.target.tagName)) return;
   if (event.ctrlKey || event.metaKey || event.altKey || event.target.isContentEditable) return;
   if (controls.hasKey(event.code)) { event.preventDefault(); pressed.add(event.code); }
 });

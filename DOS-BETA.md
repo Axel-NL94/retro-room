@@ -58,3 +58,10 @@ Geblokkeerd afspelen vraagt om een klik op het gamescherm. Deze wijziging lost
 timinggevoeligheden op, maar bewijst niet de oorzaak van een eerdere mislukte test.
 
 Zie [DOS-NETPLAY.md](DOS-NETPLAY.md) voor de synchronisatieproeven en testgrenzen.
+
+## Toetsverdeling en beurten
+
+Het DOS-menu heeft een volledig klikbaar toetsenbord. Samen bedienen is de
+standaard; de host kan ook tijdens het spelen toetsen voor speler 2 blokkeren,
+of de volledige bediening om de beurt doorgeven. Zie [DOS-CONTROLS.md](DOS-CONTROLS.md)
+voor de bediening, synchronisatie en fullscreen-Escape.
