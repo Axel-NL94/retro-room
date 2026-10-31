@@ -1,5 +1,5 @@
 import {validateDosInput,DosInputAccumulator,emptyDosInput} from './dos-input.js';
-export const STREAM_VERSION = 'retroroom-stream-2-dos-input';
+export const STREAM_VERSION = 'retroroom-stream-3-dos-sharing';
 export const PLAY_MODES = Object.freeze(['netplay', 'stream']);
 export function playMode(value = 'netplay') {
   if (!PLAY_MODES.includes(value)) throw new Error('Onbekende speelwijze. Vraag om een nieuwe uitnodigingslink.');

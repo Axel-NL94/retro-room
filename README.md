@@ -299,3 +299,6 @@ DOS is beschikbaar via een extra tegel voor solo en WebRTC-streamen. ZIP/DOSZ en
 De WebRTC-stream wacht apart op onderhandeling en het eerste beeld. Tijdelijke mediaonderbrekingen krijgen begrensde hersteltijd. Dit verhelpt reproduceerbare timinggevoeligheden, zonder directe connectiviteit door alle firewalls te beloven.
 
 De synchronisatieproeven en beperkingen staan in [DOS-NETPLAY.md](DOS-NETPLAY.md).
+
+DOS-toetsverdeling tijdens het spelen, beurten doorgeven en fullscreen-Escape:
+[DOS-CONTROLS.md](DOS-CONTROLS.md).

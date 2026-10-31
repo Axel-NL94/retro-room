@@ -10,7 +10,7 @@ test('two DOS peers remain identical through delayed and reordered delivery with
  const a=core(),b=core(),queues=[[],[]],sessions=[];let tick=0;
  for(let player=0;player<2;player++)sessions.push(new DosLockstepSession({core:player?b:a,player,delay:6,hashEvery:120,send:p=>queues[1-player].push({at:tick+(p.frame%5),...p})}));
  for(tick=0;tick<500;tick++){
-  for(let i=0;i<2;i++){for(const p of queues[i].filter(p=>p.at<=tick).reverse())sessions[i].receive(p.frame,p.dos);queues[i]=queues[i].filter(p=>p.at>tick);sessions[i].tick(()=>({...emptyDosInput(),keys:[97+i],mouse:{x:sessions[i].frame%3,y:0,wheel:0,buttons:0}}));}
+  for(let i=0;i<2;i++){for(const p of queues[i].filter(p=>p.at<=tick).reverse())sessions[i].receive(p.frame,p.dos,p.policy);queues[i]=queues[i].filter(p=>p.at>tick);sessions[i].tick(()=>({...emptyDosInput(),keys:[97+i],mouse:{x:sessions[i].frame%3,y:0,wheel:0,buttons:0}}));}
  }
  const same=Math.min(a.frames.length,b.frames.length);assert.ok(same>200);assert.deepEqual(a.frames.slice(0,same),b.frames.slice(0,same));assert.ok(sessions.every(s=>s.rollbacks===0));await Promise.all(sessions.map(s=>s.hashPending));sessions.forEach(s=>s.close());
 });

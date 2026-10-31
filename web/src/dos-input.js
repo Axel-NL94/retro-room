@@ -52,3 +52,17 @@ export function dosPadInput(bits,profile,axes={x:0,y:0},player=0) {
   }
   out.keys=[...new Set(out.keys)];return out;
 }
+
+// The DOS launch menu consumes RetroPad input. Derive it from the filtered DOS
+// state, never from the original controller mask (which could bypass a rule).
+export function dosMenuButtons(state) {
+  const keys=new Set(state.keys),joy=state.joy,mouse=state.mouse;
+  let bits=0;
+  if(keys.has(273)||joy.enabled&&joy.y<-.5)bits|=16;
+  if(keys.has(274)||joy.enabled&&joy.y>.5)bits|=32;
+  if(keys.has(276)||joy.enabled&&joy.x<-.5)bits|=64;
+  if(keys.has(275)||joy.enabled&&joy.x>.5)bits|=128;
+  if([13,271,305,306].some(k=>keys.has(k))||joy.enabled&&(joy.buttons&1)||mouse.buttons&1)bits|=1;
+  if([27,307,308].some(k=>keys.has(k))||joy.enabled&&(joy.buttons&2)||mouse.buttons&2)bits|=2;
+  return bits;
+}

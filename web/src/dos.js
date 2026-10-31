@@ -1,4 +1,4 @@
-import {validateDosInput} from './dos-input.js';
+import {validateDosInput,dosMenuButtons} from './dos-input.js';
 // DOSBox Pure browser frontend. GPL-3.0-or-later; see native/DOSBOX.md.
 export const DOS_BUILD = 'dosbox-pure-d9c1356-web-input-2';
 // Experimental lockstep only: independent instances pass; rollback remains disabled.
@@ -52,7 +52,7 @@ export class DosCore {
   }
   run(p1, p2, replay = false, inputs = null) {
     const m = this.module;
-    if(inputs){this.input(0,inputs[0]);this.input(1,inputs[1]);}
+    if(inputs){this.input(0,inputs[0]);this.input(1,inputs[1]);p1=dosMenuButtons(inputs[0]);p2=dosMenuButtons(inputs[1]);}
     m._rr_frame(p1, p2);
     if (!m._rr_last_result()) throw this.error('DOSBox Pure kon het frame niet uitvoeren.');
     if (!replay) {
