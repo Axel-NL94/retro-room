@@ -1,9 +1,10 @@
 import { romHash } from './emulator.js';
 import { validateOverclock } from './protocol.js';
+import {DOS_SOLO_STATE_LIMIT} from './dos-savestate.js';
 
 const magic = new TextEncoder().encode('RRSTATE1');
-const MAX_STATE = 64 * 1024 * 1024, MAX_HEADER = 4096;
-const stateLimit = system => (system === 'dos' ? 64 : 16) * 1024 * 1024;
+const MAX_STATE = DOS_SOLO_STATE_LIMIT, MAX_HEADER = 4096;
+const stateLimit = system => system === 'dos' ? DOS_SOLO_STATE_LIMIT : 16 * 1024 * 1024;
 export const MAX_SAVESTATE_FILE = magic.length + 4 + MAX_HEADER + MAX_STATE;
 const encoder = new TextEncoder(), decoder = new TextDecoder('utf-8', { fatal: true });
 const hashPattern = /^[a-f0-9]{64}$/;

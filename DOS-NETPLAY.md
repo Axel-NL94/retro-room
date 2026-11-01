@@ -39,8 +39,9 @@ inclusief snapshot, beeld en geluid. De BIOS-klok gebruikt nu ook voor
 werkelijke klok een verschil tussen onafhankelijke instanties.
 
 Save/replay doorstaat de controle nog niet: in de langste proeven verschilde
-joystickstatus na terugzetten en opnieuw afspelen. Rollback en DOS-save-import
-blijven daarom uitgeschakeld. Gelijke oorspronkelijke fixtures bewijzen geen
+joystickstatus na terugzetten en opnieuw afspelen. Rollback en online DOS-save-import
+blijven daarom uitgeschakeld. Solo-savestates gebruiken een aparte lokale herstelroute;
+zie [DOS-SAVESTATES.md](DOS-SAVESTATES.md). Gelijke oorspronkelijke fixtures bewijzen geen
 algemene compatibiliteit met andere games, ZIP-opstartmenu's, browsers of
 apparaten. Zie [DOS-BETA.md](DOS-BETA.md) voor de overige beperkingen.
 

@@ -2506,5 +2506,53 @@ export const messages = new Map([
   [
     "Onbekende of dubbelzinnige DOS-patchbewerking.",
     "Unknown or ambiguous DOS patch operation."
+  ],
+  [
+    "DOS-savestates zijn alleen voor solo. Start eerst de game; de download bewaart de speltoestand en tijdelijke DOS-schijf. Laad later dezelfde gamebestanden met dezelfde emulatorversie en CPU-instelling.",
+    "DOS save states are for solo play only. Start the game first; the download includes the game state and temporary DOS disk. Later, load the same game files with the same emulator version and CPU setting."
+  ],
+  [
+    "DOS is beta: solo, beeld/geluid streamen en experimenteel samen emuleren met invoerbuffer. Savestates zijn alleen voor solo beschikbaar, inclusief de tijdelijke DOS-schijf. Geen DOS-rollback of losse in-game save-export. Volledig toetsenbord, muis en controller zijn beschikbaar. Gebruik de DOS-toetsen uit de consolekeuze. Voortgang blijft tijdelijk tenzij je een savestate downloadt.",
+    "DOS is in beta: solo, video/audio streaming, and experimental shared emulation with an input buffer. Save states, including the temporary DOS disk, are available in solo play only. No DOS rollback or separate in-game save export. Full keyboard, mouse, and controller support is available. Use the DOS bindings in console selection. Progress is temporary unless you download a save state."
+  ],
+  [
+    "Deze DOS-savestate is beschadigd of heeft een onbekend formaat.",
+    "This DOS save state is damaged or uses an unknown format."
+  ],
+  [
+    "De tijdelijke DOS-schijf is te groot voor een savestate (maximaal 32 MB).",
+    "The temporary DOS disk is too large for a save state (32 MB maximum)."
+  ],
+  [
+    "Start eerst een DOS-game. In het DOS-startmenu kun je nog geen savestate maken.",
+    "Start a DOS game first. You cannot create a save state in the DOS start menu."
+  ],
+  [
+    "De tijdelijke DOS-schijf kon niet worden opgeslagen.",
+    "The temporary DOS disk could not be saved."
+  ],
+  [
+    "Het DOS-programma in deze savestate kon niet worden voorbereid.",
+    "The DOS program in this save state could not be prepared."
+  ],
+  [
+    "De DOS-omgeving kon niet worden voorbereid. Gebruik dezelfde complete gamebestanden en probeer opnieuw.",
+    "The DOS environment could not be prepared. Use the same complete game files and try again."
+  ],
+  [
+    "DOS-omgeving voorbereiden…",
+    "Preparing DOS environment…"
+  ],
+  [
+    "De savestate leverde geen geldig gamebeeld op.",
+    "The save state did not produce a valid game image."
+  ],
+  [
+    "DOS-savestate gedownload. Bewaar dezelfde gamebestanden om later verder te spelen.",
+    "DOS save state downloaded. Keep the same game files to continue later."
+  ],
+  [
+    "Je DOS-voortgang is geladen.",
+    "Your DOS progress has been loaded."
   ]
 ]);

@@ -78,11 +78,11 @@ test('native distribution has matched Wasm, loader, build recipes and dated modi
 
 test('DOS download preserves matching bridge, build recipe, notices and dated upstream patches', async () => {
   const files=unpack(await readFile(root+'web/assets/dos-source.tar.gz'));
-  for(const file of ['native/dos-web.cpp','native/dos-threads.h','native/DOSBOX.md','scripts/build-dos.py','scripts/package-dos-source.py','web/DOS-NOTICES.txt','LICENSING.md']) {
+  for(const file of ['native/dos-web.cpp','native/dos-threads.h','native/DOSBOX.md','scripts/build-dos.py','scripts/package-dos-source.py','web/DOS-NOTICES.txt','LICENSING.md','DOS-SAVESTATES.md']) {
     assert.deepEqual(files.get('retro-room/'+file),await readFile(root+file));
   }
-  for(const file of ['include/dbp_threads.h','include/config.h','src/gui/midi.cpp','dosbox_pure_libretro.cpp','src/dbp_serialize.cpp']) {
-    assert.match(files.get('dosbox-pure/'+file).toString().split('\n')[0],/RetroRoom.*2026-10-30/);
+  for(const file of ['include/dbp_threads.h','include/config.h','src/gui/midi.cpp','dosbox_pure_libretro.cpp','src/dbp_serialize.cpp','src/dos/drives.h','src/dos/drive_union.cpp','dosbox_pure_osd.h']) {
+    assert.match(files.get('dosbox-pure/'+file).toString().split('\n')[0],/RetroRoom.*2026-11-01/);
   }
   assert.ok(files.has('dosbox-pure/LICENSE'));
   assert.ok(files.has('dosbox-pure/Makefile'));

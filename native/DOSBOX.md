@@ -59,10 +59,10 @@ fractions and fixed by using the virtual clock. Independent-instance probes now
 match; save/replay state checks still differ, so rollback remains disabled. State buffers are around 28.8 MB for the original fixture. Local
 DOS netplay uses an experimental six-frame lockstep input buffer, waits when
 remote input is missing, and stops on state-hash divergence. DOS rooms do not use Tailcat.
-Native snapshot save/restore works for the running original COM fixture, but
-import into a freshly booted ZIP menu needs reliable program/drive preparation.
-DOS savestate UI is disabled pending that work. In-game progress remains in
-temporary emulated storage and has no browser persistence/export in this version.
+Solo-only checkpoint export/import is available in build
+`dosbox-pure-d9c1356-web-solo-3`; see [DOS-SAVESTATES.md](../DOS-SAVESTATES.md).
+Rollback and multiplayer state transfer remain disabled. Separate in-game save
+file export is not provided.
 
 `scripts/demo-dos.js` is the full editable source of the original MIT-licensed
 DOS Duo COM demo. It tests two sets of keys on a single virtual DOS PC; it is
@@ -103,3 +103,34 @@ independent instances and save/replay, including audio/video, without exporting
 any user game data. `gettimeofday` joins `time` and `clock_gettime` on the virtual
 clock; the BIOS previously used host wall-clock fractions during initialization.
 These diagnostics do not enable DOS rollback automatically.
+
+## Solo checkpoints (1 November 2026)
+
+- The browser-only `unionDrive::FlushForSnapshot` hook writes the current writable
+  overlay immediately, including bytes written through still-open handles. It
+  cancels the completed delayed-write event. `rr_solo_flush` runs this while the
+  cooperative DOS fiber is paused; a failed flush prevents checkpoint export.
+- A bounded `RRDOS001` frontend container stores the native snapshot, `/saves`
+  files, original content extension and the Pure-menu launch path. A fresh staging
+  core receives those save files **before** mounting the original game. The
+  checkpoint never modifies the original game bytes or the active core on failure.
+- `rr_solo_prepare` supplies a one-shot program path. A small browser-only hook in
+  `dosbox_pure_osd.h` consumes it inside PUREMENU on the emulation fiber and invokes
+  the existing DOS batch launcher. It preserves the path for subsequent exports.
+  Direct COM/EXE and DOSBOX.BAT start normally. Import waits for a running DOS
+  program, bounded to 1,800 preparation frames, yielding to the browser every 20.
+- A running DOS program is required for export; menu-only and booted OS states
+  are not exported. Native `save()` remains separate for lockstep diagnostics;
+  only solo UI calls `saveSolo()`/`restoreSolo()`. Two neutral preview frames refresh
+  DOS's buffered video and release input after restoring; no rollback guarantee is made.
+- Native state is bounded to 64 MiB, disk files to 32 MiB, container metadata to
+  128 KiB and 512 safe relative file paths. The outer `.rrstate` format bounds DOS
+  checkpoints to 97 MiB and checks game hash, emulator build, CPU setting and file
+  integrity before any staging restore. Native CPU snapshots are interpreter/build
+  specific. Unusual multi-stage launchers, disk swapping and arbitrary commercial
+  game compatibility are outside the original-fixture test coverage.
+
+Native tests cover COM restoration at 100%/500%, a nested executable selected in
+a ZIP menu, checkpoint re-export after import, and pending file writes/open-handle
+seek positions across a fresh complete-ZIP instance. Full matching native source,
+including the modified drive/menu files, is packaged with the build.

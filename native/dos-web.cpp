@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Copyright 2026 RetroRoom contributors. Browser port, 2026-10-30.
+// Copyright 2026 RetroRoom contributors. Browser port, 2026-11-01.
 #include "dosbox_pure_libretro.cpp"
 #include <emscripten/emscripten.h>
 #include <map>
@@ -17,6 +17,13 @@ static std::string rr_error;
 static bool rr_loaded=false;
 static size_t rr_result=0;
 static uint64_t rr_clock=1000000;
+static std::string rr_solo_start;
+// Called inside PUREMENU on the emulation fiber, before showing its launch UI.
+bool rr_solo_launch(){
+  if(rr_solo_start.empty())return false;
+  std::string path=rr_solo_start;rr_solo_start.clear();
+  DBP_Run::startup.exec=path;DBP_Run::Exec(path);return true;
+}
 static retro_keyboard_event_t rr_keyboard=nullptr;
 struct RRSnapshotSection{std::string name;size_t start,end;};
 static std::vector<RRSnapshotSection> rr_sections;
@@ -179,7 +186,7 @@ EMSCRIPTEN_KEEPALIVE size_t rr_save() {
 EMSCRIPTEN_KEEPALIVE int rr_restore(const uint8_t* data,size_t size) {
   rr_result=0;size_t prefix=rr_prefix_size();if(size<=prefix)return 0;
   if(!retro_unserialize(data+prefix,size-prefix))return 0;
-  rr_prefix((uint8_t*)data,true);rr_result=1;return 1;
+  rr_prefix((uint8_t*)data,true);rr_solo_start.clear();rr_result=1;return 1;
 }
 EMSCRIPTEN_KEEPALIVE unsigned rr_section_count(){return rr_sections.size();}
 EMSCRIPTEN_KEEPALIVE const char* rr_section_name(unsigned i){return i<rr_sections.size()?rr_sections[i].name.c_str():"";}
@@ -190,6 +197,19 @@ EMSCRIPTEN_KEEPALIVE unsigned rr_section_end(unsigned i){return i<rr_sections.si
 EMSCRIPTEN_KEEPALIVE unsigned rr_peek(unsigned address){return address<0x1000000?mem_readb(address):0;}
 EMSCRIPTEN_KEEPALIVE unsigned rr_key_down(unsigned key){return key<512?rr_keys[key]:0;}
 EMSCRIPTEN_KEEPALIVE unsigned rr_joystick(unsigned port,unsigned field){if(port>1)return 0;return field==0?JOYSTICK_IsEnabled(port):field==1?(unsigned)(32767*JOYSTICK_GetMove_X(port)):field==2?(unsigned)(32767*JOYSTICK_GetMove_Y(port)):JOYSTICK_GetButton(port,field-3);}
+EMSCRIPTEN_KEEPALIVE int rr_solo_ready(){return rr_loaded&&dbp_game_running&&!DOSBox_Boot&&(dbp_state==DBPSTATE_RUNNING||dbp_state==DBPSTATE_FIRST_FRAME);}
+EMSCRIPTEN_KEEPALIVE const char* rr_solo_program(){return DBP_Run::startup.exec.c_str();}
+EMSCRIPTEN_KEEPALIVE int rr_solo_prepare(const char* path){
+  rr_solo_start.assign(path?path:"");return rr_solo_start.size()<=1024;
+}
+EMSCRIPTEN_KEEPALIVE int rr_solo_flush(){
+  rr_result=0;if(!rr_solo_ready())return 0;
+  DBP_ThreadControl(TCM_PAUSE_FRAME);
+  bool ok=true;
+  for(unsigned i=0;i<DOS_DRIVES;i++)if(auto drive=dynamic_cast<unionDrive*>(Drives[i]))ok=drive->FlushForSnapshot()&&ok;
+  DBP_ThreadControl(TCM_RESUME_FRAME);
+  rr_result=ok?1:0;return rr_result;
+}
 EMSCRIPTEN_KEEPALIVE size_t rr_last_result(){return rr_result;}
 EMSCRIPTEN_KEEPALIVE const uint8_t* rr_state_ptr(){return rr_state.data();}
 EMSCRIPTEN_KEEPALIVE const uint32_t* rr_video_ptr(){return rr_pixels.data();}

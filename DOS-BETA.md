@@ -19,6 +19,9 @@ Toegevoegd op 30 oktober 2026: DOSBox Pure, naast NES/SNES.
 - Experimentele DOS-lockstep via WebRTC, met identieke eigen gamebestanden en
   invoerbuffer; geen snapshots of gamebestanden over het netwerk.
 - CPU-budget 100–500%, schermvullend spelen en handmatig pauzeren.
+- Alleen solo: lokale savestates downloaden/importeren, inclusief tijdelijke
+  DOS-schijfwijzigingen en voorbereiding van het ZIP-programma bij herstel.
+  Zie [DOS-SAVESTATES.md](DOS-SAVESTATES.md).
 - Volledige notices en overeenkomstige broncode op de licentiepagina.
 
 ## Nog niet beschikbaar of niet vastgesteld
@@ -31,9 +34,9 @@ Toegevoegd op 30 oktober 2026: DOSBox Pure, naast NES/SNES.
   browsercompatibiliteit is nog niet vastgesteld.
 - **DOS-rollback:** niet ingeschakeld. Save/replay-toestanden verschillen nog (in de langste proef in de joystickstatus),
   ondanks gelijk beeld en geluid in de oorspronkelijke demo. Snapshots zijn circa 28,8 MB. De invoerbuffer gebruikt geen rollback.
-- **DOS-savestates en save-export/import:** niet vrijgegeven. Native snapshots
-  werkten voor een al gestart COM-programma, maar een verse ZIP-start kan in een
-  ander menu/programma zitten. Voortgang blijft tijdelijk en gaat verloren bij sluiten.
+- **Online savestates en losse savebestanden:** niet beschikbaar. DOS-savestates
+  zijn alleen voor solo; losse in-game savebestanden hebben geen eigen export/import.
+  Voortgang blijft tijdelijk tenzij je zelf een savestate downloadt.
 - **Invoerbeperkingen:** het fysieke toetsenbord werkt met DOS-toetsposities, inclusief
   modifiers, F-toetsen en numeriek toetsenblok. Browser-/OS-sneltoetsen kunnen gereserveerd
   blijven; IME/compositie en plakken van tekst zijn geen DOS-toetsaanslagen. Kies zo nodig
