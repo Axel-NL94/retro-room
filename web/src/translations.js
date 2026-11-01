@@ -1778,5 +1778,237 @@ export const messages = new Map([
   [
     "Licentieteksten en auteurs",
     "License texts and credits"
+  ],
+  [
+    "Kies eerst je eigen originele bestand.",
+    "Select your original file first."
+  ],
+  [
+    "Het originele bestand is leeg of te groot.",
+    "The original file is empty or too large."
+  ],
+  [
+    "Kies een uitgepakte .nes-ROM.",
+    "Select an extracted .nes ROM."
+  ],
+  [
+    "Kies een uitgepakte .sfc- of .smc-ROM.",
+    "Select an extracted .sfc or .smc ROM."
+  ],
+  [
+    "Pak de DOS-game eerst uit. Kies het losse bestand dat de JSON-patch wijzigt, bijvoorbeeld GAME.EXE.",
+    "Extract the DOS game first. Select the individual file modified by the JSON patch, such as GAME.EXE."
+  ],
+  [
+    "Kies een .json-patch in het RetroRoom-formaat.",
+    "Choose a .json patch in RetroRoom format."
+  ],
+  [
+    "Kies een .ips- of .bps-patch.",
+    "Choose an .ips or .bps patch."
+  ],
+  [
+    "De patch is leeg of te groot.",
+    "The patch is empty or too large."
+  ],
+  [
+    "Kies je eigen originele bestand en je patch.",
+    "Select your original file and patch."
+  ],
+  [
+    "Origineel controleren…",
+    "Checking original…"
+  ],
+  [
+    "Patch toepassen…",
+    "Applying patch…"
+  ],
+  [
+    "Klaar. Origineel en resultaat gecontroleerd.",
+    "Done. Original and output verified."
+  ],
+  [
+    "Klaar. IPS controleert de ROM-versie niet; test zelf of de hack goed werkt.",
+    "Done. IPS does not verify the ROM version; test the hack yourself."
+  ],
+  [
+    "Origineel gelezen. Kies je patch en klik op Patch toepassen.",
+    "Original loaded. Select your patch and click Apply patch."
+  ],
+  [
+    "Kies eerst voor welk systeem je wilt patchen.",
+    "Choose a system to patch first."
+  ],
+  [
+    "Los bestand · JSON-patch",
+    "Individual file · JSON patch"
+  ],
+  [
+    "RetroRoom JSON v1 · maximaal 4 MB",
+    "RetroRoom JSON v1 · 4 MB max"
+  ],
+  [
+    "IPS of BPS · maximaal 32 MB",
+    "IPS or BPS · 32 MB max"
+  ],
+  [
+    "Los bestand, bijvoorbeeld .exe, .com of .dat · maximaal 32 MB",
+    "Individual file, e.g. .exe, .com, or .dat · 32 MB max"
+  ],
+  [
+    "Uitgepakte ROM · maximaal 8 MB (exclusief eventuele SNES-kopieerheader)",
+    "Extracted ROM · 8 MB max (excluding any SNES copier header)"
+  ],
+  [
+    "Geannuleerd. Kies je bestand opnieuw om verder te gaan.",
+    "Canceled. Select your file again to continue."
+  ],
+  [
+    "Tweede speler op dit apparaat —",
+    "Second player on this device —"
+  ],
+  [
+    "Volledig toetsenbord, inclusief Ctrl/Alt/Shift, F1–F12 en numeriek toetsenblok.",
+    "Full keyboard, including Ctrl/Alt/Shift, F1–F12, and numeric keypad."
+  ],
+  [
+    "Het toetsenbord en de muis zijn gedeeld. Een tweede lokale controller gebruikt profiel 2.",
+    "The keyboard and mouse are shared. A second local controller uses profile 2."
+  ],
+  [
+    "Klik in het beeld voor het toetsenbord. DOS-menu: Alt+Shift+M · toetsverdeling, beurten en Escape.",
+    "Click the screen to enable keyboard input. DOS menu: Alt+Shift+M · split keys, take turns, and Escape."
+  ],
+  [
+    "· Besturing instellen via ⚙",
+    "· Configure controls via ⚙"
+  ],
+  [
+    "Automatisch opgeslagen in deze browser, apart voor NES, SNES en DOS.",
+    "Automatically saved in this browser, separately for NES, SNES, and DOS."
+  ],
+  [
+    "Opslaan is geblokkeerd in deze browser. Je instellingen werken tot je deze pagina sluit.",
+    "Saving is blocked in this browser. Your settings will work until you close the page."
+  ],
+  [
+    "Kies een knop om opnieuw in te stellen.",
+    "Select a button to remap."
+  ],
+  [
+    "Opgeslagen. Een bestaande koppeling aan dezelfde knop is verplaatst.",
+    "Saved. A previous binding for that button was moved."
+  ],
+  [
+    "DOS-toets voor",
+    "DOS key for"
+  ],
+  [
+    "Niet ingesteld",
+    "Not set"
+  ],
+  [
+    "Wachten op invoer…",
+    "Waiting for input…"
+  ],
+  [
+    "Geen controller · alleen toetsenbord",
+    "No controller · keyboard only"
+  ],
+  [
+    "Jouw eigen besturing: speler 1 als host of solo, speler 2 als je online meespeelt.",
+    "Your controls: player 1 when hosting or solo, player 2 when joining online."
+  ],
+  [
+    "Alleen voor een tweede speler op dit apparaat tijdens solo. Online stelt je vriend zijn eigen besturing in.",
+    "Only for a second player on this device in solo mode. Online, your friend configures their own controls."
+  ],
+  [
+    "Deze controller wordt door het andere lokale profiel gebruikt. Kies een andere controller.",
+    "This controller is used by the other local profile. Choose a different one."
+  ],
+  [
+    "Controller uitgeschakeld voor dit profiel. Je toetsenbord blijft beschikbaar.",
+    "Controller disabled for this profile. Your keyboard remains available."
+  ],
+  [
+    "Geen controller voor dit profiel. Sluit er een aan en druk op een knop om hem te herkennen.",
+    "No controller for this profile. Connect one and press a button to detect it."
+  ],
+  [
+    "Standaardinstellingen hersteld voor dit profiel en deze console.",
+    "Defaults restored for this profile and console."
+  ],
+  [
+    "Instellen geannuleerd.",
+    "Setup canceled."
+  ],
+  [
+    "Sluit een USB- of Bluetooth-controller aan en druk op een knop. Stel hem in via Besturing.",
+    "Connect a USB or Bluetooth controller and press a button. Configure it under Controls."
+  ],
+  [
+    "Geen vervangende toets",
+    "No replacement key"
+  ],
+  [
+    "Besturing teruggeven aan speler 1",
+    "Return control to player 1"
+  ],
+  [
+    "Wijziging wordt toegepast… ·",
+    "Applying change… ·"
+  ],
+  [
+    "Wordt op hetzelfde invoerframe bij beide spelers toegepast.",
+    "Applied on the same input frame for both players."
+  ],
+  [
+    "Alleen de actieve speler bedient toetsenbord, muis en controller. De toetsverdeling geldt weer zodra de host Samen bedienen kiest.",
+    "Only the active player controls the keyboard, mouse, and controller. The key split applies again when the host selects Shared controls."
+  ],
+  [
+    "Klik op toetsen om ze voor speler 1 te reserveren of weer te delen. Dit kan tijdens het spelen; klikken hier drukt geen gametoets in.",
+    "Click keys to reserve them for player 1 or share them again. You can do this during gameplay; clicking here does not press a game key."
+  ],
+  [
+    "Rode toetsen zijn gereserveerd voor speler 1. Je kunt deze ook niet via controllerkoppelingen gebruiken. Alleen de host wijzigt de verdeling.",
+    "Red keys are reserved for player 1. They cannot be used through controller bindings either. Only the host can change the split."
+  ],
+  [
+    "gereserveerd voor speler 1",
+    "reserved for player 1"
+  ],
+  [
+    "geblokkeerd voor speler 2",
+    "blocked for player 2"
+  ],
+  [
+    "Muis loslaten",
+    "Release mouse"
+  ],
+  [
+    "Muis vangen",
+    "Capture mouse"
+  ],
+  [
+    "Muis vangen is niet beschikbaar. Klik in het beeld om de muis binnen het gamescherm te gebruiken.",
+    "Mouse capture is unavailable. Click the screen to use the mouse inside the game screen."
+  ],
+  [
+    "ingedrukt",
+    "pressed"
+  ],
+  [
+    "niet ingedrukt",
+    "not pressed"
+  ],
+  [
+    "Kamer verlaten",
+    "Leave room"
+  ],
+  [
+    "Speel mee →",
+    "Join game →"
   ]
 ]);
