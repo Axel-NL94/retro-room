@@ -26,7 +26,7 @@ export function createGamePatcher({onOpen=()=>{}}={}) {
     if(system==='snes'&&!/\.(sfc|smc)$/i.test(file.name))throw new Error('Kies een uitgepakte .sfc- of .smc-ROM.');
     if(system==='dos'&&/\.(zip|dosz|7z|rar)$/i.test(file.name))throw new Error('Pak de DOS-game eerst uit. Kies het losse bestand dat de JSON-patch wijzigt, bijvoorbeeld GAME.EXE.');
     if(patchFile){
-      if(!(system==='dos'?/\.json$/i:/\.(ips|bps)$/i).test(patchFile.name))throw new Error(system==='dos'?'Kies een .json-patch in het RetroRoom-formaat.':'Kies een .ips- of .bps-patch.');
+      if(!(system==='dos'?/\.json$/i:/\.(ips|bps)$/i).test(patchFile.name))throw new Error(system==='dos'?'Kies een ondersteund .json-patchbestand.':'Kies een .ips- of .bps-patch.');
       if(!patchFile.size||patchFile.size>(system==='dos'?MAX_JSON_PATCH_BYTES:MAX_PATCH_BYTES))throw new Error('De patch is leeg of te groot.');
     }
   }
@@ -48,7 +48,7 @@ export function createGamePatcher({onOpen=()=>{}}={}) {
         const link=$('patch-download');link.href=downloadUrl;link.download=patchedFilename(file.name,system,strip.checked);
         $('patch-result-details').textContent=`${link.download} · ${result.size.toLocaleString('nl-NL')} bytes\nCRC32: ${result.crc32}\nSHA-256: ${result.sha256}`;
         $('patch-result').hidden=false;
-        status(result.verified?'Klaar. Origineel en resultaat gecontroleerd.':'Klaar. IPS controleert de ROM-versie niet; test zelf of de hack goed werkt.');
+        status(system==='dos'?'Klaar. Er is geen controle uitgevoerd op de DOS-bestandsversie of inhoud.':result.verified?'Klaar. Origineel en resultaat gecontroleerd.':'Klaar. IPS controleert de ROM-versie niet; test zelf of de hack goed werkt.');
       }else status('Origineel gelezen. Kies je patch en klik op Patch toepassen.');
     }catch(error){if(ticket===generation&&error.name!=='AbortError')status(error.message,true);}
     finally{if(ticket===generation){busy=false;job=null;updateButtons();}}
@@ -69,7 +69,7 @@ export function createGamePatcher({onOpen=()=>{}}={}) {
       source.accept=value==='nes'?'.nes':value==='snes'?'.sfc,.smc':'';
       patch.accept=value==='dos'?'.json':'.ips,.bps';
       $('patch-source-label').textContent=value==='dos'?'1. Jouw originele DOS-bestand':'1. Jouw originele ROM';
-      $('patch-format-note').textContent=value==='dos'?'RetroRoom JSON v1 · maximaal 4 MB':'IPS of BPS · maximaal 32 MB';
+      $('patch-format-note').textContent=value==='dos'?'JSON · maximaal 4 MB':'IPS of BPS · maximaal 32 MB';
       $('patch-source-note').textContent=value==='dos'?'Los bestand, bijvoorbeeld .exe, .com of .dat · maximaal 32 MB':'Uitgepakte ROM · maximaal 8 MB (exclusief eventuele SNES-kopieerheader)';
       $('patch-snes-options').hidden=value!=='snes';strip.disabled=true;
       $('patch-dos-note').hidden=value!=='dos';$('patch-rom-note').hidden=value==='dos';

@@ -2446,5 +2446,65 @@ export const messages = new Map([
   [
     "Bij het laden van de emulator is iets misgegaan.",
     "Something went wrong while loading the emulator."
+  ],
+  [
+    "Gebruik een losse .exe, .com of ander gamebestand. Ondersteund: RetroRoomBinaryPatch v1 en hocus-coop-copy-patch-1, ook met bestandsgroei. Voor DOS worden de bestandsversie, oorspronkelijke bytes en bron- of resultaathashes niet gecontroleerd. De patcher controleert wel de patchstructuur en bestandsgrenzen. Pak een game-ZIP eerst uit en plaats de gepatchte kopie zelf terug onder de oorspronkelijke bestandsnaam voordat je de complete game opnieuw inpakt.",
+    "Use an extracted .exe, .com, or other game file. Supported: RetroRoomBinaryPatch v1 and hocus-coop-copy-patch-1, including file growth. For DOS, the file version, original bytes, and source or output hashes are not checked. The patcher still validates the patch structure and file boundaries. Extract the game ZIP first, then put the patched copy back under its original filename before creating a new ZIP."
+  ],
+  [
+    "JSON · maximaal 4 MB",
+    "JSON · 4 MB max"
+  ],
+  [
+    "Klaar. Er is geen controle uitgevoerd op de DOS-bestandsversie of inhoud.",
+    "Done. The DOS file version and contents have not been verified."
+  ],
+  [
+    "Kies een ondersteund .json-patchbestand.",
+    "Choose a supported .json patch file."
+  ],
+  [
+    "Kies voor MS-DOS een ondersteunde JSON-patch.",
+    "Choose a supported JSON patch for MS-DOS."
+  ],
+  [
+    "Dit DOS-JSON-formaat wordt niet ondersteund. Gebruik RetroRoomBinaryPatch v1 of hocus-coop-copy-patch-1.",
+    "This DOS JSON format is not supported. Use RetroRoomBinaryPatch v1 or hocus-coop-copy-patch-1."
+  ],
+  [
+    "Deze RetroRoom JSON-patch gebruikt geen ondersteunde versie (verwacht: 1).",
+    "This RetroRoom JSON patch uses an unsupported version (expected: 1)."
+  ],
+  [
+    "De DOS-patch bevat geen geldige lijst met wijzigingen (maximaal 10.000).",
+    "The DOS patch must contain a valid list of edits (10,000 maximum)."
+  ],
+  [
+    "De DOS-kopieerpatch bevat geen geldige lijst met bewerkingen (maximaal 10.000).",
+    "The DOS copy patch must contain a valid list of operations (10,000 maximum)."
+  ],
+  [
+    "Ongeldige DOS-kopieerbewerking. Gebruik copy: [positie, lengte].",
+    "Invalid DOS copy operation. Use copy: [offset, length]."
+  ],
+  [
+    "Een DOS-kopieerbewerking leest buiten het gekozen bestand.",
+    "A DOS copy operation reads beyond the selected file."
+  ],
+  [
+    "Ongeldige Base64-gegevens in de DOS-patch.",
+    "Invalid Base64 data in the DOS patch."
+  ],
+  [
+    "De DOS-patch schrijft meer bytes dan de opgegeven resultaatgrootte.",
+    "The DOS patch writes more bytes than the declared output size."
+  ],
+  [
+    "De DOS-patch levert minder bytes dan de opgegeven resultaatgrootte.",
+    "The DOS patch produces fewer bytes than the declared output size."
+  ],
+  [
+    "Onbekende of dubbelzinnige DOS-patchbewerking.",
+    "Unknown or ambiguous DOS patch operation."
   ]
 ]);

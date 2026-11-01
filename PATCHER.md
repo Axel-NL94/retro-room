@@ -39,13 +39,21 @@ en de [IPS-referentie-implementatie](https://github.com/Sir-Walrus/Flips/blob/ma
 CRC32 is een controle tegen verkeerde/beschadigde bestanden, geen bewijs dat een
 patch veilig of betrouwbaar is.
 
-## MS-DOS: RetroRoomBinaryPatch JSON v1
+## MS-DOS: JSON-patches
 
 Deze eerste versie patcht **één los bestand**, bijvoorbeeld `GAME.EXE`, `GAME.COM`
-of een databestand. Het is een eigen beschreven JSON-formaat voor binaire
-bytevervangingen; het is geen RFC 6902 JSON Patch en ook geen algemeen formaat
-voor bestaande DOS-patches. Een patchmaker moet een passend bestand maken.
+of een databestand. Ondersteund: **RetroRoomBinaryPatch v1** en
+**hocus-coop-copy-patch-1** (onder andere `coop-v0.3.json`). JSON is een verpakking;
+andere JSON-patchformaten, zoals RFC 6902, worden niet automatisch ondersteund.
 ZIP/DOSZ/7z/RAR worden niet in de patcher uitgepakt of opnieuw ingepakt.
+
+Voor DOS controleert de patcher **niet** of de patch bij de gekozen gameversie
+hoort. `source.size`, `source.sha256` en `target.sha256` worden niet afgedwongen;
+oorspronkelijke bytes worden niet met `before` vergeleken. Deze metadata mag ook
+ontbreken. De getoonde CRC32/SHA-256 zijn alleen vingerafdrukken, geen bevestiging
+van compatibiliteit. Het resultaat krijgt geen melding dat inhoud of versie is
+geverifieerd. De patcher controleert wel de structuur, geldige bytes, lees- en
+schrijfgrenzen en de limiet van 32 MiB voor het resultaat.
 
 1. Pak je eigen volledige DOS-game uit.
 2. Selecteer het losse bestand waar de patch bij hoort (maximaal 32 MiB).
@@ -61,33 +69,65 @@ alleen de titel `RETRO ROOM - DOS DUO` door `RETRO ROOM - DOS MOD`.
 De complete oorspronkelijke demo wordt uit [`scripts/demo-dos.js`](scripts/demo-dos.js)
 gebouwd en bevat geen commerciële spelbestanden.
 
-Schema (de hashwaarden hieronder zijn placeholders, geen werkende patch):
+### RetroRoomBinaryPatch v1: bytevervangingen
+
+Dit voorbeeld vervangt twee bytes op positie 16. Het is een schema-voorbeeld;
+het werkt alleen voor bestanden die lang genoeg zijn en een game heeft andere
+wijzigingen nodig om een werkende hack te maken.
 
 ```json
 {
   "format": "RetroRoomBinaryPatch",
   "version": 1,
-  "source": {"size": 1234, "sha256": "64 hextekens van het volledige origineel"},
-  "target": {"sha256": "64 hextekens van het volledige resultaat"},
   "patches": [
     {"offset": 16, "before": "B8 00 00", "after": "B8 01 00"}
   ]
 }
 ```
 
-- `source.size` is de exacte bestandsgrootte in bytes. Beide SHA-256-waarden
-  zijn verplicht en hebben 64 hextekens (hoofdletters of kleine letters).
 - `offset` is een geheel byteadres vanaf **0**, in decimale JSON-notatie.
 - `before` en `after` zijn hexbytes, met optionele witruimte. Ze moeten niet leeg
   zijn en evenveel bytes bevatten. Versie 1 ondersteunt geen invoegen, verwijderen
   of bestandsgrootte wijzigen.
-- Alle `before`-bytes moeten overeenkomen met het oorspronkelijke bestand.
-  Maximaal 10.000 wijzigingen; wijzigingen mogen niet overlappen of buiten het
+- `before` geeft de lengte van de vervanging aan; de inhoud wordt niet met het
+  gekozen bestand vergeleken. Maximaal 10.000 wijzigingen; wijzigingen mogen niet overlappen of buiten het
   bestand vallen. De volgorde van de JSON-items maakt niet uit.
-- Eerst worden het origineel en alle wijzigingen gecontroleerd; pas daarna wordt
-  een kopie aangepast. De SHA-256 van het resultaat moet kloppen vóór de download.
+- Alle wijzigingen moeten een geldige structuur hebben. Alleen een kopie wordt
+  aangepast; het originele bestand blijft intact.
 - Een optionele `description` is alleen toelichting; onbekende velden worden
   genegeerd. Scripts, opdrachten en URL's in JSON worden nooit uitgevoerd.
+
+### hocus-coop-copy-patch-1: kopieerblokken en Base64
+
+Dit formaat bouwt de uitvoer op in de volgorde van `operations` en ondersteunt
+ook grotere of kleinere bestanden. `version`, bijvoorbeeld `"0.3"`, is de
+patchrevisie; de formaatkeuze komt uit `format`.
+
+```json
+{
+  "format": "hocus-coop-copy-patch-1",
+  "version": "0.3",
+  "target": {"size": 5},
+  "operations": [
+    {"copy": [0, 3]},
+    {"data": "ISE="}
+  ]
+}
+```
+
+- `copy: [positie, lengte]` voegt bytes uit het **origineel** toe aan de uitvoer.
+  Positie begint bij 0; lengte is een positief geheel getal. Het bereik moet in
+  het gekozen bestand liggen. Een blok kan meerdere keren worden gekopieerd.
+- `data` voegt Base64-gecodeerde bytes toe. Gebruik standaard Base64 met de
+  gebruikelijke `=`-opvulling, zonder witruimte. Er wordt geen code uitgevoerd.
+- Elke bewerking bevat precies één van `copy` of `data`; maximaal 10.000
+  bewerkingen. De totale uitvoer moet precies `target.size` bytes hebben.
+  `target.size` is verplicht, tussen 1 byte en 32 MiB.
+- `source`, `target.sha256`, `description` en `assembly_sha256` zijn geen
+  controles die deze browserpatcher afdwingt. Assemblagebestanden zijn niet nodig.
+- Met origineel `abc` produceert het voorbeeld `abc!!`. De oorspronkelijke
+  `coop-v0.3.json` kan zonder omzetting worden gekozen. De site bundelt die
+  gebruikerspatch of het originele spelbestand niet.
 
 Gebruik alleen gamebestanden en patches die je mag gebruiken en delen. De patcher
 levert geen commerciële ROMs, BIOS-bestanden, DOS-games of patches daarvoor.
