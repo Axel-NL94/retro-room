@@ -2010,5 +2010,397 @@ export const messages = new Map([
   [
     "Speel mee →",
     "Join game →"
+  ],
+  [
+    "Kies je ROM",
+    "Choose your ROM"
+  ],
+  [
+    "DM Sans en Space Grotesk",
+    "DM Sans and Space Grotesk"
+  ],
+  [
+    "DOS · DOSBOX PURE · BETA",
+    "DOS · DOSBOX PURE · BETA"
+  ],
+  [
+    "Ongeldig bericht van de andere speler.",
+    "Invalid message from the other player."
+  ],
+  [
+    "De andere speler is niet verbonden.",
+    "The other player is not connected."
+  ],
+  [
+    "De verbinding loopt te ver achter.",
+    "The connection has fallen too far behind."
+  ],
+  [
+    "De Mesen-emulator kon niet worden geladen. Vernieuw de pagina.",
+    "Could not load the Mesen emulator. Refresh the page."
+  ],
+  [
+    "Mesen kon niet starten.",
+    "Mesen could not start."
+  ],
+  [
+    "Deze ROM kan niet door Mesen worden geladen.",
+    "Mesen cannot load this ROM."
+  ],
+  [
+    "DOSBox Pure kon niet worden geladen. Vernieuw de pagina.",
+    "Could not load DOSBox Pure. Refresh the page."
+  ],
+  [
+    "Kies een DOS-game als .zip, .dosz, .exe, .com of .bat. Een EXE heeft vaak extra bestanden nodig; gebruik dan een ZIP met de complete game.",
+    "Choose a DOS game as .zip, .dosz, .exe, .com, or .bat. An EXE often requires additional files; use a ZIP containing the complete game."
+  ],
+  [
+    "Een DOS-bestand mag maximaal 32 MB zijn.",
+    "A DOS file must not exceed 32 MB."
+  ],
+  [
+    "Dit is geen geldig DOS-ZIP-bestand.",
+    "This is not a valid DOS ZIP file."
+  ],
+  [
+    "DOSBox Pure kon niet starten.",
+    "DOSBox Pure could not start."
+  ],
+  [
+    "DOSBox Pure kon deze game niet laden.",
+    "DOSBox Pure could not load this game."
+  ],
+  [
+    "DOSBox Pure kon het frame niet uitvoeren.",
+    "DOSBox Pure could not run this frame."
+  ],
+  [
+    "DOSBox Pure kon deze speltoestand niet opslaan.",
+    "DOSBox Pure could not save this game state."
+  ],
+  [
+    "Ongeldige DOS-speltoestand.",
+    "Invalid DOS game state."
+  ],
+  [
+    "DOSBox Pure kon deze speltoestand niet laden.",
+    "DOSBox Pure could not load this game state."
+  ],
+  [
+    "Onbekende speelwijze. Vraag om een nieuwe uitnodigingslink.",
+    "Unknown play mode. Ask for a new invite link."
+  ],
+  [
+    "Ongeldige streamsessie.",
+    "Invalid streaming session."
+  ],
+  [
+    "Ongeldige streamgegevens.",
+    "Invalid stream data."
+  ],
+  [
+    "De streamversies komen niet overeen.",
+    "Streaming versions do not match."
+  ],
+  [
+    "Onbekend streambericht.",
+    "Unknown streaming message."
+  ],
+  [
+    "Ongeldige speltoestand.",
+    "Invalid game state."
+  ],
+  [
+    "Kies een RetroRoom-savestate (.rrstate).",
+    "Choose a RetroRoom save state (.rrstate)."
+  ],
+  [
+    "Deze savestate is beschadigd of onvolledig.",
+    "This save state is corrupted or incomplete."
+  ],
+  [
+    "De savestategegevens zijn niet leesbaar.",
+    "The save state data cannot be read."
+  ],
+  [
+    "Ongeldig savestateformaat.",
+    "Invalid save state format."
+  ],
+  [
+    "Deze savestate hoort bij een andere emulatorversie.",
+    "This save state belongs to a different emulator version."
+  ],
+  [
+    "Deze savestate hoort bij een andere ROM. Laad exact dezelfde game, regio en ROM-hack.",
+    "This save state belongs to a different ROM. Load the exact same game, region, and ROM hack."
+  ],
+  [
+    "Kies een CPU-overclock van 100%, 200%, 300%, 400% of 500%.",
+    "Choose a CPU overclock of 100%, 200%, 300%, 400%, or 500%."
+  ],
+  [
+    "Jullie gebruiken verschillende spelversies. Vernieuw allebei de pagina.",
+    "You are using different game versions. Both players must refresh the page."
+  ],
+  [
+    "Ongeldige gamegegevens van de host.",
+    "Invalid game details from the host."
+  ],
+  [
+    "Deze ROM komt niet overeen met die van de host. Kies dezelfde versie, regio en eventuele ROM-hack. Je bestand wordt niet verstuurd.",
+    "This ROM does not match the host's. Choose the same version, region, and any ROM hack. Your file is not sent."
+  ],
+  [
+    "Ongeldige spelsessie.",
+    "Invalid game session."
+  ],
+  [
+    "Onbekend spelkanaal.",
+    "Unknown game channel."
+  ],
+  [
+    "Ongeldige ROM-controle.",
+    "Invalid ROM verification."
+  ],
+  [
+    "De spelversies komen niet overeen.",
+    "Game versions do not match."
+  ],
+  [
+    "Onbekend spelbericht. Vernieuw allebei de pagina.",
+    "Unknown game message. Both players must refresh the page."
+  ],
+  [
+    "Streamen heeft een directe WebRTC-verbinding nodig. Tailcat ondersteunt geen video of audio.",
+    "Streaming requires a direct WebRTC connection. Tailcat does not support video or audio."
+  ],
+  [
+    "Deze stream kan niet worden gestart.",
+    "This stream cannot be started."
+  ],
+  [
+    "Het gamegeluid is niet beschikbaar voor streamen.",
+    "Game audio is not available for streaming."
+  ],
+  [
+    "De videostream kon niet worden gestart.",
+    "The video stream could not start."
+  ],
+  [
+    "De verbinding voor beeld en geluid wordt opgezet…",
+    "Setting up the video and audio connection…"
+  ],
+  [
+    "De mediaverbinding kon niet op tijd worden opgezet. Verbind opnieuw of probeer een ander netwerk. Tailcat kan de videostream niet overnemen.",
+    "The media connection timed out. Reconnect or try another network. Tailcat cannot carry the video stream."
+  ],
+  [
+    "De verbinding voor beeld en geluid is mislukt. Verlaat de kamer en verbind opnieuw.",
+    "The video and audio connection failed. Leave the room and reconnect."
+  ],
+  [
+    "De stream is gesloten. Verlaat de kamer en verbind opnieuw.",
+    "The stream has closed. Leave the room and reconnect."
+  ],
+  [
+    "Verbonden. Wachten op het eerste gamebeeld en geluid…",
+    "Connected. Waiting for the first game video and audio…"
+  ],
+  [
+    "De mediaverbinding is verbonden, maar het eerste beeld en geluid komen niet binnen. Klik op het gamescherm of probeer opnieuw.",
+    "The media connection is established, but the first video and audio have not arrived. Click the game screen or try again."
+  ],
+  [
+    "Beeld en geluid zijn tijdelijk onderbroken. Verbinding herstellen…",
+    "Video and audio were interrupted. Reconnecting…"
+  ],
+  [
+    "De mediaverbinding kon niet worden hersteld. Verbind opnieuw met de uitnodigingslink.",
+    "The media connection could not be restored. Reconnect using the invite link."
+  ],
+  [
+    "De WebRTC-stream is weggevallen. Verbind opnieuw met de uitnodigingslink.",
+    "The WebRTC stream dropped. Reconnect using the invite link."
+  ],
+  [
+    "Beeld en geluid zijn verbonden.",
+    "Video and audio are connected."
+  ],
+  [
+    "Dit is geen geldig IPS-bestand. Kies .ips of .bps, geen IPS32.",
+    "This is not a valid IPS file. Choose .ips or .bps, not IPS32."
+  ],
+  [
+    "Ongeldige gegevens na het IPS-einde.",
+    "Invalid data after the end of the IPS file."
+  ],
+  [
+    "Een IPS-herhaalblok mag niet leeg zijn.",
+    "An IPS repeat block must not be empty."
+  ],
+  [
+    "Dit is geen geldig BPS-bestand.",
+    "This is not a valid BPS file."
+  ],
+  [
+    "De BPS-patch is beschadigd: de patchcontrole klopt niet.",
+    "The BPS patch is corrupted: patch checksum mismatch."
+  ],
+  [
+    "Ongeldig getal in de BPS-patch.",
+    "Invalid number in the BPS patch."
+  ],
+  [
+    "Deze BPS-patch hoort bij een andere ROM-versie. Controleer regio, revisie en bij SNES de 512-byte kopieerheader.",
+    "This BPS patch is for a different ROM version. Check the region, revision, and for SNES the 512-byte copier header."
+  ],
+  [
+    "Een BPS-blok schrijft buiten het resultaat.",
+    "A BPS block writes outside the output."
+  ],
+  [
+    "Een BPS-blok leest buiten de originele ROM.",
+    "A BPS block reads outside the original ROM."
+  ],
+  [
+    "Een BPS-kopie leest buiten de originele ROM.",
+    "A BPS copy reads outside the original ROM."
+  ],
+  [
+    "Een BPS-kopie verwijst naar nog niet geschreven gegevens.",
+    "A BPS copy refers to data not yet written."
+  ],
+  [
+    "De BPS-patch bevat ongebruikte of ongeldige blokken.",
+    "The BPS patch contains unused or invalid blocks."
+  ],
+  [
+    "De BPS-resultaatcontrole klopt niet. Er wordt geen bestand aangeboden.",
+    "The BPS output checksum does not match. No file will be offered."
+  ],
+  [
+    "DOS-patchbytes moeten als hexadecimale tekst worden opgegeven.",
+    "DOS patch bytes must be specified as hexadecimal text."
+  ],
+  [
+    "Ongeldige hexadecimale bytes in de DOS-patch.",
+    "Invalid hexadecimal bytes in the DOS patch."
+  ],
+  [
+    "De JSON-patch is geen geldig UTF-8 JSON-bestand.",
+    "The JSON patch is not a valid UTF-8 JSON file."
+  ],
+  [
+    "Gebruik het RetroRoomBinaryPatch JSON-formaat versie 1. Bekijk het DOS-voorbeeld.",
+    "Use RetroRoomBinaryPatch JSON format version 1. See the DOS example."
+  ],
+  [
+    "Deze DOS-patch hoort bij een ander origineel bestand. De grootte of SHA-256 komt niet overeen.",
+    "This DOS patch belongs to a different original file. File size or SHA-256 does not match."
+  ],
+  [
+    "Een DOS-patchpositie moet een positief geheel byteadres zijn, beginnend bij 0.",
+    "A DOS patch offset must be a nonnegative integer byte address starting at 0."
+  ],
+  [
+    "DOS-wijzigingen moeten evenveel bytes vervangen en binnen het originele bestand blijven.",
+    "DOS edits must replace the same number of bytes and stay within the original file."
+  ],
+  [
+    "DOS-patchwijzigingen mogen elkaar niet overlappen.",
+    "DOS patch edits must not overlap."
+  ],
+  [
+    "Kies eerst NES, SNES of MS-DOS.",
+    "Choose NES, SNES, or MS-DOS first."
+  ],
+  [
+    "Het originele bestand",
+    "The original file"
+  ],
+  [
+    "Kies een NES-ROM met een geldige NES-header.",
+    "Choose an NES ROM with a valid NES header."
+  ],
+  [
+    "Kies een uitgepakte SNES-ROM (.sfc of .smc).",
+    "Choose an extracted SNES ROM (.sfc or .smc)."
+  ],
+  [
+    "Deze SNES-ROM heeft geen herkenbare 512-byte kopieerheader.",
+    "This SNES ROM has no recognizable 512-byte copier header."
+  ],
+  [
+    "Alleen SNES kan een kopieerheader hebben.",
+    "Only SNES ROMs can have a copier header."
+  ],
+  [
+    "Kies voor MS-DOS een RetroRoom JSON-patch.",
+    "Choose a RetroRoom JSON patch for MS-DOS."
+  ],
+  [
+    "Kies voor NES/SNES een IPS- of BPS-patch.",
+    "Choose an IPS or BPS patch for NES/SNES."
+  ],
+  [
+    "De DOS-resultaatcontrole klopt niet. Controleer het JSON-patchbestand.",
+    "The DOS output checksum doesn't match. Check the JSON patch file."
+  ],
+  [
+    "Ongeldige DOS-toetsverdeling.",
+    "Invalid DOS key split."
+  ],
+  [
+    "Verouderde DOS-toetsverdeling.",
+    "Outdated DOS key split."
+  ],
+  [
+    "Ongeldige spelinvoer ontvangen.",
+    "Invalid game input received."
+  ],
+  [
+    "Tegenstrijdige invoer voor hetzelfde frame.",
+    "Conflicting input for the same frame."
+  ],
+  [
+    "Verbinding te ver achtergeraakt. Start samen opnieuw.",
+    "Connection fell too far behind. Restart together."
+  ],
+  [
+    "Shift links",
+    "Left Shift"
+  ],
+  [
+    "Shift rechts",
+    "Right Shift"
+  ],
+  [
+    "Ctrl links",
+    "Left Ctrl"
+  ],
+  [
+    "Ctrl rechts",
+    "Right Ctrl"
+  ],
+  [
+    "Alt links",
+    "Left Alt"
+  ],
+  [
+    "Alt rechts",
+    "Right Alt"
+  ],
+  [
+    "Muis links",
+    "Left mouse button"
+  ],
+  [
+    "Muis rechts",
+    "Right mouse button"
+  ],
+  [
+    "Muis midden",
+    "Middle mouse button"
   ]
 ]);
