@@ -10,6 +10,7 @@ import { romHash } from './emulator.js';
 import { RollbackSession, NETPLAY_VERSION } from './rollback.js';
 import { InviteConnection, PeerConnection, parseInvitation } from './connection.js';
 import { AudioSink } from './audio.js';
+import {GenesisCore,GENESIS_BUILD} from './genesis.js';
 import { MesenCore, MESEN_BUILD, cartridgeSystem, validateOverclock } from './mesen.js';
 import { DosCore, DOS_BUILD, DOS_NETPLAY_AVAILABLE, MAX_DOS_FILE } from './dos.js';
 import { encodeSavestate, decodeSavestate, savestateFilename, MAX_SAVESTATE_FILE } from './savestate.js';
@@ -39,9 +40,10 @@ let dosPolicy=defaultDosPolicy(),dosAppliedPolicy=dosPolicy,dosFilter=new DosPol
 let dosEscapeKey=readSetting('dos-escape-key')||'';
 if(!DOS_KEYS[dosEscapeKey]||/^(Escape|Shift|Control|Alt|Meta|CapsLock|NumLock|ScrollLock)/.test(dosEscapeKey))dosEscapeKey='';
 const streamVideo = $('stream-video');
-const coreClass = system => system === 'dos' ? DosCore : MesenCore;
-const coreBuild = system => system === 'dos' ? DOS_BUILD : MESEN_BUILD;
-const consoleBadge = system => system === 'dos' ? 'DOS · DOSBOX PURE · BETA' : system.toUpperCase() + ' · MESEN · ALPHA';
+const coreClass = system => system === 'dos' ? DosCore : system === 'md' ? GenesisCore : MesenCore;
+const coreBuild = system => system === 'dos' ? DOS_BUILD : system === 'md' ? GENESIS_BUILD : MESEN_BUILD;
+const systemName=system=>system==='md'?'Mega Drive':system.toUpperCase();
+const consoleBadge = system => system === 'dos' ? 'DOS · DOSBOX PURE · BETA' : system === 'md' ? 'MEGA DRIVE · GENESIS PLUS GX · BETA' : system.toUpperCase() + ' · MESEN · ALPHA';
 streamVideo.volume = 0.65;
 function isStreamGuest() { return playStyle === 'stream' && !isHost; }
 function focusGame() { (isStreamGuest() ? streamVideo : $('game')).focus(); }
@@ -53,7 +55,7 @@ function closeGameStream() {
 }
 const checks = new Map(), pressed = new Set(), touched = new Set();
 const controls = createControls({ pressed, touched, release: releaseButtons,
-  currentSystem: () => game?.system || selectedSystem || 'nes',
+  currentSystem: () => game?.system || expectedGame?.system || selectedSystem || 'nes',
   localCoop: () => mode === 'solo'
 });
 
@@ -143,7 +145,11 @@ function showRoom() {
   $('console-badge').textContent = consoleBadge(game.system);
   $('dos-controls-guide').hidden = game.system !== 'dos';
   $('game').setAttribute('aria-label', `${game.system.toUpperCase()}-gamescherm`);
-  $('snes-touch').hidden = game.system !== 'snes';
+  $('snes-touch').hidden = !['snes','md'].includes(game.system);
+  for(const button of document.querySelectorAll('#console-touch-controls [data-pad]')) {
+    const bit=Number(button.dataset.pad);
+    if([2,8,9,10,11].includes(bit))button.textContent=game.system==='md'?({2:'Mode',8:'C',9:'X',10:'Y',11:'Z'})[bit]:({2:'Select',8:'X',9:'Y',10:'L',11:'R'})[bit];
+  }
   $('console-touch-controls').hidden=game.system==='dos';
   $('dos-session-controls').hidden=game.system!=='dos';
   $('play-panel').dataset.dos=String(game.system==='dos');
@@ -183,8 +189,8 @@ function draw(frame, width = 256, height = 240) {
 }
 async function loadGame(bytes, name, demo = false, system = 'nes', overclock = 100, isCurrent = () => true) {
   validateOverclock(overclock);
-  if (!['nes', 'snes', 'dos'].includes(system)) throw new Error('Dit systeem wordt nog niet ondersteund.');
-  cartridgeSystem(bytes, system === 'dos' ? name : system === 'snes' ? 'game.sfc' : 'game.nes');
+  if (!['nes', 'snes', 'md', 'dos'].includes(system)) throw new Error('Dit systeem wordt nog niet ondersteund.');
+  cartridgeSystem(bytes, system === 'dos' ? name : system === 'md' ? 'game.md' : system === 'snes' ? 'game.sfc' : 'game.nes');
   const next = await coreClass(system).create({ onFrame: draw, onAudio: (l, r) => audio.push(l, r) });
   const hash = await romHash(bytes);
   if (!isCurrent()) { next.destroy?.(); return false; }
@@ -200,9 +206,9 @@ async function loadGame(bytes, name, demo = false, system = 'nes', overclock = 1
   return true;
 }
 async function demoData(system = 'nes') {
-  const response = await fetch(new URL(system === 'dos' ? '../assets/dos-duo.com' : '../assets/room-rally.nes', import.meta.url));
+  const response = await fetch(new URL(system === 'dos' ? '../assets/dos-duo.com' : system === 'md' ? '../assets/mega-duo.md' : '../assets/room-rally.nes', import.meta.url));
   if (!response.ok) throw new Error('De demo kon niet worden geladen.');
-  return { bytes: new Uint8Array(await response.arrayBuffer()), name: system === 'dos' ? 'DOS Duo.com' : 'Room Rally', demo: true, system };
+  return { bytes: new Uint8Array(await response.arrayBuffer()), name: system === 'dos' ? 'DOS Duo.com' : system === 'md' ? 'Mega Duo' : 'Room Rally', demo: true, system };
 }
 async function enableAudio() {
   try { await audio.enable(); updateAudio(); }
@@ -216,13 +222,13 @@ function updateAudio() {
 }
 function updateActions() {
   dosMenu.update();
-  $('overclock-description').textContent = game?.system === 'dos' ? 'DOS: 100% is 3000 CPU-cycles; 500% is 15000. Een hoger CPU-budget kan een DOS-game versnellen. Compatibiliteit verschilt per spel.' : 'Meer CPU-tijd per frame kan slowdown in ROM-hacks verminderen. De game blijft op normale snelheid. Hogere waarden vragen meer van je apparaat en kunnen gamebugs veroorzaken.';
+  $('overclock-description').textContent = game?.system === 'dos' ? 'DOS: 100% is 3000 CPU-cycles; 500% is 15000. Een hoger CPU-budget kan een DOS-game versnellen. Compatibiliteit verschilt per spel.' : game?.system === 'md' ? 'Mega Drive overclockt de 68000 CPU. De instelling wordt na 100 opstartframes actief; hogere waarden kunnen gamebugs veroorzaken.' : 'Meer CPU-tijd per frame kan slowdown in ROM-hacks verminderen. De game blijft op normale snelheid. Hogere waarden vragen meer van je apparaat en kunnen gamebugs veroorzaken.';
   playbackClock.setRunning((!!core || isStreamGuest() && streamReady) && ['solo', 'online'].includes(mode));
   const connected = peer?.opened && peer?.control?.readyState === 'open';
   $('guest-rom-card').hidden = isHost || !expectedGame;
   $('guest-rom-file').disabled = guestLoading || localReady || mode === 'online' || mode === 'paused';
   $('guest-demo-button').hidden = !expectedGame?.demo;
-  $('guest-demo-button').textContent = expectedGame?.system === 'dos' ? 'Gebruik DOS Duo-demo' : 'Gebruik Room Rally-demo';
+  $('guest-demo-button').textContent = expectedGame?.system === 'dos' ? 'Gebruik DOS Duo-demo' : expectedGame?.system === 'md' ? 'Gebruik Mega Duo-demo' : 'Gebruik Room Rally-demo';
   $('guest-demo-button').disabled = $('guest-rom-file').disabled;
   $('room-overclock').value = String(game?.overclock ?? expectedGame?.overclock ?? 100);
   $('room-overclock').disabled = !game || !isHost || !!peer || !!invites.connection || stateBusy;
@@ -347,11 +353,11 @@ function requireLocalRom(message) {
   }
   expectedGame = config; game = null; core = null; localReady = false;
   $('guest-rom-file').value = '';
-  $('guest-rom-file').accept = config.system === 'dos' ? '.zip,.dosz,.com,.exe,.bat' : config.system === 'snes' ? '.sfc,.smc' : '.nes';
-  $('guest-file-description').textContent = config.system === 'dos' ? '.zip / .dosz / .com / .exe / .bat · maximaal 32 MB · geen bestandsoverdracht' : config.system === 'snes' ? '.sfc / .smc · maximaal 8 MB · geen bestandsoverdracht' : '.nes · maximaal 8 MB · geen bestandsoverdracht';
+  $('guest-rom-file').accept = config.system === 'dos' ? '.zip,.dosz,.com,.exe,.bat' : config.system === 'md' ? '.md,.bin,.gen' : config.system === 'snes' ? '.sfc,.smc' : '.nes';
+  $('guest-file-description').textContent = config.system === 'dos' ? '.zip / .dosz / .com / .exe / .bat · maximaal 32 MB · geen bestandsoverdracht' : config.system === 'md' ? '.md / .bin / .gen · maximaal 8 MB · geen bestandsoverdracht' : config.system === 'snes' ? '.sfc / .smc · maximaal 8 MB · geen bestandsoverdracht' : '.nes · maximaal 8 MB · geen bestandsoverdracht';
   $('game-title').textContent = config.name;
   $('console-badge').textContent = consoleBadge(config.system);
-  $('guest-rom-note').textContent = `Kies jouw ${config.system.toUpperCase()}-ROM voor ${config.name}. De versie, regio en eventuele hack moeten overeenkomen.`;
+  $('guest-rom-note').textContent = `Kies jouw ${systemName(config.system)}-ROM voor ${config.name}. De versie, regio en eventuele hack moeten overeenkomen.`;
   $('guest-rom-status').textContent = 'Er wordt geen ROM van de host ontvangen. Jouw bestand blijft op dit apparaat.';
   $('room-message').textContent = 'Kies je eigen ROM. Daarna controleren we of jullie hetzelfde bestand gebruiken.';
   $('room-status').textContent = 'Eigen ROM kiezen';
@@ -668,21 +674,21 @@ function openCreate(current = false, type = 'room') {
   setLaunchBusy(false); $('create-dialog').showModal();
 }
 function chooseConsole(system) {
-  if (!['nes', 'snes', 'dos'].includes(system) || launchBusy) return;
+  if (!['nes', 'snes', 'md', 'dos'].includes(system) || launchBusy) return;
   launchGeneration++; selectedSystem = system; pickedGame = null; $('rom-file').value = '';
   useCurrentGame = currentGameRequested && game?.system === system;
   if(system==='dos'&&launchMode!=='solo')document.querySelector('input[name="playMode"][value="stream"]').checked=true;
   $('console-picker').hidden = true; $('launch-fields').hidden = false;
   $('launch-heading').textContent = launchMode === 'solo' ? 'Jouw game. Jouw tempo.' : 'Maak het gezellig.';
-  $('launch-intro').textContent = `Je kiest ${system.toUpperCase()}. Laad je eigen ${system === 'dos' ? 'gamebestanden' : 'ROM'} en stel de emulator in.`;
-  $('host-overclock-note').textContent = system === 'dos' ? 'DOS gebruikt 3000 CPU-cycles bij 100%, tot 15000 bij 500%. De juiste snelheid verschilt per game; hoger kan het spel versnellen.' : '100% is standaard. Meer CPU-tijd kan slowdown verminderen en vraagt meer van je apparaat. Niet iedere game werkt goed met overclocking.';
-  $('launch-console').textContent = system === 'dos' ? 'DOS · EXPERIMENTEEL' : system === 'snes' ? 'SNES · BETA' : 'NES';
-  $('rom-file').accept = system === 'dos' ? '.zip,.dosz,.exe,.com,.bat' : system === 'nes' ? '.nes' : '.sfc,.smc';
-  $('file-name').textContent = system === 'dos' ? 'Kies je DOS-game' : `Kies je ${system.toUpperCase()}-ROM`;
-  $('rom-file-hint').textContent = system === 'dos' ? 'Complete game als ZIP, of .exe / .com / .bat · maximaal 32 MB · blijft lokaal' : (system === 'nes' ? '.nes' : '.sfc / .smc') + ' · maximaal 8 MB · blijft op jouw apparaat';
+  $('launch-intro').textContent = `Je kiest ${systemName(system)}. Laad je eigen ${system === 'dos' ? 'gamebestanden' : 'ROM'} en stel de emulator in.`;
+  $('host-overclock-note').textContent = system === 'dos' ? 'DOS gebruikt 3000 CPU-cycles bij 100%, tot 15000 bij 500%. De juiste snelheid verschilt per game; hoger kan het spel versnellen.'  : system === 'md' ? 'Mega Drive overclockt de 68000 CPU. De instelling wordt na 100 opstartframes actief; hogere waarden kunnen gamebugs veroorzaken.' : '100% is standaard. Meer CPU-tijd kan slowdown verminderen en vraagt meer van je apparaat. Niet iedere game werkt goed met overclocking.';
+  $('launch-console').textContent = system === 'dos' ? 'DOS · EXPERIMENTEEL' : system === 'md' ? 'MEGA DRIVE · BETA' : system === 'snes' ? 'SNES · BETA' : 'NES';
+  $('rom-file').accept = system === 'dos' ? '.zip,.dosz,.exe,.com,.bat' : system === 'nes' ? '.nes' : system === 'md' ? '.md,.bin,.gen' : '.sfc,.smc';
+  $('file-name').textContent = system === 'dos' ? 'Kies je DOS-game' : `Kies je ${systemName(system)}-ROM`;
+  $('rom-file-hint').textContent = system === 'dos' ? 'Complete game als ZIP, of .exe / .com / .bat · maximaal 32 MB · blijft lokaal' : (system === 'nes' ? '.nes' : system === 'md' ? '.md / .bin / .gen' : '.sfc / .smc') + ' · maximaal 8 MB · blijft op jouw apparaat';
   updatePlayModeChoice();
   $('choose-demo').hidden = system === 'snes';
-  $('choose-demo').textContent = system === 'dos' ? 'Of probeer DOS Duo, onze eigen DOS-demo ↗' : 'Of gebruik Room Rally, onze eigen demo ↗';
+  $('choose-demo').textContent = system === 'dos' ? 'Of probeer DOS Duo, onze eigen DOS-demo ↗' : system === 'md' ? 'Of probeer Mega Duo, onze eigen Mega Drive-demo ↗' : 'Of gebruik Room Rally, onze eigen demo ↗';
   $('game-picker').hidden = useCurrentGame;
   $('current-game-note').hidden = !useCurrentGame; $('create-error').textContent = '';
 }
@@ -728,12 +734,12 @@ $('reconnect-button').onclick = () => invites.connect().then(() => toast('Uitnod
 $('rom-file').onchange = async () => {
   try {
     const file = $('rom-file').files[0]; if (!file) return;
-    if (file.size > (selectedSystem === 'dos' ? MAX_DOS_FILE : 8 * 1024 * 1024)) throw new Error('Dit gamebestand is te groot. DOS: maximaal 32 MB; NES/SNES: maximaal 8 MB.');
+    if (file.size > (selectedSystem === 'dos' ? MAX_DOS_FILE : 8 * 1024 * 1024)) throw new Error('Dit gamebestand is te groot. DOS: maximaal 32 MB; NES/SNES/Mega Drive: maximaal 8 MB.');
     const generation = launchGeneration;
     const bytes = new Uint8Array(await file.arrayBuffer()); const system = cartridgeSystem(bytes, file.name);
     if (generation !== launchGeneration) return;
-    if (system !== selectedSystem) throw new Error(`Dit is een ${system.toUpperCase()}-ROM. Kies een ${selectedSystem.toUpperCase()}-ROM of ga terug naar de consolekeuze.`);
-    pickedGame = { bytes, name: file.name.replace(/\.(nes|sfc|smc)$/i, '').slice(0,80), demo: false, system };
+    if (system !== selectedSystem) throw new Error(`Dit is een ${systemName(system)}-ROM. Kies een ${systemName(selectedSystem)}-ROM of ga terug naar de consolekeuze.`);
+    pickedGame = { bytes, name: file.name.replace(/\.(nes|sfc|smc|md|bin|gen)$/i, '').slice(0,80), demo: false, system };
     $('file-name').textContent = file.name; $('create-error').textContent = '';
   } catch (error) { pickedGame = null; report(error); }
 };
@@ -749,7 +755,7 @@ $('guest-demo-button').onclick = async () => {
   catch (error) { $('guest-rom-status').textContent = error.message; report(error); }
 };
 $('choose-demo').onclick = async () => {
-  try { const generation = launchGeneration, system = selectedSystem; const demo = await demoData(system); if (generation !== launchGeneration || selectedSystem !== system) return; pickedGame = demo; $('file-name').textContent = system === 'dos' ? 'DOS Duo · originele DOS-demo' : 'Room Rally · originele NES-demo'; $('rom-file').value = ''; $('create-error').textContent = ''; }
+  try { const generation = launchGeneration, system = selectedSystem; const demo = await demoData(system); if (generation !== launchGeneration || selectedSystem !== system) return; pickedGame = demo; $('file-name').textContent = system === 'dos' ? 'DOS Duo · originele DOS-demo' : system === 'md' ? 'Mega Duo · originele Mega Drive-demo' : 'Room Rally · originele NES-demo'; $('rom-file').value = ''; $('create-error').textContent = ''; }
   catch (error) { report(error); }
 };
 $('create-form').onsubmit = async event => {
@@ -758,8 +764,8 @@ $('create-form').onsubmit = async event => {
   const generation = launchGeneration, type = launchMode;
   const isCurrent = () => generation === launchGeneration && $('create-dialog').open;
   try {
-    if (!selectedSystem) throw new Error('Kies eerst NES, SNES of DOS.');
-    if (!useCurrentGame && !pickedGame) throw new Error(`Kies eerst een ${selectedSystem.toUpperCase()}-ROM${selectedSystem === 'nes' ? ' of gebruik onze demo' : ''}.`);
+    if (!selectedSystem) throw new Error('Kies eerst NES, SNES, Mega Drive of DOS.');
+    if (!useCurrentGame && !pickedGame) throw new Error(`Kies eerst een ${systemName(selectedSystem)}-ROM${selectedSystem === 'nes' ? ' of gebruik onze demo' : ''}.`);
     const values = new FormData(event.target), selected = useCurrentGame ? game : pickedGame;
     if (selected.system !== selectedSystem) throw new Error('De ROM hoort niet bij de gekozen console.');
     setLaunchBusy(true);

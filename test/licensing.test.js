@@ -103,3 +103,19 @@ test('Tailcat source kit retains every declared module, complete notices, and of
   assert.ok(files.has('tailcat/vendor/gvisor.dev/gvisor/LICENSE'));
   assert.ok(files.has('tailcat/vendor/github.com/tailscale/wireguard-go/LICENSE'));
 });
+
+test('Genesis Plus GX remains separate, with complete matching source and non-commercial/LGPL notices',async()=>{
+  const meta=JSON.parse(await readFile(root+'web/assets/genesis-build.json','utf8'));
+  const files=unpack(await readFile(root+'web/assets/'+meta.sourceArchive));
+  assert.equal(meta.license,'LicenseRef-Genesis-Plus-GX-NonCommercial');assert.equal(meta.bridgeLicense,'MIT');assert.equal(meta.separateProgram,true);
+  assert.equal(meta.sourceFiles,files.size);assert.ok(meta.sourceLicenseBlocks>=200);
+  const notices=await readFile(root+'web/GENESIS-NOTICES.txt','utf8');
+  const upstream=files.get('genesis-plus-gx/LICENSE.txt').toString();assert.ok(notices.includes(upstream));
+  for(const text of ['Redistributions may not be sold','GNU LESSER GENERAL PUBLIC LICENSE','GNU GENERAL PUBLIC LICENSE','Charles MacDonald','Eke-Eke','Shay Green'])assert.ok(notices.includes(text),text);
+  for(const name of ['native/genesis-web.c','native/GENESIS.md','native/GPL-2.0.txt','scripts/build-genesis.py','scripts/package-genesis-source.py','scripts/demo-genesis.js','web/src/genesis.js','web/src/genesis-rom.js','web/GENESIS-NOTICES.txt','test/genesis.test.js'])assert.deepEqual(files.get('retro-room/'+name),await readFile(root+name),name);
+  for(const file of meta.modifiedUpstreamFiles)assert.match(files.get('genesis-plus-gx/'+file).toString(),/RetroRoom (modification|addition), 2026-11-01/);
+  for(const file of ['core/sound/blip_buf.c','core/sound/blip_buf.h','libretro/libretro-common/streams/file_stream.c','libretro/deps/zlib-1.2.11/inflate.c','core/sound/tremor/COPYING'])assert.ok(files.has('genesis-plus-gx/'+file));
+  const bridge=files.get('retro-room/native/genesis-web.c').toString();assert.match(bridge,/SPDX-License-Identifier: MIT/);assert.doesNotMatch(bridge,/#include.*(?:mesen|dosbox|retroarch)/i);
+  const recipe=files.get('retro-room/scripts/build-genesis.py').toString();assert.doesNotMatch(recipe,/-DHAVE_YM3438_CORE|-DUSE_LIBCHDR/);
+  assert.match(await readFile(root+'web/licenses.html','utf8'),/GENESIS-NOTICES\.txt/);
+});

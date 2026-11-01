@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Oude games. Samen opnieuw. Browser NES en SNES met eigen ROMs en rollback of WebRTC-beeld en geluid.",
+  "description": "RetroRoom: NES, SNES, Mega Drive and MS-DOS in the browser with local ROMs, rollback or WebRTC streaming.",
   "engines": {
     "node": ">=22"
   },
@@ -20,5 +20,5 @@
     "peerjs": "1.5.5",
     "ws": "8.22.0"
   },
-  "license": "GPL-3.0-only"
+  "license": "SEE LICENSE IN LICENSING.md"
 }

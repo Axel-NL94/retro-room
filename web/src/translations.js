@@ -2556,3 +2556,178 @@ export const messages = new Map([
     "Your DOS progress has been loaded."
   ]
 ]);
+
+// Mega Drive integration and separate license scope.
+for (const [nl,en] of [
+  [
+    "Kies NES, SNES, Mega Drive of DOS, stel met het tandwiel de speelwijze in en laad je ROM. Houd als host de kamer open.",
+    "Choose NES, SNES, Mega Drive, or DOS, set the play mode using the gear, and load your ROM. As host, keep the room open."
+  ],
+  [
+    "Samen spelen via uitnodigingslinks, met Mesen voor NES/SNES, Genesis Plus GX voor Mega Drive en DOSBox Pure voor DOS.",
+    "Play together via invite links, powered by Mesen for NES/SNES, Genesis Plus GX for Mega Drive, and DOSBox Pure for DOS."
+  ],
+  [
+    "Mesen · NES · SNES (beta) · Mega Drive / Genesis Plus GX (beta) · DOSBox Pure (beta: solo, streamen en experimentele invoerbuffer) · uitnodigingslinks · controle van eigen ROMs · lokale savestates · lokale emulatie · rollback · WebRTC-streamen · toetsenbord en gamepad",
+    "Mesen · NES · SNES (beta) · Mega Drive / Genesis Plus GX (beta) · DOSBox Pure (beta: solo, streaming, experimental input buffering) · invite links · local ROM checks · local save states · local emulation · rollback · WebRTC streaming · keyboard and gamepad"
+  ],
+  [
+    "Meer Sega-systemen en onderzoek naar PlayStation. Iedere console krijgt een eigen geteste emulatorintegratie.",
+    "More Sega systems and PlayStation research. Each console will get its own tested emulator integration."
+  ],
+  [
+    "Room Rally en DOS Duo zijn originele demos. Bij samen emuleren heeft ieder een eigen ROM nodig; bij streamen alleen de host. De bestanden blijven in tijdelijk browsergeheugen op het eigen apparaat. Netplay ondersteunt twee spelers; SNES en Mega Drive zijn beta en compatibiliteit verschilt per game.",
+    "Room Rally and DOS Duo are original demos. With shared emulation, each player needs their own ROM; with streaming, only the host does. Files stay in temporary browser memory on each device. Netplay supports two players; SNES and Mega Drive are in beta and compatibility varies by game."
+  ],
+  [
+    "MesenCE: © 2014–2026 Sour en MesenCE contributors. DOSBox Pure: © DOSBox Team, Bernhard Schelling en individuele auteurs; upstream GPL-2.0-or-later. De Mesen- en DOSBox Pure-distributies vallen onder GNU GPLv3 en wordt geleverd zonder garantie, voor zover wettelijk toegestaan. Je mag de software wijzigen en verder verspreiden volgens de licentie.",
+    "MesenCE: © 2014–2026 Sour and MesenCE contributors. DOSBox Pure: © DOSBox Team, Bernhard Schelling and individual authors; upstream GPL-2.0-or-later. This emulator distribution is under GNU GPLv3 and provided without warranty to the extent permitted by law. You may modify and redistribute it under the license."
+  ],
+  [
+    "Dit gamebestand is te groot. DOS: maximaal 32 MB; NES/SNES/Mega Drive: maximaal 8 MB.",
+    "This game file is too large. DOS: 32 MB max; NES/SNES/Mega Drive: 8 MB max."
+  ],
+  [
+    "Kies eerst NES, SNES, Mega Drive of DOS.",
+    "Choose NES, SNES, Mega Drive, or DOS first."
+  ],
+  [
+    "Automatisch opgeslagen in deze browser, apart voor NES, SNES, Mega Drive en DOS.",
+    "Automatically saved in this browser, separately for NES, SNES, Mega Drive, and DOS."
+  ],
+  [
+    "Kies eerst NES, SNES, Mega Drive of MS-DOS.",
+    "Choose NES, SNES, Mega Drive, or MS-DOS first."
+  ],
+  [
+    "Kies voor NES/SNES/Mega Drive een IPS- of BPS-patch.",
+    "Choose an IPS or BPS patch for NES/SNES/Mega Drive."
+  ],
+  [
+    "SOFTWARELICENTIES · BIJGEWERKT OP 1 NOVEMBER 2026",
+    "SOFTWARE LICENSES · UPDATED NOVEMBER 1, 2026"
+  ],
+  [
+    "RetroRoom gebruikt MesenCE, Genesis Plus GX, DOSBox Pure en andere software met afzonderlijke licenties. Hieronder staan de auteurs, de voorwaarden en de broncode van deze versie.",
+    "RetroRoom uses MesenCE, Genesis Plus GX, DOSBox Pure, and other software with separate licenses. The authors, terms, and source code for this version are listed below."
+  ],
+  [
+    "Genesis Plus GX — Mega Drive",
+    "Genesis Plus GX — Mega Drive"
+  ],
+  [
+    "Genesis Plus GX is een afzonderlijk emulatorprogramma met een niet-commerciële licentie. Het mag niet worden verkocht of gebruikt in een commercieel product of activiteit. De GPL- en MIT-vermeldingen voor andere onderdelen gelden niet voor deze core.",
+    "Genesis Plus GX is a separate emulator program with a non-commercial license. It must not be sold or used in a commercial product or activity. The GPL and MIT grants for other components do not cover this core."
+  ],
+  [
+    "Copyright © 1998–2003 Charles MacDonald; © 2007–2026 Eke-Eke; delen © Nicola Salmoria en het MAME-team, plus de individuele auteurs in de broncode. Onze nieuwe browserbridge en Mega Duo-demo zijn eigen MIT-code. Er wordt geen GPL-code uit Mesen, DOSBox of de RetroArch-frontend in deze WebAssembly-module meegebouwd.",
+    "Copyright © 1998–2003 Charles MacDonald; © 2007–2026 Eke-Eke; portions © Nicola Salmoria and the MAME team, plus individual source authors. Our new browser bridge and Mega Duo demo are original MIT code. No GPL code from Mesen, DOSBox, or the RetroArch frontend is linked into this WebAssembly module."
+  ],
+  [
+    "De volledige bijbehorende broncode bevat de aangepaste upstreambestanden, afhankelijkheden, browserbridge en bouwrecepten. De LGPL-2.1-or-later-bibliotheek blip_buf behoudt haar eigen voorwaarden; de broncode maakt wijzigen en opnieuw linken mogelijk. Reverse engineering voor het debuggen van zulke wijzigingen is toegestaan. De niet-commerciële beperking van Genesis Plus GX blijft gelden.",
+    "The complete corresponding source includes the modified upstream files, dependencies, browser bridge, and build recipes. The LGPL-2.1-or-later blip_buf library retains its own terms; the source permits modification and relinking. Reverse engineering for debugging those modifications is permitted. The Genesis Plus GX non-commercial restriction still applies."
+  ],
+  [
+    "Afzonderlijk niet-commercieel programma. Eigen MIT-bridge, LGPL blip_buf en oorspronkelijke componentvoorwaarden; zie de afzonderlijke Genesis Plus GX-sectie hierboven.",
+    "Separate non-commercial program. Original MIT bridge, LGPL blip_buf, and original component terms; see the Genesis Plus GX section above."
+  ],
+  [
+    "Genesis Plus GX-auteurs en volledige licenties",
+    "Genesis Plus GX authors and complete licenses"
+  ],
+  [
+    "Genesis Plus GX-broncode en browserbridge ↓",
+    "Genesis Plus GX source code and browser bridge ↓"
+  ],
+  [
+    "Mega Drive-buildmetadata",
+    "Mega Drive build metadata"
+  ],
+  [
+    "Mega Drive gebruikt Genesis Plus GX, © Charles MacDonald, Eke-Eke en individuele auteurs, onder een niet-commerciële licentie. De volledige bijbehorende broncode, voorwaarden en vermeldingen staan op de licentiepagina. Dit onderdeel valt niet onder GPLv3.",
+    "Mega Drive uses Genesis Plus GX, © Charles MacDonald, Eke-Eke, and individual authors, under a non-commercial license. Complete corresponding source, terms, and notices are available on the licenses page. This component is not licensed under GPLv3."
+  ],
+  [
+    "Mega Drive kiezen",
+    "Select Mega Drive"
+  ],
+  [
+    "Gebruik Mega Duo-demo",
+    "Use Mega Duo demo"
+  ],
+  [
+    "Mega Duo · originele Mega Drive-demo",
+    "Mega Duo · original Mega Drive demo"
+  ],
+  [
+    "Of probeer Mega Duo, onze eigen Mega Drive-demo ↗",
+    "Or try Mega Duo, our own Mega Drive demo ↗"
+  ],
+  [
+    ".md / .bin / .gen · maximaal 8 MB · geen bestandsoverdracht",
+    ".md / .bin / .gen · 8 MB max · no file transfer"
+  ],
+  [
+    ".md / .bin / .gen · maximaal 8 MB · blijft op jouw apparaat",
+    ".md / .bin / .gen · 8 MB max · stays on your device"
+  ],
+  [
+    "Mega Drive overclockt de 68000 CPU. De instelling wordt na 100 opstartframes actief; hogere waarden kunnen gamebugs veroorzaken.",
+    "Mega Drive overclocks the 68000 CPU. The setting takes effect after 100 startup frames; higher values may cause game bugs."
+  ],
+  [
+    "De Mega Drive-emulator kon niet worden geladen. Vernieuw de pagina.",
+    "The Mega Drive emulator could not be loaded. Refresh the page."
+  ],
+  [
+    "Genesis Plus GX kon niet starten.",
+    "Genesis Plus GX could not start."
+  ],
+  [
+    "Genesis Plus GX kon deze ROM niet laden.",
+    "Genesis Plus GX could not load this ROM."
+  ],
+  [
+    "Genesis Plus GX kon het frame niet uitvoeren.",
+    "Genesis Plus GX could not execute the frame."
+  ],
+  [
+    "Genesis Plus GX kon de speltoestand niet bewaren.",
+    "Genesis Plus GX could not save the game state."
+  ],
+  [
+    "Genesis Plus GX kon de speltoestand niet herstellen.",
+    "Genesis Plus GX could not restore the game state."
+  ],
+  [
+    "Ongeldige Mega Drive-speltoestand.",
+    "Invalid Mega Drive game state."
+  ],
+  [
+    "Niet genoeg geheugen voor deze Mega Drive-ROM.",
+    "Not enough memory for this Mega Drive ROM."
+  ],
+  [
+    "Kies een uitgepakte Mega Drive-ROM (.md, .bin of .gen) van maximaal 8 MB.",
+    "Choose an extracted Mega Drive ROM (.md, .bin, or .gen) of up to 8 MB."
+  ],
+  [
+    "Geen geldige Mega Drive-header. Gebruik een gewone .md-, .bin- of .gen-ROM; geen SMD, 32X of Mega-CD.",
+    "No valid Mega Drive header. Use a standard .md, .bin, or .gen ROM; no SMD, 32X, or Mega-CD."
+  ],
+  [
+    "Deze Mega Drive-emulator ondersteunt nog geen 32X-ROMs.",
+    "This Mega Drive emulator does not support 32X ROMs yet."
+  ],
+  [
+    "Het startadres van deze Mega Drive-ROM is ongeldig.",
+    "This Mega Drive ROM has an invalid start address."
+  ]
+]) messages.set(nl,en);
+
+messages.set('Lokaal · solo','Local · solo');
+messages.set('SOLO · LOKAAL','SOLO · LOCAL');
+messages.set('MD-gamescherm','Mega Drive game screen');
+
+messages.set('Automatisch · controller 1','Automatic · controller 1');
+messages.set('Automatisch · controller 2','Automatic · controller 2');

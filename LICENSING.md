@@ -142,3 +142,37 @@ de softwarelicenties. Zie `native/TAILCAT.md` en `web/assets/tailcat-build.json`
 Het downloadbare `tailcat-source.tar.gz` bevat upstream, alle daadwerkelijk meegebouwde
 afhankelijkheidsbronnen/embedded assets, behouden notices en een offline bouwinstructie.
 De bouwstap controleert dat deze bronnen exact dezelfde Wasm produceren.
+
+
+## Independent Genesis Plus GX addition (2026-11-01)
+
+The Mega Drive program is Genesis Plus GX at
+`f27655b592ef43f317272d79883bcaa10d3ac8ad`, under its custom **non-commercial**
+license. Copyright Charles MacDonald, Eke-Eke, Nicola Salmoria/MAME team and
+individual source authors. This component is **not** covered by the GPL/MIT
+license selections above. There is no permission here for commercial use of GX.
+The MIT RetroRoom UI loads it as an independent Wasm program, with a newly
+written MIT bridge; no Mesen, DOSBox or RetroArch GPL frontend/core implementation
+is linked into it. The application source download collects separately licensed
+programs; inclusion together does not relicense the non-commercial program.
+
+`web/GENESIS-NOTICES.txt` retains the complete upstream license and all source
+notice blocks, plus complete LGPL-2.1/GPLv2 and existing compiler/runtime notices.
+`web/assets/genesis-source.tar.gz` provides full matching core/libretro sources,
+all dated modifications, MIT bridge, actual build recipes and documentation.
+`native/GENESIS.md` describes exact source/build scope and independent rebuilding.
+`genesis-build.json` pins source, loader, Wasm and notice hashes; ordinary builds
+check all four. The two modified upstream files retain their original notices.
+
+Compiled blip_buf is LGPL-2.1-or-later. Full library source and source of the work
+using it are supplied to permit modification and relinking, with no prohibition
+on reverse engineering for debugging those modifications. This does not remove
+GX's non-commercial restriction. Optional Nuked OPN2/OPLL and CHD are disabled;
+the retained source archive includes their separate grants as well. Compiler and
+runtime notices remain in THIRD-PARTY-NOTICES.txt. Mega Duo is original MIT
+homebrew from scripts/demo-genesis.js; no commercial ROM or BIOS is supplied.
+
+Any future commercial use (including possible advertising/sponsorship/business
+integration) needs a new license assessment and, where necessary, permission
+from the relevant rightsholders. A free website is not by itself proof of
+non-commercial use. Emulator licensing does not establish rights to games.

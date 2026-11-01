@@ -1,6 +1,6 @@
 # RetroRoom
 
-**Oude games. Samen opnieuw.** NES en SNES samen spelen in de browser via
+**Oude games. Samen opnieuw.** NES, SNES, Mega Drive en DOS samen spelen in de browser via
 uitnodigingslinks. De site wordt handmatig gepubliceerd op https://axel-nl94.github.io/retro-room/. De bron staat op https://github.com/Axel-NL94/retro-room.
 
 De emulator is **MesenCE**, een moderne Mesen-core die naar WebAssembly is
@@ -23,7 +23,7 @@ ROMs of BIOS-bestanden inbegrepen.
 ## Samen spelen
 
 1. Kies **Maak een kamer**. Gebruik het **tandwiel** om de speelwijze te kiezen,
-   kies NES of SNES en selecteer je ROM, of gebruik de NES-demo.
+   kies NES, SNES of Mega Drive en selecteer je ROM, of gebruik de NES-demo.
 2. Deel de uitnodigingslink en houd de kamer open. De speelwijze staat nu vast.
 3. De gast opent de link, vult een naam in en kiest **Speel mee**.
 4. Bij samen emuleren kiest de gast hetzelfde lokale bestand onder **Jouw ROM**.
@@ -70,7 +70,7 @@ verbindingsinformatie staan als kleine tekstlinks onderaan de pagina.
   lokaal bewaard en geldt voor fullscreen. Schermvullend toont uitsluitend de game,
   ook bij muisbeweging of pauzeren; verlaat die stand met Escape of de browserbediening.
   Bij originele verhouding verschijnt de bediening bij muisbeweging, aanraken of toetsenbordfocus.
-- **Speel solo** en **Maak een kamer** beginnen met NES- en SNES-consoletegels.
+- **Speel solo** en **Maak een kamer** beginnen met NES-, SNES-, Mega Drive- en DOS-consoletegels.
   Kies daarna je eigen ROM en CPU-instelling. Alleen NES heeft een meegeleverde demo.
 - In solo kun je een savestate downloaden als `.rrstate` en later importeren.
   Gebruik daarvoor dezelfde ROM, coreversie en CPU-instelling. Importeren controleert
@@ -311,3 +311,33 @@ De synchronisatieproeven en beperkingen staan in [DOS-NETPLAY.md](DOS-NETPLAY.md
 
 DOS-toetsverdeling tijdens het spelen, beurten doorgeven en fullscreen-Escape:
 [DOS-CONTROLS.md](DOS-CONTROLS.md).
+
+
+## Mega Drive / Genesis Plus GX (beta, 2026-11-01)
+
+De volgorde bij solo en kamer maken is **NES → SNES → Mega Drive → DOS**.
+Genesis Plus GX is een eigen browsermodule naast Mesen en DOSBox Pure.
+Gebruik een gewone uitgepakte `.md`, `.bin` of `.gen` ROM (maximaal 8 MiB),
+of probeer onze originele **Mega Duo**-demo. ZIP, interleaved SMD, 32X en
+Mega-CD worden in deze eerste versie niet aangeboden.
+
+Beschikbaar: solo, twee lokale spelers, apart opgeslagen toetsenbord-/gamepad-
+profielen, zes knoppen A/B/C/X/Y/Z plus Start/Mode, fullscreen, solo savestates,
+IPS/BPS in Game patcher, uitnodigingslinks met eigen ROMs en rollback, en WebRTC
+beeld/geluid van de host. ROMs en savestates worden niet overgedragen.
+Standaard: pijltjes, A/S/D voor A/B/C, F/Q/W voor X/Y/Z, Enter voor Start en
+Shift voor Mode. De tweede lokale speler gebruikt het bestaande tweede profiel.
+
+100–500% overclock past de 68000 aan, na 100 emulatie-opstartframes; de
+videofrequentie blijft gelijk. PAL/NTSC wordt automatisch gekozen. Overclock,
+build en game moeten bij beide netplay-spelers gelijk zijn. Zesknopscontrollers
+zijn vast ingesteld; een game die een drietoetscontroller vereist kan afwijken.
+Savestates hebben dezelfde game/build/CPU nodig; opslag is niet automatisch.
+Losse SRAM-export en andere Sega-systemen zijn nog niet beschikbaar.
+
+**Licentie:** Genesis Plus GX heeft een niet-commerciële licentie, geen GPL/MIT.
+De eigen MIT-browserbridge bouwt GX afzonderlijk, zonder GPL-emulatorcode.
+Broncode en oorspronkelijke voorwaarden worden volledig meegeleverd en zijn op
+de site downloadbaar. Zie [native/GENESIS.md](native/GENESIS.md),
+[LICENSING.md](LICENSING.md) en `web/GENESIS-NOTICES.txt`.
+Geen commerciële games of BIOS-bestanden worden meegeleverd.

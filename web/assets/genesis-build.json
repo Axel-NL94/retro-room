@@ -1,0 +1,21 @@
+{
+  "engine": "Genesis Plus GX",
+  "revision": "f27655b592ef43f317272d79883bcaa10d3ac8ad",
+  "upstream": "https://github.com/libretro/Genesis-Plus-GX",
+  "build": "genesis-plus-gx-f27655b-web-1",
+  "emscripten": "4.0.19",
+  "license": "LicenseRef-Genesis-Plus-GX-NonCommercial",
+  "bridgeLicense": "MIT",
+  "separateProgram": true,
+  "sourceArchive": "genesis-source.tar.gz",
+  "wasmSha256": "4fb8688a6c0342d5d6f53865acd606cd047d67abe7ccc5afde0a4be1edd4bb88",
+  "loaderSha256": "f950271f830b0ec7339e90c92571b51f118c3e6185bd6a5ea0e1d4dfd64a18ed",
+  "sourceSha256": "05c640ca833324d1a82fcd9d97598dfcc529807668d11ef2ac4b805b1bbf1d82",
+  "noticesSha256": "a40cf6e0794403a35306faf445084601ad63cda71ab68eb3026bdf587784a55a",
+  "sourceFiles": 471,
+  "sourceLicenseBlocks": 246,
+  "modifiedUpstreamFiles": [
+    "libretro/libretro.c",
+    "core/input_hw/gamepad.c"
+  ]
+}

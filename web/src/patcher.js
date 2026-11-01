@@ -5,7 +5,7 @@ export function createGamePatcher({onOpen=()=>{}}={}) {
   const $=id=>document.getElementById(id),dialog=$('patcher-dialog');
   const source=$('patch-source-file'),patch=$('patch-file'),strip=$('patch-snes-header');
   let system=null,generation=0,job=null,busy=false,sourceInfo=null,downloadUrl=null;
-  const names={nes:'NES',snes:'SNES',dos:'MS-DOS'};
+  const names={nes:'NES',snes:'SNES',md:'Mega Drive',dos:'MS-DOS'};
   function status(message,error=false){$('patch-status').textContent=message;$('patch-status').classList.toggle('patch-error',error);}
   function clearResult(){
     if(downloadUrl)URL.revokeObjectURL(downloadUrl);downloadUrl=null;
@@ -66,11 +66,11 @@ export function createGamePatcher({onOpen=()=>{}}={}) {
       invalidate();system=value;source.value='';patch.value='';strip.checked=false;
       $('patch-console-picker').hidden=true;$('patch-fields').hidden=false;
       $('patch-system-name').textContent=names[value];
-      source.accept=value==='nes'?'.nes':value==='snes'?'.sfc,.smc':'';
+      source.accept=value==='nes'?'.nes':value==='snes'?'.sfc,.smc':value==='md'?'.md,.bin,.gen':'';
       patch.accept=value==='dos'?'.json':'.ips,.bps';
       $('patch-source-label').textContent=value==='dos'?'1. Jouw originele DOS-bestand':'1. Jouw originele ROM';
       $('patch-format-note').textContent=value==='dos'?'JSON · maximaal 4 MB':'IPS of BPS · maximaal 32 MB';
-      $('patch-source-note').textContent=value==='dos'?'Los bestand, bijvoorbeeld .exe, .com of .dat · maximaal 32 MB':'Uitgepakte ROM · maximaal 8 MB (exclusief eventuele SNES-kopieerheader)';
+      $('patch-source-note').textContent=value==='dos'?'Los bestand, bijvoorbeeld .exe, .com of .dat · maximaal 32 MB':value==='md'?'.md / .bin / .gen · maximaal 8 MB · blijft op jouw apparaat':'Uitgepakte ROM · maximaal 8 MB (exclusief eventuele SNES-kopieerheader)';
       $('patch-snes-options').hidden=value!=='snes';strip.disabled=true;
       $('patch-dos-note').hidden=value!=='dos';$('patch-rom-note').hidden=value==='dos';
       status('Kies je eigen originele bestand en je patch.');$('patch-back').focus();

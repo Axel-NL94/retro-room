@@ -46,6 +46,11 @@ export async function checkLicensing(root) {
   for (const [file, hash] of [['assets/dos-core.wasm', dos.wasmSha256], ['assets/dos-core.mjs', dos.loaderSha256], ['assets/' + dos.sourceArchive, dos.sourceSha256], ['DOS-NOTICES.txt', dos.noticesSha256]]) {
     if (sha256(await readFile(path.join(root, 'web', file))) !== hash) throw new Error('DOS-build, notices en broncode komen niet overeen: ' + file);
   }
+  const genesis = JSON.parse(await readFile(path.join(root, 'web/assets/genesis-build.json'), 'utf8'));
+  if(genesis.license!=='LicenseRef-Genesis-Plus-GX-NonCommercial'||genesis.bridgeLicense!=='MIT'||genesis.separateProgram!==true)throw new Error('Controleer de Genesis Plus GX-licentie opnieuw.');
+  for(const [file,hash] of [['assets/genesis-core.wasm',genesis.wasmSha256],['assets/genesis-core.mjs',genesis.loaderSha256],['assets/'+genesis.sourceArchive,genesis.sourceSha256],['GENESIS-NOTICES.txt',genesis.noticesSha256]]){
+    if(sha256(await readFile(path.join(root,'web',file)))!==hash)throw new Error('Mega Drive-build, notices en broncode komen niet overeen: '+file);
+  }
   const tailcat = JSON.parse(await readFile(path.join(root, 'web/assets/tailcat-build.json'), 'utf8'));
   if (tailcat.revision !== '52fbad323e9d352f1febb623e0975368e9a8cbdd' || tailcat.go !== '1.27.3' || !tailcat.offlineRebuildVerified) throw new Error('Tailcat-build opnieuw controleren.');
   for (const [file, hash] of [['assets/tailcat.wasm.gz', tailcat.wasmGzipSha256], ['vendor/tailcat/wasm_exec.js', tailcat.runtimeSha256], ['assets/' + tailcat.sourceArchive, tailcat.sourceSha256], ['TAILCAT-NOTICES.txt', tailcat.noticesSha256]]) {

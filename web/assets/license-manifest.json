@@ -378,5 +378,16 @@
     "peerjs-js-binarypack": "2.1.0",
     "eventemitter3": "4.0.7"
   },
-  "note": "Embedded versions come from the official PeerJS v1.5.5 lockfile. Original bundled sources are preserved in the complete download. Installed dependency versions can differ."
+  "note": "Embedded versions come from the official PeerJS v1.5.5 lockfile. Original bundled sources are preserved in the complete download. Installed dependency versions can differ.",
+  "separateDistributions": [
+    {
+      "engine": "Genesis Plus GX",
+      "license": "LicenseRef-Genesis-Plus-GX-NonCommercial",
+      "metadata": "genesis-build.json",
+      "notices": "../GENESIS-NOTICES.txt",
+      "source": "genesis-source.tar.gz",
+      "scope": "Separate Mega Drive program; not covered by the Mesen GPL distribution grant."
+    }
+  ],
+  "distributionLicenseScope": "Mesen/DOSBox programs only; Genesis Plus GX is a separately licensed non-commercial program. Original RetroRoom UI remains MIT."
 }

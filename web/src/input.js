@@ -9,13 +9,13 @@ export const ACTIONS = [
   { bit: 10, name: 'L' }, { bit: 11, name: 'R' },
   { bit: 2, name: 'Select' }, { bit: 3, name: 'Start' }
 ];
-export function actionsFor(system) { return ACTIONS.filter(a => system !== 'nes' || a.bit < 8); }
+export function actionsFor(system) { return ACTIONS.filter(a => system !== 'nes' || a.bit < 8).map(a => system === 'md' ? {...a,name:({2:'Mode',8:'C',9:'X',10:'Y',11:'Z'})[a.bit]||a.name} : a); }
 const clone = value => JSON.parse(JSON.stringify(value));
 export function defaultProfile(system, player) {
   const keys = player === 0
     ? ['KeyA', 'KeyS', ['ShiftLeft', 'ShiftRight'], 'Enter', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyD', 'KeyF', 'KeyQ', 'KeyW']
     : ['KeyN', 'KeyM', 'KeyR', 'KeyT', 'KeyI', 'KeyK', 'KeyJ', 'KeyL', 'KeyU', 'KeyO', 'KeyY', 'KeyH'];
-  const indices = system === 'snes' ? [1, 0, 8, 9, 12, 13, 14, 15, 3, 2, 4, 5] : [0, 1, 8, 9, 12, 13, 14, 15, 3, 2, 4, 5];
+  const indices = system === 'md' ? [2,0,8,9,12,13,14,15,1,4,3,5] : system === 'snes' ? [1, 0, 8, 9, 12, 13, 14, 15, 3, 2, 4, 5] : [0, 1, 8, 9, 12, 13, 14, 15, 3, 2, 4, 5];
   return {
     keyboard: keys.map(key => Array.isArray(key) ? [...key] : [key]),
     gamepad: indices.map((index, bit) => {
@@ -27,7 +27,7 @@ export function defaultProfile(system, player) {
   };
 }
 export function defaultSettings() {
-  return { version: 1, nes: [defaultProfile('nes', 0), defaultProfile('nes', 1)], snes: [defaultProfile('snes', 0), defaultProfile('snes', 1)], dos: [defaultProfile('dos', 0), defaultProfile('dos', 1)] };
+  return { version: 1, nes: [defaultProfile('nes', 0), defaultProfile('nes', 1)], snes: [defaultProfile('snes', 0), defaultProfile('snes', 1)], md: [defaultProfile('md', 0), defaultProfile('md', 1)], dos: [defaultProfile('dos', 0), defaultProfile('dos', 1)] };
 }
 export function validKey(code) {
   return typeof code === 'string' && /^(Key[A-Z]|Digit[0-9]|Numpad(?:[0-9]|Add|Subtract|Multiply|Divide|Decimal|Enter)|Arrow(?:Up|Down|Left|Right)|Shift(?:Left|Right)|Enter|Space|Tab|Backspace|CapsLock|BracketLeft|BracketRight|Semicolon|Quote|Comma|Period|Slash|Backslash|Minus|Equal|Backquote|Home|End|PageUp|PageDown|Insert|Delete)$/.test(code);
@@ -41,7 +41,7 @@ export function bindingId(binding) { return `${binding.type}:${binding.index}:${
 export function normalizeSettings(value) {
   const defaults = defaultSettings();
   if (!value || value.version !== 1) return defaults;
-  for (const system of ['nes', 'snes', 'dos']) for (let player = 0; player < 2; player++) {
+  for (const system of ['nes', 'snes', 'md', 'dos']) for (let player = 0; player < 2; player++) {
     const source = value[system]?.[player], target = defaults[system][player];
     if (!source || typeof source !== 'object') continue;
     for (const kind of ['keyboard', 'gamepad']) {

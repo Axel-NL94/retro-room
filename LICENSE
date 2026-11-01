@@ -2,6 +2,9 @@ Scope: the MIT grant below covers original RetroRoom code, artwork and Room Rall
 It does not replace third-party grants. The combined Mesen-based program is
 distributed under GNU GPL version 3; see LICENSING.md and
 web/THIRD-PARTY-NOTICES.txt for the full texts and component-specific notices.
+Genesis Plus GX is a separately licensed non-commercial program, NOT GPL or MIT;
+see web/GENESIS-NOTICES.txt and native/GENESIS.md. The MIT grant below does not
+cover that core or remove its restrictions.
 
 MIT License
 

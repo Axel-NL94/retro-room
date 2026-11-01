@@ -17,7 +17,7 @@ export function createControls({ pressed, touched, release, currentSystem, local
   function guide() {
     const system = currentSystem();
     $('keyboard-guide').textContent = describeKeys(system, 0, [4, 5, 6, 7, 0, 1, 3, 2]);
-    $('snes-controls-guide').textContent = describeKeys(system === 'dos' ? 'dos' : 'snes', 0, [8, 9, 10, 11]);
+    $('snes-controls-guide').textContent = describeKeys(['dos','md'].includes(system) ? system : 'snes', 0, [8, 9, 10, 11]);
     $('snes-controls-guide').hidden = system === 'nes';
     $('solo-controls').textContent = 'Tweede speler op dit apparaat — ' + describeKeys(system, 1, actionsFor(system).map(action => action.bit));
     if(system==='dos'){$('keyboard-guide').textContent='Volledig toetsenbord, inclusief Ctrl/Alt/Shift, F1–F12 en numeriek toetsenblok.';$('snes-controls-guide').hidden=true;$('solo-controls').textContent='Het toetsenbord en de muis zijn gedeeld. Een tweede lokale controller gebruikt profiel 2.';}
@@ -25,7 +25,7 @@ export function createControls({ pressed, touched, release, currentSystem, local
   }
   function persist() {
     const saved = saveSettings(storage, settings);
-    $('controls-storage').textContent = saved ? 'Automatisch opgeslagen in deze browser, apart voor NES, SNES en DOS.' : 'Opslaan is geblokkeerd in deze browser. Je instellingen werken tot je deze pagina sluit.';
+    $('controls-storage').textContent = saved ? 'Automatisch opgeslagen in deze browser, apart voor NES, SNES, Mega Drive en DOS.' : 'Opslaan is geblokkeerd in deze browser. Je instellingen werken tot je deze pagina sluit.';
     guide(); onChange?.();
   }
   function finishCapture(message = 'Kies een knop om opnieuw in te stellen.') {
