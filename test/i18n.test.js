@@ -41,11 +41,17 @@ test('the language switch is loaded on the home and licenses pages', () => {
   assert.ok(messages.size > 550, 'the dictionary must cover the main app, dialogs, and errors');
 });
 
-test('language selector displays flags only, with accessible language choices', () => {
+test('language selector uses real SVG flags instead of emoji or country letters', () => {
   const js = readFileSync(new URL('../web/src/i18n.js', import.meta.url), 'utf8');
   const css = readFileSync(new URL('../web/style.css', import.meta.url), 'utf8');
-  assert.doesNotMatch(js, /language-code/);
-  assert.match(js, /data-select-language="en" aria-label="English" title="English">🇬🇧<\/button>/);
-  assert.match(js, /data-select-language="nl" aria-label="Nederlands" title="Nederlands">🇳🇱<\/button>/);
-  assert.match(css, /\.language-menu button\{display:grid;place-items:center/);
+  assert.doesNotMatch(js, /🇬🇧|🇳🇱|language-code/);
+  assert.match(js, /data-select-language="en" aria-label="English" title="English"><img/);
+  assert.match(js, /data-select-language="nl" aria-label="Nederlands" title="Nederlands"><img/);
+  assert.match(js, /language-flag img/);
+  assert.match(css, /\.language-flag img,\.language-menu img/);
+  for (const name of ['en', 'nl']) {
+    const svg = readFileSync(new URL('../web/assets/flag-' + name + '.svg', import.meta.url), 'utf8');
+    assert.match(svg, /<svg /);
+    assert.match(svg, /<rect /);
+  }
 });
