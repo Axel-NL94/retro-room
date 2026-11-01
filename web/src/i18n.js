@@ -129,11 +129,11 @@ function initLanguageMenu() {
   wrapper.innerHTML = `
     <button type="button" class="language-current" aria-expanded="false" aria-haspopup="true">
       <span class="language-flag" aria-hidden="true"></span>
-      <span class="language-code"></span><span aria-hidden="true">⌄</span>
+      <span class="language-caret" aria-hidden="true">⌄</span>
     </button>
     <div class="language-menu" hidden>
-      <button type="button" data-select-language="en">🇬🇧 English</button>
-      <button type="button" data-select-language="nl">🇳🇱 Nederlands</button>
+      <button type="button" data-select-language="en" aria-label="English" title="English">🇬🇧</button>
+      <button type="button" data-select-language="nl" aria-label="Nederlands" title="Nederlands">🇳🇱</button>
     </div>`;
   const actions = header.querySelector('.topbar-actions');
   if (!actions) header.classList.add('language-header-legal');
@@ -143,7 +143,6 @@ function initLanguageMenu() {
   function close() { menu.hidden = true; toggle.setAttribute('aria-expanded', 'false'); }
   function refresh() {
     wrapper.querySelector('.language-flag').textContent = language === 'en' ? '🇬🇧' : '🇳🇱';
-    wrapper.querySelector('.language-code').textContent = language.toUpperCase();
     toggle.setAttribute('aria-label', language === 'en' ? 'Language: English. Change language' : 'Taal: Nederlands. Taal wijzigen');
     wrapper.querySelectorAll('[data-select-language]').forEach(button => {
       button.setAttribute('aria-pressed', String(button.dataset.selectLanguage === language));
