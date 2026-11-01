@@ -28,7 +28,13 @@ const dynamicTranslations = [
   [/^(.+) niet ingedrukt$/, (_, action) => `${action} not pressed`],
   [/^(.+) ingedrukt$/, (_, action) => `${action} pressed`],
   [/^DOS-toets voor (.+)$/, (_, action) => `DOS key for ${action}`],
-  [/^(NES|SNES|MS-DOS) patcher kiezen$/, (_, system) => `Select ${system} patcher`]
+  [/^(NES|SNES|MS-DOS) patcher kiezen$/, (_, system) => `Select ${system} patcher`],
+  [/^Deze savestate gebruikt (\d+)% CPU\. Kies eerst dezelfde overclockinstelling\.$/, (_, amount) => `This save state uses ${amount}% CPU. Choose the same overclock setting first.`],
+  [/^Het gepatchte bestand moet tussen 1 byte en (\d+) MB blijven\.$/, (_, amount) => `The patched file must be between 1 byte and ${amount} MB.`],
+  [/^De oorspronkelijke DOS-bytes op positie (\d+) komen niet overeen\.$/, (_, offset) => `The original DOS bytes do not match at offset ${offset}.`],
+  [/^Origineel voor patch: (.+?) bytes( · kopieerheader verwijderd)?\nCRC32: (.+?)\nSHA-256: (.+)$/, (_, bytes, header, crc, sha) => `Original for patch: ${bytes} bytes${header ? ' · copier header removed' : ''}\nCRC32: ${crc}\nSHA-256: ${sha}`],
+  [/^Knop (\d+)$/, (_, index) => `Button ${index}`],
+  [/^As (\d+) ([−+])$/, (_, index, direction) => `Axis ${index} ${direction}`]
 ];
 
 export function translate(text) {
@@ -48,7 +54,12 @@ export function translate(text) {
     const label = parts.shift();
     return leading + (messages.get(label) || label) + ' ' + parts.join(' ') + trailing;
   }
-  return text;
+  // Controller guides contain multiple action labels separated by middots.
+  const guide = value
+    .replace(/(^| · )(Omhoog|Omlaag|Links|Rechts)(?=:)/g, (_, prefix, action) => prefix + (messages.get(action) || action))
+    .replace(/\bKnop (\d+)\b/g, (_, index) => `Button ${index}`)
+    .replace(/\bAs (\d+)\b/g, (_, index) => `Axis ${index}`);
+  return guide === value ? text : leading + guide + trailing;
 }
 
 function localizeNode(node) {
@@ -97,7 +108,12 @@ function localizeTree(root) {
 function localizePage() {
   document.documentElement.lang = language;
   localizeTree(document.body);
-  localizeTree(document.querySelector('title'));
+  const title = document.querySelector('title');
+  if (title) localizeTree(title);
+  // Translate only the untouched default room title, never a custom room name.
+  const roomName = document.getElementById('room-title-input');
+  if (roomName && (roomName.value === 'Nog één potje' || roomName.value === 'One more round'))
+    roomName.value = language === 'en' ? 'One more round' : 'Nog één potje';
   const description = document.querySelector('meta[name="description"]');
   if (description) localizeAttributes(description);
 }
@@ -117,7 +133,9 @@ function initLanguageMenu() {
       <button type="button" data-select-language="en">🇬🇧 English</button>
       <button type="button" data-select-language="nl">🇳🇱 Nederlands</button>
     </div>`;
-  (header.querySelector('.topbar-actions') || header).append(wrapper);
+  const actions = header.querySelector('.topbar-actions');
+  if (!actions) header.classList.add('language-header-legal');
+  (actions || header).append(wrapper);
   const toggle = wrapper.querySelector('.language-current');
   const menu = wrapper.querySelector('.language-menu');
   function close() { menu.hidden = true; toggle.setAttribute('aria-expanded', 'false'); }
