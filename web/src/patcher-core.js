@@ -1,6 +1,7 @@
 // Original RetroRoom implementation of the published IPS/BPS formats and
 // RetroRoomBinaryPatch v1. No executable patch code is evaluated.
-export const PATCH_LIMITS = Object.freeze({nes: 8*1024*1024, snes: 8*1024*1024, dos: 32*1024*1024});
+import {validateGenesisRom} from './genesis-rom.js';
+export const PATCH_LIMITS = Object.freeze({nes: 8*1024*1024, snes: 8*1024*1024, md: 8*1024*1024, dos: 32*1024*1024});
 export const MAX_PATCH_BYTES = 32*1024*1024;
 export const MAX_JSON_PATCH_BYTES = 4*1024*1024;
 const crcTable = Uint32Array.from({length:256},(_,i)=>{
@@ -154,9 +155,10 @@ function applyDosJson(source,patch) {
   return bytes;
 }
 export function preparePatchSource(system,source,stripSnesHeader=false) {
-  const limit=PATCH_LIMITS[system];if(!limit)throw new Error('Kies eerst NES, SNES of MS-DOS.');
+  const limit=PATCH_LIMITS[system];if(!limit)throw new Error('Kies eerst NES, SNES, Mega Drive of MS-DOS.');
   byteArray(source,limit+(system==='snes'?512:0),'Het originele bestand');
   if(system==='nes'&&(source.length<16||!magic(source,'NES\x1a')))throw new Error('Kies een NES-ROM met een geldige NES-header.');
+  if(system==='md')validateGenesisRom(source);
   if(system==='snes'){
     if(source.length<32768||![0,512].includes(source.length%1024))throw new Error('Kies een uitgepakte SNES-ROM (.sfc of .smc).');
     if(stripSnesHeader){
@@ -178,7 +180,7 @@ export async function applyGamePatch({system,source,patch,format,stripSnesHeader
     output=applyDosJson(bytes,patch);
   }else if(format==='ips')output=applyIpsPatch(bytes,patch,PATCH_LIMITS[system]);
   else if(format==='bps')output=applyBpsPatch(bytes,patch,PATCH_LIMITS[system]);
-  else throw new Error('Kies voor NES/SNES een IPS- of BPS-patch.');
+  else throw new Error('Kies voor NES/SNES/Mega Drive een IPS- of BPS-patch.');
   const sha256=await sha256Hex(output);
   return {bytes:output,source:sourceInfo,size:output.length,sha256,crc32:crc32Hex(output),format,verified:format==='bps'};
 }

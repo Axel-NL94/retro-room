@@ -3,8 +3,8 @@ import {validateDosInput} from './dos-input.js';
 import { romHash } from './emulator.js';
 import { streamMessage } from './stream-protocol.js';
 
-export const NETPLAY_VERSION = 'retroroom-mesence-4c4e069-dos-sharing-3-tailcat-9';
-export const INVITE_VERSION = 9;
+export const NETPLAY_VERSION = 'retroroom-gx-f27655b-dos-sharing-3-tailcat-10';
+export const INVITE_VERSION = 10;
 export const OVERCLOCK_VALUES = Object.freeze([100, 200, 300, 400, 500]);
 export function validateOverclock(value) {
   if (!OVERCLOCK_VALUES.includes(value)) throw new Error('Kies een CPU-overclock van 100%, 200%, 300%, 400% of 500%.');
@@ -12,7 +12,7 @@ export function validateOverclock(value) {
 }
 export function validateGameConfig(value) {
   if (value?.version !== NETPLAY_VERSION) throw new Error('Jullie gebruiken verschillende spelversies. Vernieuw allebei de pagina.');
-  if (!['nes', 'snes', 'dos'].includes(value.system) || typeof value.name !== 'string' || !value.name.length || value.name.length > 80 ||
+  if (!['nes', 'snes', 'md', 'dos'].includes(value.system) || typeof value.name !== 'string' || !value.name.length || value.name.length > 80 ||
       !Number.isSafeInteger(value.size) || value.size < (value.system === 'dos' ? 1 : 16) || value.size > (value.system === 'dos' ? 32 : 8) * 1024 * 1024 ||
       !/^[a-f0-9]{64}$/.test(value.hash) || typeof value.demo !== 'boolean') throw new Error('Ongeldige gamegegevens van de host.');
   validateOverclock(value.overclock);

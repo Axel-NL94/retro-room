@@ -7,7 +7,7 @@
   "license": "GPL-3.0-only",
   "upstreamLicense": "GPL-2.0-or-later",
   "sourceArchive": "dos-source.tar.gz",
-  "sourceSha256": "d38d0b3fad40c3cb6d0a443f79546b6d36bd503e2d205111a847da2284513cf9",
+  "sourceSha256": "f599dd558c076f25a952e8691bd488d3a0e6abde083321fc9bf70e54b2af0618",
   "loaderSha256": "b2e47693244e23e3972998fa368babcf5f9ed4963b71a169c0248a05efd4388c",
   "wasmSha256": "223b0bdfe63536554c4b4ade059aabc2a25c619fee7c5dc394d39e1eab892b38",
   "noticesSha256": "6737624a5bd00ba0255c1794a51f6f6b2841581bea0efef7536d866817ecdba8",

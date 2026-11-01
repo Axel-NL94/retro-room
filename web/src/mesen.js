@@ -1,3 +1,4 @@
+import {validateGenesisRom} from './genesis-rom.js';
 import createMesen from '../assets/mesen-core.mjs';
 import { validateRom } from './emulator.js';
 export { OVERCLOCK_VALUES, validateOverclock } from './protocol.js';
@@ -88,6 +89,7 @@ export function validateSnesRom(bytes) {
   if (!valid) throw new Error('Er is geen geldige SNES-header gevonden. Kies een uitgepakt .sfc- of .smc-bestand.');
 }
 export function cartridgeSystem(bytes, name) {
+  if (/\.(md|bin|gen|smd|32x)$/i.test(name)) { validateGenesisRom(bytes); return 'md'; }
   if (/\.(zip|dosz|com|exe|bat)$/i.test(name)) { validateDos(bytes, name); return 'dos'; }
   if (bytes[0] === 0x4e && bytes[1] === 0x45 && bytes[2] === 0x53 && bytes[3] === 0x1a) { validateRom(bytes, { alignedBanks: false }); return 'nes'; }
   if (/\.(sfc|smc)$/i.test(name)) { validateSnesRom(bytes); return 'snes'; }

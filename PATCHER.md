@@ -1,6 +1,6 @@
 # Game patcher
 
-Open **Game patcher** rechtsboven op RetroRoom. Kies eerst NES, SNES of MS-DOS,
+Open **Game patcher** rechtsboven op RetroRoom. Kies eerst NES, SNES, Mega Drive of MS-DOS,
 daarna je eigen originele bestand en je eigen patch. Klik op **Patch toepassen**
 en download de gepatchte kopie. Laad die daarna via **Speel solo** of in je kamer.
 Bij samen emuleren maakt iedere speler dezelfde gepatchte kopie op zijn eigen apparaat.
@@ -12,9 +12,10 @@ wanneer je ze zelf opslaat. Sluiten, annuleren of andere bestanden kiezen beëin
 de worker en verwijdert het aangeboden resultaat uit deze patchersessie.
 De patcher start geen programma's en voert geen code uit een patchbestand uit.
 
-## NES en SNES
+## NES, SNES en Mega Drive
 
-- Uitgepakte `.nes` of `.sfc`/`.smc` met een `.ips`- of `.bps`-patch.
+- Uitgepakte `.nes`, `.sfc`/`.smc` of Mega Drive `.md`/`.bin`/`.gen` met een `.ips`- of `.bps`-patch.
+- Mega Drive: gewone big-endian cartridge-ROMs tot 8 MiB; geen interleaved SMD, ZIP, 32X of Mega-CD.
 - Origineel en resultaat maximaal 8 MiB; voor een SNES-origineel mag daar een
   512-byte kopieerheader bovenop komen. Het downloadresultaat blijft maximaal 8 MiB.
   Patches maximaal 32 MiB. IPS32, UPS, xdelta en gecomprimeerde patches worden niet ondersteund.

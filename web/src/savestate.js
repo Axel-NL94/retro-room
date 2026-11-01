@@ -31,7 +31,7 @@ export async function decodeSavestate(bytes, game, build) {
   try { manifest = JSON.parse(decoder.decode(bytes.subarray(magic.length + 4, magic.length + 4 + size))); }
   catch { throw new Error('De savestategegevens zijn niet leesbaar.'); }
   if (!manifest || manifest.format !== 'RetroRoom' || manifest.version !== 1 ||
-      typeof manifest.build !== 'string' || !['nes', 'snes', 'dos'].includes(manifest.system) ||
+      typeof manifest.build !== 'string' || !['nes', 'snes', 'md', 'dos'].includes(manifest.system) ||
       !hashPattern.test(manifest.romHash) || !hashPattern.test(manifest.stateHash) ||
       !Number.isSafeInteger(manifest.stateSize) || manifest.stateSize < 1 || manifest.stateSize > stateLimit(manifest.system)) {
     throw new Error('Ongeldig savestateformaat.');

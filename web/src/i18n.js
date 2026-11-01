@@ -12,15 +12,17 @@ try { language = localStorage.getItem(languageKey) === 'nl' ? 'nl' : 'en'; }
 catch { /* Default to English in private browsing too. */ }
 
 const dynamicTranslations = [
-  [/^Kies jouw (NES|SNES|DOS)-ROM voor (.+)\. De versie, regio en eventuele hack moeten overeenkomen\.$/, (_, system, name) => `Choose your ${system} ROM for ${name}. The version, region, and any hacks must match.`],
-  [/^Je kiest (NES|SNES|DOS)\. Laad je eigen (.+) en stel de emulator in\.$/, (_, system, file) => `You chose ${system}. Load your own ${file === 'gamebestanden' ? 'game files' : 'ROM'} and configure the emulator.`],
-  [/^Kies je (NES|SNES|DOS)-ROM$/, (_, system) => `Choose your ${system} ROM`],
-  [/^Kies eerst een (NES|SNES|DOS)-ROM( of gebruik onze demo)?\.$/, (_, system, demo) => `Choose a ${system} ROM first${demo ? ' or try our demo' : ''}.`],
-  [/^Dit is een (NES|SNES|DOS)-ROM\. Kies een (NES|SNES|DOS)-ROM of ga terug naar de consolekeuze\.$/, (_, found, wanted) => `This is a ${found} ROM. Choose a ${wanted} ROM or go back to console selection.`],
+  [/^Tweede speler op dit apparaat — (.+)$/, (_,guide) => `Second player on this device — ${translate(guide)}`],
+  [/^ (.+) · Besturing instellen via ⚙$/, (_,guide) => `${translate(guide)} · Configure controls via ⚙`],
+  [/^Kies jouw (NES|SNES|Mega Drive|MD|DOS)-ROM voor (.+)\. De versie, regio en eventuele hack moeten overeenkomen\.$/, (_, system, name) => `Choose your ${system} ROM for ${name}. The version, region, and any hacks must match.`],
+  [/^Je kiest (NES|SNES|Mega Drive|MD|DOS)\. Laad je eigen (.+) en stel de emulator in\.$/, (_, system, file) => `You chose ${system}. Load your own ${file === 'gamebestanden' ? 'game files' : 'ROM'} and configure the emulator.`],
+  [/^Kies je (NES|SNES|Mega Drive|MD|DOS)-ROM$/, (_, system) => `Choose your ${system} ROM`],
+  [/^Kies eerst een (NES|SNES|Mega Drive|MD|DOS)-ROM( of gebruik onze demo)?\.$/, (_, system, demo) => `Choose a ${system} ROM first${demo ? ' or try our demo' : ''}.`],
+  [/^Dit is een (NES|SNES|Mega Drive|MD|DOS)-ROM\. Kies een (NES|SNES|Mega Drive|MD|DOS)-ROM of ga terug naar de consolekeuze\.$/, (_, found, wanted) => `This is a ${found} ROM. Choose a ${wanted} ROM or go back to console selection.`],
   [/^(\d+)% CPU-ruimte\. Start de game opnieuw om te spelen\.$/, (_, amount) => `${amount}% CPU time. Restart the game to play.`],
   [/^CPU-overclock: (\d+)%. Speler 2 krijgt automatisch dezelfde instelling\.$/, (_, amount) => `CPU overclock: ${amount}%. Player 2 automatically receives the same setting.`],
   [/^Speler (\d+) heeft de besturing$/, (_, player) => `Player ${player} has control`],
-  [/^Kies een (NES|SNES|DOS)-ROM$/, (_, system) => `Choose a ${system} ROM`],
+  [/^Kies een (NES|SNES|Mega Drive|MD|DOS)-ROM$/, (_, system) => `Choose a ${system} ROM`],
   [/^(\d+) controllers? verbonden\. Kies en test ze bij Besturing\.$/, (_, count) => `${count} controller(s) connected. Select and test them under Controls.`],
   [/^(.+) schuift aan\. Verbinding maken…$/, (_, player) => `${player} is joining. Connecting…`],
   [/^(.+): druk op een toets\. Escape annuleert\.$/, (_, action) => `${action}: press a key. Escape cancels.`],
@@ -28,7 +30,7 @@ const dynamicTranslations = [
   [/^(.+) niet ingedrukt$/, (_, action) => `${action} not pressed`],
   [/^(.+) ingedrukt$/, (_, action) => `${action} pressed`],
   [/^DOS-toets voor (.+)$/, (_, action) => `DOS key for ${action}`],
-  [/^(NES|SNES|MS-DOS) patcher kiezen$/, (_, system) => `Select ${system} patcher`],
+  [/^(NES|SNES|Mega Drive|MS-DOS) patcher kiezen$/, (_, system) => `Select ${system} patcher`],
   [/^Deze savestate gebruikt (\d+)% CPU\. Kies eerst dezelfde overclockinstelling\.$/, (_, amount) => `This save state uses ${amount}% CPU. Choose the same overclock setting first.`],
   [/^Het gepatchte bestand moet tussen 1 byte en (\d+) MB blijven\.$/, (_, amount) => `The patched file must be between 1 byte and ${amount} MB.`],
   [/^De oorspronkelijke DOS-bytes op positie (\d+) komen niet overeen\.$/, (_, offset) => `The original DOS bytes do not match at offset ${offset}.`],
@@ -52,14 +54,15 @@ export function translate(text) {
   if (value.startsWith('Toetsenbord ') || value.startsWith('Controller ')) {
     const parts = value.split(' ');
     const label = parts.shift();
-    return leading + (messages.get(label) || label) + ' ' + parts.join(' ') + trailing;
+    return leading + (messages.get(label) || label) + ' ' + translate(parts.join(' ')) + trailing;
   }
   // Controller guides contain multiple action labels separated by middots.
   const guide = value
     .replace(/(^| · )(Omhoog|Omlaag|Links|Rechts)(?=:)/g, (_, prefix, action) => prefix + (messages.get(action) || action))
     .replace(/\bKnop (\d+)\b/g, (_, index) => `Button ${index}`)
     .replace(/\bAs (\d+)\b/g, (_, index) => `Axis ${index}`);
-  return guide === value ? text : leading + guide + trailing;
+  const labels=guide.replace(/Shift links/g,'Left Shift').replace(/Shift rechts/g,'Right Shift').replace(/Besturing instellen via/g,'Configure controls via');
+  return labels === value ? text : leading + labels + trailing;
 }
 
 function localizeNode(node) {
