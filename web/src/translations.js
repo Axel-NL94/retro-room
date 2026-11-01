@@ -1522,5 +1522,261 @@ export const messages = new Map([
   [
     "Selecteer en kopieer de link in het tekstvak.",
     "Select and copy the link in the text field."
+  ],
+  [
+    "Licenties en broncode — RetroRoom",
+    "Licenses and source code — RetroRoom"
+  ],
+  [
+    "← Terug naar RetroRoom",
+    "← Back to RetroRoom"
+  ],
+  [
+    "OPEN SOURCE · BIJGEWERKT OP 30 OKTOBER 2026",
+    "OPEN SOURCE · UPDATED OCTOBER 30, 2026"
+  ],
+  [
+    "Licenties en broncode.",
+    "Licenses and source code."
+  ],
+  [
+    "RetroRoom gebruikt MesenCE, DOSBox Pure en andere opensourcesoftware. Hieronder staan de auteurs, de toepasselijke licenties en de broncode van deze versie.",
+    "RetroRoom uses MesenCE, DOSBox Pure, and other open-source software. Below you'll find the authors, applicable licenses, and source code for this release."
+  ],
+  [
+    "Jouw rechten op de software",
+    "Your software rights"
+  ],
+  [
+    "De gecombineerde browserapp met de Mesen-emulator wordt verspreid onder de",
+    "The combined browser app with the Mesen emulator is distributed under the"
+  ],
+  [
+    "GNU General Public License, versie 3",
+    "GNU General Public License, version 3"
+  ],
+  [
+    ". Je mag de software gebruiken, bestuderen, wijzigen en verder verspreiden volgens die licentie, met behoud van de vereiste vermeldingen en toegang tot de bijbehorende broncode.",
+    ". You may use, study, modify, and redistribute the software under that license, retaining the required notices and access to the corresponding source code."
+  ],
+  [
+    "DOSBox Pure biedt GPL-2.0-or-later; onze DOS-browserbridge biedt GPL-3.0-or-later. Voor de combinatie kiezen we GPLv3. Ook hierbij zijn de volledige broncode, buildrecepten en oorspronkelijke vermeldingen beschikbaar. Mesen-upstream en onze native browserbridge bieden GPL-3.0-or-later. Voor de gecombineerde distributie gebruiken we GPLv3, omdat de meegebouwde xBRZ-code GPLv3 met een specifieke MAME-uitzondering vermeldt. Die uitzondering geldt alleen voor de door upstream genoemde combinatie met MAME.",
+    "DOSBox Pure is licensed under GPL-2.0-or-later; our DOS browser bridge uses GPL-3.0-or-later. We choose GPLv3 for the combined distribution. The complete source code, build instructions, and original notices are available. Mesen upstream and our native browser bridge use GPL-3.0-or-later. The combined distribution uses GPLv3 because the included xBRZ code specifies GPLv3 with a particular MAME exception. That exception only applies to the MAME combination identified upstream."
+  ],
+  [
+    "Copyright © 2014–2026 Sour; © 2026 MesenCE contributors. De browseraanpassingen, RetroRoom-code, eigen illustraties, Room Rally en DOS Duo zijn van de RetroRoom contributors, © 2026. De oorspronkelijke RetroRoom-bestanden zijn daarnaast afzonderlijk beschikbaar onder MIT; die vermelding maakt Mesen en andere onderdelen niet MIT-gelicentieerd.",
+    "Copyright © 2014–2026 Sour; © 2026 MesenCE contributors. Browser adaptations, RetroRoom code, original illustrations, Room Rally, and DOS Duo are by the RetroRoom contributors, © 2026. Original RetroRoom files are also separately available under MIT; this does not make Mesen or other components MIT-licensed."
+  ],
+  [
+    "Geen garantie:",
+    "No warranty:"
+  ],
+  [
+    "deze software wordt geleverd zoals zij is, zonder garantie, voor zover het toepasselijke recht dat toestaat. De volledige teksten bevatten de precieze rechten, voorwaarden en uitsluitingen.",
+    "This software is provided as-is, without warranty to the extent permitted by applicable law. The complete license texts set out the precise rights, terms, and exclusions."
+  ],
+  [
+    "Volledige licentieteksten en auteursvermeldingen",
+    "Full license texts and copyright notices"
+  ],
+  [
+    "Download de bijbehorende broncode",
+    "Download the corresponding source code"
+  ],
+  [
+    "De downloads zijn gratis beschikbaar op dezelfde site als de emulator, zonder account of aanvraag. Ze horen bij deze gepubliceerde versie en bevatten ook de bouwinstructies en onze wijzigingen.",
+    "The downloads are freely available on the same site as the emulator, without an account or request. They correspond to this published release and also include build instructions and our modifications."
+  ],
+  [
+    "Volledige RetroRoom-broncode ↓",
+    "Complete RetroRoom source code ↓"
+  ],
+  [
+    "Mesen-broncode en browserbridge ↓",
+    "Mesen source code and browser bridge ↓"
+  ],
+  [
+    "DOSBox Pure-broncode en browserbridge ↓",
+    "DOSBox Pure source code and browser bridge ↓"
+  ],
+  [
+    "PeerJS 1.5.5-broncode ↓",
+    "PeerJS 1.5.5 source code ↓"
+  ],
+  [
+    "Het volledige pakket bevat de oorspronkelijke websitebestanden, afhankelijkheidsversies, tests, bouwscripts, de bijbehorende native broncode en de oorspronkelijke bronbestanden uit de gepubliceerde PeerJS-bundel. Algemeen beschikbare bouwgereedschappen zoals Node.js en Emscripten worden afzonderlijk geïnstalleerd. Zie",
+    "The complete package includes original website files, dependency versions, tests, build scripts, corresponding native source code, and original source files from the published PeerJS bundle. General-purpose build tools such as Node.js and Emscripten are installed separately. See"
+  ],
+  [
+    "en",
+    "and"
+  ],
+  [
+    "in het pakket.",
+    "in the package."
+  ],
+  [
+    "Mesen-revisie:",
+    "Mesen revision:"
+  ],
+  [
+    "; Emscripten:",
+    "; Emscripten:"
+  ],
+  [
+    "Controlesommen en bouwmetadata",
+    "Checksums and build metadata"
+  ],
+  [
+    "Licentie-inventaris",
+    "License inventory"
+  ],
+  [
+    "GitHub-repository",
+    "GitHub repository"
+  ],
+  [
+    "Welke onderdelen gebruiken we?",
+    "Which components do we use?"
+  ],
+  [
+    "Onderdeel",
+    "Component"
+  ],
+  [
+    "Licentie en toepassing",
+    "License and usage"
+  ],
+  [
+    "MesenCE en native browserbridge",
+    "MesenCE and native browser bridge"
+  ],
+  [
+    "GPL-3.0-or-later; gecombineerde distributie onder GPLv3. Onze wijzigingen zijn gedateerd beschreven in",
+    "GPL-3.0-or-later; combined distribution under GPLv3. Our modifications are documented with dates in"
+  ],
+  [
+    "en in de aangepaste bronbestanden.",
+    "and in the modified source files."
+  ],
+  [
+    "Mesen-bibliotheken",
+    "Mesen libraries"
+  ],
+  [
+    "Onder meer Lua, LuaSocket, emu2413, Libretro API, de opensourcevervangende boot-ROM-code van LIJI32/SameBoy, ymfm, KISS FFT, libspng/libpng, blip_buf, NTSC/HQX/Scale2x/xBRZ-filters en compressiehulpen. De afzonderlijke MIT-, BSD-, LGPL-, GPL-, zlib- en public-domain-vermeldingen blijven behouden in de volledige notices en broncode.",
+    "Includes Lua, LuaSocket, emu2413, Libretro API, LIJI32/SameBoy open-source replacement boot ROM code, ymfm, KISS FFT, libspng/libpng, blip_buf, NTSC/HQX/Scale2x/xBRZ filters, and compression tools. Separate MIT, BSD, LGPL, GPL, zlib, and public-domain notices are retained in the complete notices and source code."
+  ],
+  [
+    "Copyright DOSBox Team, Bernhard Schelling en de individuele auteurs. GPL-2.0-or-later; deze browserdistributie kiest GPLv3.",
+    "Copyright DOSBox Team, Bernhard Schelling and individual authors. GPL-2.0-or-later; this browser distribution selects GPLv3."
+  ],
+  [
+    "Volledige DOS-auteursvermeldingen en licenties",
+    "Complete DOS copyright notices and licenses"
+  ],
+  [
+    "DOS-buildmetadata",
+    "DOS build metadata"
+  ],
+  [
+    ". Inclusief TinySoundFont, Nuked OPL3, Libretro en MAME-geluidscode; afzonderlijke grants blijven behouden.",
+    ". Includes TinySoundFont, Nuked OPL3, Libretro and MAME audio code; separate license grants are preserved."
+  ],
+  [
+    "MIT. De vooraf gebouwde bundel bevat BinaryPack 2.1.0, EventEmitter3 4.0.7, WebRTC adapter 9.0.1 (BSD-3-Clause) en SDP 3.2.0 (MIT). De bronkaart en oorspronkelijke bronnen worden meegeleverd.",
+    "MIT. The prebuilt bundle includes BinaryPack 2.1.0, EventEmitter3 4.0.7, WebRTC adapter 9.0.1 (BSD-3-Clause), and SDP 3.2.0 (MIT). The source map and original sources are included."
+  ],
+  [
+    "Overige npm-afhankelijkheden",
+    "Other npm dependencies"
+  ],
+  [
+    "De lockfile installeert ook adapter 9.0.6, SDP 3.2.2 en @msgpack/msgpack 2.8.0 (ISC). JSNES 2.1.0 (Apache-2.0) blijft voor regressietests; ws 8.22.0 (MIT) is voor de lokale ontwikkelserver. Ze zijn niet allemaal onderdeel van de actieve browserbundel.",
+    "The lockfile also installs adapter 9.0.6, SDP 3.2.2, and @msgpack/msgpack 2.8.0 (ISC). JSNES 2.1.0 (Apache-2.0) remains for regression tests; ws 8.22.0 (MIT) is used by the local development server. Not all are part of the active browser bundle."
+  ],
+  [
+    "Emscripten- en C/C++-runtime",
+    "Emscripten and C/C++ runtime"
+  ],
+  [
+    "MIT/NCSA, musl-vermeldingen en LLVM Apache-2.0 met LLVM-uitzondering en bewaarde aanvullende notices. Volledige teksten zijn inbegrepen.",
+    "MIT/NCSA, musl notices, and LLVM Apache-2.0 with LLVM exception, plus preserved additional notices. Complete texts are included."
+  ],
+  [
+    "SIL Open Font License 1.1. De ongewijzigde webfonts worden extern via Google Fonts geladen. De auteursvermeldingen en OFL-teksten zijn hier ook beschikbaar.",
+    "SIL Open Font License 1.1. The unchanged web fonts are loaded externally from Google Fonts. Copyright notices and OFL texts are also available here."
+  ],
+  [
+    "Room Rally, websitebeelden en vormgeving",
+    "Room Rally, website illustrations, and design"
+  ],
+  [
+    "Eigen RetroRoom-code, SVG-illustraties en demo onder MIT. Room Rally bevat eigen spelcode en graphics; commerciële ROMs worden niet meegeleverd.",
+    "Original RetroRoom code, SVG illustrations, and demo under MIT. Room Rally contains original game code and graphics; commercial ROMs are not included."
+  ],
+  [
+    "Lees alle oorspronkelijke auteurs-, toestemmings- en garantieteksten.",
+    "Read all original copyright, permission, and warranty notices."
+  ],
+  [
+    "Versienummers van geïnstalleerde dependencies en in een vooraf gebouwde bundel opgenomen code kunnen verschillen; de inventaris onderscheidt ze.",
+    "Versions of installed dependencies and code included in prebuilt bundles may differ; the inventory distinguishes them."
+  ],
+  [
+    "Games, BIOS-bestanden en namen",
+    "Games, BIOS files, and names"
+  ],
+  [
+    "Deze opensourcelicenties geven geen rechten op commerciële games, ROM-hacks, BIOS-bestanden, muziek of merken. Gebruik alleen bestanden en stream alleen gamebeelden waarvoor je voldoende rechten hebt. Een eigen cartridge, lokale ROM-keuze of het ontbreken van ROM-overdracht is op zichzelf geen algemene juridische vrijwaring.",
+    "These open-source licenses do not grant rights to commercial games, ROM hacks, BIOS files, music, or trademarks. Only use files and stream gameplay for which you have sufficient rights. Owning a cartridge, choosing a local ROM, or not transferring ROM files does not by itself provide general legal protection."
+  ],
+  [
+    "RetroRoom verspreidt geen commerciële game-ROMs of propriëtaire console-BIOS-bestanden en biedt daarvoor geen downloadfunctie. De multi-systemcore bevat wel MIT-gelicentieerde opensourcevervangingscode voor Game Boy-opstart-ROMs van LIJI32/SameBoy. Die code heeft een eigen auteurs- en licentievermelding; de website biedt Game Boy niet als speelbare console aan. Bij samen emuleren kiest ieder zijn eigen ROM; bij streamen ontvangt de gast beeld en geluid. Of een bestand, kopie, wijziging of stream is toegestaan, hangt af van de rechten en het toepasselijke recht.",
+    "RetroRoom does not distribute commercial game ROMs or proprietary console BIOS files, and provides no download function for them. The multi-system core does include MIT-licensed open-source replacement Game Boy boot ROM code from LIJI32/SameBoy, with its own copyright and license notices; the website does not offer Game Boy as a playable system. With shared emulation each player chooses their own ROM; with streaming the guest receives video and audio. Whether a file, copy, modification, or stream is permitted depends on the rights involved and applicable law."
+  ],
+  [
+    "RetroRoom is een onafhankelijk project. Namen als Nintendo, NES, SNES, Sega, PlayStation, Mesen en Libretro worden beschrijvend gebruikt. Er wordt geen officiële samenwerking of goedkeuring geclaimd.",
+    "RetroRoom is an independent project. Names including Nintendo, NES, SNES, Sega, PlayStation, Mesen, and Libretro are used descriptively. No official affiliation or endorsement is claimed."
+  ],
+  [
+    "Tailcat-browserfallback",
+    "Tailcat browser fallback"
+  ],
+  [
+    "Tailcat: copyright Tailscale Inc & contributors, BSD-3-Clause. De Go-runtime en geselecteerde afhankelijkheden behouden hun eigen licenties. De volledige vermeldingen en de exact offline herbouwbare broncode zijn beschikbaar.",
+    "Tailcat: copyright Tailscale Inc & contributors, BSD-3-Clause. The Go runtime and selected dependencies retain their respective licenses. Complete notices and exactly reproducible offline source code are available."
+  ],
+  [
+    "Tailcat-auteurs en volledige licenties",
+    "Tailcat copyright notices and complete licenses"
+  ],
+  [
+    "Tailcat en afhankelijkheidsbroncode ↓",
+    "Tailcat and dependency source code ↓"
+  ],
+  [
+    "Buildmetadata",
+    "Build metadata"
+  ],
+  [
+    "Externe diensten",
+    "External services"
+  ],
+  [
+    "PeerJS Cloud, Google STUN, Tailcat en Google Fonts zijn externe diensten. Hun beschikbaarheid en gebruiksvoorwaarden staan los van de opensourcelicenties. De softwarelicenties beloven geen onbeperkt gratis relaygebruik of blijvende toegang tot die diensten. De websitecode, bouwinstructies en broncodedownloads blijven zonder eigen dienstaccount beschikbaar.",
+    "PeerJS Cloud, Google STUN, Tailcat, and Google Fonts are external services. Their availability and terms of use are separate from open-source licenses. Software licenses do not guarantee unlimited free relay usage or continued access to those services. Website code, build instructions, and source downloads remain available without a dedicated service account."
+  ],
+  [
+    "Deze pagina beschrijft softwarelicenties en bronbeschikbaarheid. Zij is geen juridische garantie voor iedere game, stream, jurisdictie of toekomstige wijziging van het project.",
+    "This page describes software licenses and source availability. It is not a legal guarantee for any game, stream, jurisdiction, or future project change."
+  ],
+  [
+    "← Terug naar de speelkamer",
+    "← Back to the game room"
+  ],
+  [
+    "Licentieteksten en auteurs",
+    "License texts and credits"
   ]
 ]);
