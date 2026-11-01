@@ -1,4 +1,5 @@
 import {createGamePatcher} from './patcher.js';
+import {canUseSoloSavestates,stageSavestate} from './solo-savestate.js';
 import {defaultDosPolicy,validateDosPolicy,nextDosPolicy,canPassDosControl,validDosReturn,DosPolicyFilter} from './dos-policy.js';
 import {createDosMenu} from './dos-menu.js';
 import {createFullscreenKeyboard} from './fullscreen-keyboard.js';
@@ -232,7 +233,7 @@ function updateActions() {
   $('pause-button').disabled = stateBusy || !(core || isStreamGuest() && streamReady) || !['solo', 'online', 'paused'].includes(mode);
   const canSave = canUseSavestates();
   $('export-state-button').disabled = $('import-state-file').disabled = !canSave || stateBusy;
-  $('savestate-note').textContent = game?.system === 'dos' ? 'DOS-savestates en export van in-game saves zijn nog niet vrijgegeven. Je voortgang gaat verloren wanneer je de game sluit.' : roomId || peer ? 'Savestates zijn alleen beschikbaar bij solo spelen. Online starten beide spelers gelijk.' : 'Download je speltoestand en laad hem later met dezelfde ROM, emulatorversie en overclock. Bestanden blijven lokaal.';
+  $('savestate-note').textContent = roomId || peer || invites.connection || !isHost ? 'Savestates zijn alleen beschikbaar bij solo spelen. Online starten beide spelers gelijk.' : game?.system === 'dos' ? 'DOS-savestates zijn alleen voor solo. Start eerst de game; de download bewaart de speltoestand en tijdelijke DOS-schijf. Laad later dezelfde gamebestanden met dezelfde emulatorversie en CPU-instelling.' : 'Download je speltoestand en laad hem later met dezelfde ROM, emulatorversie en overclock. Bestanden blijven lokaal.';
   $('start-button').disabled = isHost ? !remoteReady || !connected || mode === 'online' : !game || !connected || localReady || isStreamGuest() && !streamReady;
   $('start-button').textContent = isHost ? (mode === 'online' ? 'Samen aan het spelen' : mode === 'paused' && (session || playStyle === 'stream') ? 'Verder spelen →' : 'Start samen →') : (mode === 'online' ? 'Samen aan het spelen' : localReady ? 'Wachten op de host…' : 'Ik ben klaar →');
   $('restart-button').hidden = !isHost || !connected || !remoteReady || !(mode === 'online' || mode === 'paused');
@@ -809,24 +810,27 @@ async function startSolo() {
   $('game').focus(); $('play-mode').textContent = 'Lokaal · solo'; $('solo-controls').hidden = false; updateActions();
 }
 $('solo-button').onclick = () => startSolo().catch(fatal);
-function canUseSavestates() { return !!core && !!game && game.system !== 'dos' && isHost && !roomId && !peer && !invites.connection; }
+function canUseSavestates() { return canUseSoloSavestates({core,game,isHost,roomId,peer,inviteConnection:invites.connection,mode,pausedMode}); }
 $('export-state-button').onclick = async () => {
   if (!canUseSavestates() || stateBusy) return;
-  stateBusy = true; if (mode === 'solo') pause(); updateActions();
-  const currentGame = game;
+  const currentGame=game,currentCore=core,wasRunning=mode==='solo';
+  const isCurrent=()=>game===currentGame&&core===currentCore&&canUseSavestates();
+  stateBusy = true; if (wasRunning) pause(); updateActions();
   try {
-    const bytes = await encodeSavestate(core.save(), currentGame, coreBuild(currentGame.system));
+    const state=currentGame.system==='dos'?currentCore.saveSolo():currentCore.save();
+    const bytes = await encodeSavestate(state, currentGame, coreBuild(currentGame.system));
+    if(!isCurrent())return;
     const url = URL.createObjectURL(new Blob([bytes], { type: 'application/octet-stream' }));
     const link = document.createElement('a'); link.href = url; link.download = savestateFilename(currentGame.name);
     document.body.append(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 60000);
-    $('savestate-status').textContent = 'Savestate gedownload. Bewaar ook je eigen ROM; die blijft nodig om verder te spelen.';
-  } catch (error) { $('savestate-status').textContent = error.message; report(error); }
-  finally { stateBusy = false; updateActions(); }
+    $('savestate-status').textContent = currentGame.system==='dos'?'DOS-savestate gedownload. Bewaar dezelfde gamebestanden om later verder te spelen.':'Savestate gedownload. Bewaar ook je eigen ROM; die blijft nodig om verder te spelen.';
+  } catch (error) { if(isCurrent()){$('savestate-status').textContent = error.message; report(error);} }
+  finally { stateBusy = false;if(currentGame.system==='dos'&&wasRunning&&isCurrent()&&mode==='paused'&&pausedMode==='solo')resume();updateActions(); }
 };
 $('import-state-file').onchange = async () => {
   const file = $('import-state-file').files[0]; $('import-state-file').value = '';
   if (!file || !canUseSavestates() || stateBusy) return;
-  const currentCore = core, currentGame = game;
+  const currentCore = core, currentGame = game, wasRunning=mode==='solo';let installed=false;
   const isCurrent = () => core === currentCore && game === currentGame && canUseSavestates();
   stateBusy = true; if (mode === 'solo') pause(); updateActions();
   $('savestate-status').textContent = 'Savestate controleren…';
@@ -835,21 +839,20 @@ $('import-state-file').onchange = async () => {
     const { state } = await decodeSavestate(new Uint8Array(await file.arrayBuffer()), currentGame, coreBuild(currentGame.system));
     if (!isCurrent()) return;
     // Restore into a separate instance. Invalid snapshots cannot damage the active game.
-    let preview;
-    const candidate = await coreClass(currentGame.system).create({ onFrame: (frame, width, height) => { preview = { frame: frame.slice(), width, height }; } });
-    if (!isCurrent()) return;
-    candidate.load(currentGame.bytes, currentGame.system, currentGame); candidate.restore(state); candidate.run(0, 0);
-    if (!isCurrent()) return;
+    const {candidate,preview}=await stageSavestate({CoreClass:coreClass(currentGame.system),game:currentGame,state,isCurrent,
+      onProgress:()=>{$('savestate-status').textContent='DOS-omgeving voorbereiden…';}});
     candidate.onFrame = draw; candidate.onAudio = (l, r) => audio.push(l, r);
-    stop(); core = candidate; session = null; checks.clear(); epoch = null;
+    stop();core=candidate;installed=true;currentCore.destroy?.();session=null;checks.clear();epoch=null;
     mode = 'paused'; pausedMode = 'solo'; accumulator = 0; lastTime = 0; pressed.clear(); touched.clear();
+    dosControls.reset();dosFilter=new DosPolicyFilter(dosPolicy);dosAppliedPolicy=dosPolicy;
     draw(preview.frame, preview.width, preview.height);
     $('play-mode').textContent = 'Lokaal · solo'; $('room-status').textContent = 'Savestate geladen';
     $('pause-button').disabled = false; $('pause-button').textContent = 'Verder spelen';
     $('savestate-status').textContent = 'Je voortgang is geladen. Kies ‘Verder spelen’.';
     overlay('Weer waar je was.', 'Je savestate is geladen. Kies ‘Verder spelen’.');
+    if(currentGame.system==='dos'&&wasRunning){$('savestate-status').textContent='Je DOS-voortgang is geladen.';resume();}
   } catch (error) { if (isCurrent()) { $('savestate-status').textContent = error.message; report(error); } }
-  finally { stateBusy = false; updateActions(); }
+  finally { stateBusy = false;if(!installed&&currentGame.system==='dos'&&wasRunning&&isCurrent()&&mode==='paused'&&pausedMode==='solo')resume();updateActions(); }
 };
 $('room-overclock').onchange = () => {
   if (!game || !isHost || peer || invites.connection || stateBusy) { updateActions(); return; }

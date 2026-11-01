@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { DosCore, DOS_NETPLAY_AVAILABLE, validateDos } from '../web/src/dos.js';
+import { DosCore, DOS_BUILD, DOS_NETPLAY_AVAILABLE, validateDos } from '../web/src/dos.js';
 import {emptyDosInput} from '../web/src/dos-input.js';
 import {makeDosInputFixture} from '../scripts/dos-input-fixture.js';
 import { makeDosDemo } from '../scripts/demo-dos.js';
@@ -102,5 +102,5 @@ test('DOS native COM and complete ZIP render and both players move on one virtua
 test('DOS loader, Wasm, corresponding source and retained notices are matched', async () => {
   const meta=JSON.parse(await readFile(new URL('../web/assets/dos-build.json',import.meta.url)));
   for(const [file,hash] of [['assets/dos-core.mjs',meta.loaderSha256],['assets/dos-core.wasm',meta.wasmSha256],['assets/'+meta.sourceArchive,meta.sourceSha256],['DOS-NOTICES.txt',meta.noticesSha256]])assert.equal(sha256(await readFile(new URL('../web/'+file,import.meta.url))),hash);
-  assert.equal(meta.upstreamLicense,'GPL-2.0-or-later');assert.ok(meta.sourceFiles>250);
+  assert.equal(meta.build,DOS_BUILD);assert.equal(meta.upstreamLicense,'GPL-2.0-or-later');assert.ok(meta.sourceFiles>250);
 });

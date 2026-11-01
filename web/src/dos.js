@@ -1,6 +1,7 @@
 import {validateDosInput,dosMenuButtons} from './dos-input.js';
+import {encodeDosSoloState,decodeDosSoloState,readDosSaveFiles,writeDosSaveFiles} from './dos-savestate.js';
 // DOSBox Pure browser frontend. GPL-3.0-or-later; see native/DOSBOX.md.
-export const DOS_BUILD = 'dosbox-pure-d9c1356-web-input-2';
+export const DOS_BUILD = 'dosbox-pure-d9c1356-web-solo-3';
 // Experimental lockstep only: independent instances pass; rollback remains disabled.
 export const DOS_NETPLAY_AVAILABLE = true;
 export const MAX_DOS_FILE = 32 * 1024 * 1024;
@@ -67,6 +68,30 @@ export class DosCore {
     const m = this.module; m._rr_save(); const size = m._rr_last_result();
     if (!size || size > 64*1024*1024) throw this.error('DOSBox Pure kon deze speltoestand niet opslaan.');
     return m.HEAPU8.slice(m._rr_state_ptr(), m._rr_state_ptr()+size);
+  }
+  saveSolo(){
+    const m=this.module;
+    if(!m._rr_solo_ready())throw new Error('Start eerst een DOS-game. In het DOS-startmenu kun je nog geen savestate maken.');
+    m._rr_solo_flush();if(!m._rr_last_result())throw new Error('De tijdelijke DOS-schijf kon niet worden opgeslagen.');
+    const program=m.UTF8ToString(m._rr_solo_program()),native=this.save();
+    if(!m._rr_solo_ready())throw new Error('Start eerst een DOS-game. In het DOS-startmenu kun je nog geen savestate maken.');
+    return encodeDosSoloState(native,readDosSaveFiles(m.FS),program,dosExtension(this.name));
+  }
+  async restoreSolo(state,bytes,options,{isCurrent=()=>true,onProgress=()=>{}}={}){
+    const saved=decodeDosSoloState(state),m=this.module;
+    const check=()=>{if(!isCurrent())throw new DOMException('Geannuleerd','AbortError');};
+    check();writeDosSaveFiles(m.FS,saved.files);
+    const program=new TextEncoder().encode(saved.program+'\0'),ptr=m._malloc(program.length);
+    try{m.HEAPU8.set(program,ptr);if(!m._rr_solo_prepare(ptr))throw new Error('Het DOS-programma in deze savestate kon niet worden voorbereid.');}
+    finally{m._free(ptr);}
+    this.load(bytes,'dos',{...options,name:'game.'+saved.extension});
+    onProgress();
+    for(let frame=0;!m._rr_solo_ready();frame++){
+      if(frame>=1800)throw new Error('De DOS-omgeving kon niet worden voorbereid. Gebruik dezelfde complete gamebestanden en probeer opnieuw.');
+      check();this.run(0,0,true);
+      if(frame%20===19)await new Promise(resolve=>setTimeout(resolve,0));
+    }
+    check();this.restore(saved.native);
   }
   restore(state) {
     if (!(state instanceof Uint8Array) || !state.length || state.length > 64*1024*1024) throw new Error('Ongeldige DOS-speltoestand.');
