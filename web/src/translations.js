@@ -397,7 +397,7 @@ export const messages = new Map([
   ],
   [
     "Klaar",
-    "Done"
+    "Ready"
   ],
   [
     "Nog een plekje vrij",
@@ -2402,5 +2402,49 @@ export const messages = new Map([
   [
     "Muis midden",
     "Middle mouse button"
+  ],
+  [
+    "NES kiezen",
+    "Select NES"
+  ],
+  [
+    "SNES kiezen",
+    "Select SNES"
+  ],
+  [
+    "DOS kiezen",
+    "Select DOS"
+  ],
+  [
+    "Spatie",
+    "Space"
+  ],
+  [
+    "Ongeldige DOS-besturing.",
+    "Invalid DOS controls."
+  ],
+  [
+    "DOS-invoer loopt te ver achter. Verbind opnieuw.",
+    "DOS input is too far behind. Reconnect."
+  ],
+  [
+    "Geen controller",
+    "No controller"
+  ],
+  [
+    "Knop",
+    "Button"
+  ],
+  [
+    "As",
+    "Axis"
+  ],
+  [
+    "Kies je eigen originele bestand",
+    "Choose your original file"
+  ],
+  [
+    "Bij het laden van de emulator is iets misgegaan.",
+    "Something went wrong while loading the emulator."
   ]
 ]);
