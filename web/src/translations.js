@@ -906,5 +906,621 @@ export const messages = new Map([
   [
     "Speler 2",
     "Player 2"
+  ],
+  [
+    "Even pas op de plaats.",
+    "Taking a quick break."
+  ],
+  [
+    "PRIVÉKAMER · UITNODIGING",
+    "PRIVATE ROOM · INVITE"
+  ],
+  [
+    "Alleen via jouw link",
+    "Only through your link"
+  ],
+  [
+    "Deel je kamerlink. Je vriend ontvangt beeld en geluid; alleen jij hebt de ROM nodig.",
+    "Share your room link. Your friend receives video and audio; only you need the ROM."
+  ],
+  [
+    "Deel je kamerlink. Je vriend kiest zelf dezelfde ROM op het eigen apparaat.",
+    "Share your room link. Your friend selects their own matching ROM on their device."
+  ],
+  [
+    "WebRTC · beeld en geluid",
+    "WebRTC · video and audio"
+  ],
+  [
+    "Privékamer · twee spelers",
+    "Private room · two players"
+  ],
+  [
+    "Dit systeem wordt nog niet ondersteund.",
+    "This system is not supported yet."
+  ],
+  [
+    "De demo kon niet worden geladen.",
+    "The demo could not be loaded."
+  ],
+  [
+    "Geluid is hier niet beschikbaar. Je kunt zonder geluid verder spelen.",
+    "Sound is unavailable here. You can continue playing without audio."
+  ],
+  [
+    "DOS: 100% is 3000 CPU-cycles; 500% is 15000. Een hoger CPU-budget kan een DOS-game versnellen. Compatibiliteit verschilt per spel.",
+    "DOS: 100% is 3,000 CPU cycles; 500% is 15,000. A higher CPU budget may speed up a DOS game. Compatibility varies by game."
+  ],
+  [
+    "Gebruik DOS Duo-demo",
+    "Use DOS Duo demo"
+  ],
+  [
+    "Gebruik Room Rally-demo",
+    "Use Room Rally demo"
+  ],
+  [
+    "Deze CPU-instelling geldt voor de emulator bij de host. Speler 2 ontvangt de stream.",
+    "This CPU setting applies to the host's emulator. Player 2 receives the stream."
+  ],
+  [
+    "De host kiest deze instelling. Jullie gebruiken allebei dezelfde waarde.",
+    "The host chooses this setting. Both players use the same value."
+  ],
+  [
+    "Vastgezet zolang speler 2 verbonden is. Beide spelers gebruiken dezelfde waarde.",
+    "Locked while player 2 is connected. Both players use the same value."
+  ],
+  [
+    "Wijzigen begint de game opnieuw. Kies de waarde voordat speler 2 verbindt.",
+    "Changing this restarts the game. Choose a value before player 2 connects."
+  ],
+  [
+    "Verder spelen",
+    "Resume"
+  ],
+  [
+    "Solo opnieuw beginnen",
+    "Restart solo"
+  ],
+  [
+    "DOS-savestates en export van in-game saves zijn nog niet vrijgegeven. Je voortgang gaat verloren wanneer je de game sluit.",
+    "DOS save states and in-game save exports are not supported yet. Your progress is lost when you close the game."
+  ],
+  [
+    "Savestates zijn alleen beschikbaar bij solo spelen. Online starten beide spelers gelijk.",
+    "Save states are only available in solo play. Both players start together online."
+  ],
+  [
+    "Download je speltoestand en laad hem later met dezelfde ROM, emulatorversie en overclock. Bestanden blijven lokaal.",
+    "Download your save state and load it later with the same ROM, emulator version, and overclock. Files stay local."
+  ],
+  [
+    "Samen aan het spelen",
+    "Playing together"
+  ],
+  [
+    "Verder spelen →",
+    "Resume →"
+  ],
+  [
+    "Start samen →",
+    "Start together →"
+  ],
+  [
+    "Wachten op de host…",
+    "Waiting for the host…"
+  ],
+  [
+    "Ik ben klaar →",
+    "I'm ready →"
+  ],
+  [
+    "Experimenteel DOS: ieder emuleert lokaal met 6 frames invoerbuffer. Bij vertraging wacht het spel; er is geen rollback.",
+    "Experimental DOS: each player emulates locally with a six-frame input buffer. The game waits if input is delayed; there is no rollback."
+  ],
+  [
+    "Jullie spelen allebei lokaal. De verbinding houdt jullie game gelijk.",
+    "Both of you play locally. The connection keeps your games in sync."
+  ],
+  [
+    "Even pauze.",
+    "Taking a break."
+  ],
+  [
+    "De host kan de game weer hervatten.",
+    "The host can resume the game."
+  ],
+  [
+    "Klaar voor nog een ronde?",
+    "Ready for another round?"
+  ],
+  [
+    "De host kan de game hervatten.",
+    "The host can resume the game."
+  ],
+  [
+    "Solo aan het spelen",
+    "Playing solo"
+  ],
+  [
+    "Niet verbonden",
+    "Not connected"
+  ],
+  [
+    "Speler 2 is verbonden en kiest nu een eigen ROM.",
+    "Player 2 connected and is choosing their own ROM."
+  ],
+  [
+    "Verbonden. Wachten op de gamegegevens van de host.",
+    "Connected. Waiting for the host's game details."
+  ],
+  [
+    "Speler 2 is verbonden. Beeld en geluid worden voorbereid; er is geen ROM nodig bij de gast.",
+    "Player 2 connected. Video and audio are being prepared; the guest doesn't need a ROM."
+  ],
+  [
+    "De verbinding met de andere speler is weggevallen. Verlaat de kamer en verbind opnieuw.",
+    "The connection to the other player was lost. Leave the room and reconnect."
+  ],
+  [
+    "Alleen de host kiest de game-instellingen.",
+    "Only the host can choose game settings."
+  ],
+  [
+    "Samen emuleren met DOS is nog niet vrijgegeven. Vraag de host om een DOS-streamkamer te maken.",
+    "Shared DOS emulation is not supported yet. Ask the host to create a DOS streaming room."
+  ],
+  [
+    "De game-instellingen zijn veranderd. Verbind opnieuw.",
+    "Game settings have changed. Reconnect."
+  ],
+  [
+    "Er wordt geen ROM van de host ontvangen. Jouw bestand blijft op dit apparaat.",
+    "No ROM is received from the host. Your file stays on this device."
+  ],
+  [
+    "Kies je eigen ROM. Daarna controleren we of jullie hetzelfde bestand gebruiken.",
+    "Choose your own ROM. We'll then check whether both files match."
+  ],
+  [
+    "Eigen ROM kiezen",
+    "Choose your own ROM"
+  ],
+  [
+    "Kies je eigen ROM.",
+    "Choose your own ROM."
+  ],
+  [
+    "Selecteer hetzelfde bestand als de host onder ‘Jouw ROM’.",
+    "Select the same file as the host under “Your ROM”."
+  ],
+  [
+    "Jouw lokale bestand controleren…",
+    "Checking your local file…"
+  ],
+  [
+    "Jouw ROM komt overeen met die van de host. Er is geen bestand verstuurd.",
+    "Your ROM matches the host's. No file was sent."
+  ],
+  [
+    "Je eigen ROM is gecontroleerd. Klik op ‘Ik ben klaar’.",
+    "Your ROM has been verified. Click “I'm ready”."
+  ],
+  [
+    "Je eigen game staat klaar.",
+    "Your game is ready."
+  ],
+  [
+    "Klik op ‘Ik ben klaar’. De host start jullie game.",
+    "Click “I'm ready”. The host will start the game."
+  ],
+  [
+    "Kies een overeenkomende ROM om samen te kunnen starten.",
+    "Choose a matching ROM to start playing together."
+  ],
+  [
+    "Beeld en geluid zijn verbonden. Kies ‘Ik ben klaar’ om je controller en geluid te activeren.",
+    "Video and audio are connected. Select “I'm ready” to activate your controller and audio."
+  ],
+  [
+    "Stream verbonden",
+    "Stream connected"
+  ],
+  [
+    "Je plek staat klaar.",
+    "Your spot is ready."
+  ],
+  [
+    "Je hebt geen ROM nodig. Kies ‘Ik ben klaar’; de host start de game.",
+    "You don't need a ROM. Select “I'm ready”; the host will start the game."
+  ],
+  [
+    "De browser kan deze videostream niet afspelen.",
+    "Your browser cannot play this video stream."
+  ],
+  [
+    "Klik op het gamescherm om de stream te starten.",
+    "Click the game screen to start the stream."
+  ],
+  [
+    "De stream hoort niet bij deze kamer.",
+    "This stream does not belong to this room."
+  ],
+  [
+    "De streaminstellingen zijn veranderd. Verbind opnieuw.",
+    "Stream settings changed. Reconnect."
+  ],
+  [
+    "Stream verbinden…",
+    "Connecting stream…"
+  ],
+  [
+    "Beeld en geluid verbinden via WebRTC…",
+    "Connecting video and audio via WebRTC…"
+  ],
+  [
+    "De host draait de emulator. Jouw controller bedient speler 2.",
+    "The host runs the emulator. Your controller controls player 2."
+  ],
+  [
+    "Het beeld komt eraan.",
+    "Video is on its way."
+  ],
+  [
+    "Beeld en geluid komen rechtstreeks van de host. Je hoeft geen ROM te kiezen.",
+    "Video and audio come directly from the host. You don't need to select a ROM."
+  ],
+  [
+    "Jij draait de game. Speler 2 ontvangt jouw beeld en geluid en stuurt knoppen terug.",
+    "You run the game. Player 2 receives your video and audio and sends button inputs back."
+  ],
+  [
+    "Je bestuurt speler 2 op de emulator van de host. Er is geen ROM-bestand ontvangen.",
+    "You control player 2 on the host's emulator. No ROM file was received."
+  ],
+  [
+    "Je ontvangt live beeld en geluid. Je knoppen besturen speler 2.",
+    "You receive live video and audio. Your buttons control player 2."
+  ],
+  [
+    "Live video",
+    "Live video"
+  ],
+  [
+    "Ongeldig spelbericht.",
+    "Invalid game message."
+  ],
+  [
+    "Deze DOS-toetsverdeling hoort niet bij de host.",
+    "This DOS key layout doesn't match the host."
+  ],
+  [
+    "Tegenstrijdige DOS-toetsverdeling.",
+    "Conflicting DOS key layout."
+  ],
+  [
+    "Ongeldige overdracht van DOS-besturing.",
+    "Invalid DOS control handoff."
+  ],
+  [
+    "De streamsessie komt niet overeen.",
+    "The streaming session does not match."
+  ],
+  [
+    "Speler 2 ontvangt de stream en is klaar. Je kunt starten.",
+    "Player 2 receives the stream and is ready. You can start."
+  ],
+  [
+    "Onverwacht streambericht.",
+    "Unexpected stream message."
+  ],
+  [
+    "Deze kamer gebruikt een stream.",
+    "This room uses streaming."
+  ],
+  [
+    "De ROMs komen niet overeen.",
+    "The ROMs do not match."
+  ],
+  [
+    "Speler 2 heeft dezelfde eigen ROM geladen. Wachten tot speler 2 klaar is.",
+    "Player 2 loaded a matching local ROM. Waiting for player 2 to be ready."
+  ],
+  [
+    "Iedereen is klaar. Jij kunt de game starten.",
+    "Everyone is ready. You can start the game."
+  ],
+  [
+    "De startgegevens komen niet overeen.",
+    "The start data does not match."
+  ],
+  [
+    "De stream is onderbroken bij de andere speler. Verlaat de kamer en verbind opnieuw.",
+    "The stream stopped for the other player. Leave the room and reconnect."
+  ],
+  [
+    "De game is onderbroken bij de andere speler. De host kan opnieuw starten.",
+    "The game stopped for the other player. The host can restart it."
+  ],
+  [
+    "Jullie CPU-overclock komt niet overeen. Verbind opnieuw met de kamer.",
+    "Your CPU overclock settings do not match. Reconnect to the room."
+  ],
+  [
+    "Wachten op de verbinding…",
+    "Waiting for the connection…"
+  ],
+  [
+    "De games lopen niet meer gelijk. De host kan samen opnieuw starten.",
+    "The games are out of sync. The host can restart together."
+  ],
+  [
+    "Uitnodigingsdienst verbonden",
+    "Invite service connected"
+  ],
+  [
+    "De uitnodigingsdienst is even weg. Een bestaande spelverbinding blijft actief.",
+    "The invite service is temporarily unavailable. Existing game connections remain active."
+  ],
+  [
+    "Fallback verbinden…",
+    "Connecting fallback…"
+  ],
+  [
+    "Tailcat is niet bereikbaar. P2P blijft beschikbaar, maar de fallback werkt nu niet.",
+    "Tailcat is unreachable. P2P is still available, but the fallback isn't working."
+  ],
+  [
+    "Verbinding mislukt. Je kunt de link opnieuw delen.",
+    "Connection failed. You can share the link again."
+  ],
+  [
+    "Je privékamer staat klaar. Deel de uitnodigingslink en houd deze pagina open.",
+    "Your private room is ready. Share the invite link and keep this page open."
+  ],
+  [
+    "Tailcat is nu niet bereikbaar; alleen rechtstreeks verbinden is beschikbaar.",
+    "Tailcat is currently unreachable; only direct connections are available."
+  ],
+  [
+    "Eerst rechtstreeks verbinden met de host…",
+    "Trying a direct connection to the host…"
+  ],
+  [
+    "Verbinding maken met de host…",
+    "Connecting to the host…"
+  ],
+  [
+    "Eigen ROM nodig",
+    "Your own ROM required"
+  ],
+  [
+    "Schuif maar aan.",
+    "Come on in."
+  ],
+  [
+    "De host streamt beeld en geluid. Je hebt geen ROM nodig.",
+    "The host streams video and audio. You don't need a ROM."
+  ],
+  [
+    "Je kiest zo je eigen ROM. Er worden geen ROM-bestanden gedeeld.",
+    "You'll choose your own ROM next. No ROM files are shared."
+  ],
+  [
+    "Speler 2 heeft de kamer verlaten. Je kunt opnieuw iemand uitnodigen.",
+    "Player 2 left the room. You can invite someone else."
+  ],
+  [
+    "Nodig iemand uit",
+    "Invite someone"
+  ],
+  [
+    "De host heeft de kamer gesloten. Vraag om een nieuwe uitnodiging.",
+    "The host closed the room. Ask for a new invite."
+  ],
+  [
+    "Beeld en geluid streamen · alleen de host heeft de ROM nodig",
+    "Stream video and audio · only the host needs a ROM"
+  ],
+  [
+    "Experimenteel samen emuleren · 6 frames invoerbuffer · eigen gamebestanden",
+    "Experimental shared emulation · six-frame input buffer · separate game files"
+  ],
+  [
+    "Je speelt lokaal. Je ROM en savestates worden niet geüpload.",
+    "You play locally. Your ROM and save states are never uploaded."
+  ],
+  [
+    "Alleen jij laadt de ROM. Je vriend ontvangt gamebeeld en gamegeluid en stuurt knoppen terug. Geen camera, microfoon of ROM-overdracht.",
+    "Only you load the ROM. Your friend receives game video and audio and sends button inputs back. No camera, microphone, or ROM transfer."
+  ],
+  [
+    "Alleen mensen met je uitnodigingslink kunnen meedoen. Beide spelers kiezen hun eigen ROM.",
+    "Only people with your invite link can join. Both players select their own ROM."
+  ],
+  [
+    "Verlaat eerst je huidige kamer.",
+    "Leave your current room first."
+  ],
+  [
+    "EEN POTJE VOOR JEZELF",
+    "ONE ROUND FOR YOURSELF"
+  ],
+  [
+    "SAMEN AAN DE START",
+    "START TOGETHER"
+  ],
+  [
+    "Speel solo met je eigen game. Waar gaan we op spelen?",
+    "Play solo with your own game. Which system shall we use?"
+  ],
+  [
+    "Maak een kamer voor twee spelers. Kies eerst je console.",
+    "Create a two-player room. Choose your console first."
+  ],
+  [
+    "Maak een kamer →",
+    "Create a room →"
+  ],
+  [
+    "Jouw game. Jouw tempo.",
+    "Your game. Your pace."
+  ],
+  [
+    "Maak het gezellig.",
+    "Bring a friend."
+  ],
+  [
+    "DOS gebruikt 3000 CPU-cycles bij 100%, tot 15000 bij 500%. De juiste snelheid verschilt per game; hoger kan het spel versnellen.",
+    "DOS uses 3,000 CPU cycles at 100%, up to 15,000 at 500%. The right speed depends on the game; higher settings can make it run faster."
+  ],
+  [
+    "Kies je DOS-game",
+    "Choose your DOS game"
+  ],
+  [
+    "Complete game als ZIP, of .exe / .com / .bat · maximaal 32 MB · blijft lokaal",
+    "Complete game as ZIP, or .exe / .com / .bat · 32 MB max · stays local"
+  ],
+  [
+    "· maximaal 8 MB · blijft op jouw apparaat",
+    "· 8 MB max · stays on your device"
+  ],
+  [
+    "Of probeer DOS Duo, onze eigen DOS-demo ↗",
+    "Or try DOS Duo, our own DOS demo ↗"
+  ],
+  [
+    "Verlaat eerst je huidige speelkamer.",
+    "Leave your current game room first."
+  ],
+  [
+    "Uitnodigingsdienst verbonden.",
+    "Invite service connected."
+  ],
+  [
+    "Dit gamebestand is te groot. DOS: maximaal 32 MB; NES/SNES: maximaal 8 MB.",
+    "This game file is too large. DOS: 32 MB max; NES/SNES: 8 MB max."
+  ],
+  [
+    "Dit gamebestand is te groot.",
+    "This game file is too large."
+  ],
+  [
+    "DOS Duo · originele DOS-demo",
+    "DOS Duo · original DOS demo"
+  ],
+  [
+    "Room Rally · originele NES-demo",
+    "Room Rally · original NES demo"
+  ],
+  [
+    "Kies eerst NES, SNES of DOS.",
+    "Choose NES, SNES, or DOS first."
+  ],
+  [
+    "De ROM hoort niet bij de gekozen console.",
+    "The ROM does not match the selected console."
+  ],
+  [
+    "DOS samen emuleren is nog niet beschikbaar. Kies beeld en geluid streamen.",
+    "Shared DOS emulation is not yet available. Choose video and audio streaming."
+  ],
+  [
+    "Deze browser ondersteunt het streamen van gamebeeld niet. Kies samen emuleren of gebruik een browser met WebRTC en canvas-capture.",
+    "This browser does not support game video streaming. Choose shared emulation or use a browser with WebRTC and canvas capture."
+  ],
+  [
+    "Tik op A om te racen. Speel solo of maak een kamer om samen te testen.",
+    "Press A to race. Play solo or create a room to test it together."
+  ],
+  [
+    "Savestate gedownload. Bewaar ook je eigen ROM; die blijft nodig om verder te spelen.",
+    "Save state downloaded. Keep your ROM too; you'll need it to continue."
+  ],
+  [
+    "Savestate controleren…",
+    "Checking save state…"
+  ],
+  [
+    "Dit savestatebestand is te groot.",
+    "This save state file is too large."
+  ],
+  [
+    "Savestate geladen",
+    "Save state loaded"
+  ],
+  [
+    "Je voortgang is geladen. Kies ‘Verder spelen’.",
+    "Your progress has been loaded. Select “Resume”."
+  ],
+  [
+    "Weer waar je was.",
+    "Back where you left off."
+  ],
+  [
+    "Je savestate is geladen. Kies ‘Verder spelen’.",
+    "Your save state is loaded. Select “Resume”."
+  ],
+  [
+    "CPU-overclock ingesteld.",
+    "CPU overclock configured."
+  ],
+  [
+    "Wacht tot de WebRTC-stream verbonden is.",
+    "Wait for the WebRTC stream to connect."
+  ],
+  [
+    "Wacht tot beeld en geluid binnenkomen.",
+    "Wait for video and audio to arrive."
+  ],
+  [
+    "Gebruik de geluidsknop om het geluid aan te zetten.",
+    "Use the sound button to enable audio."
+  ],
+  [
+    "Beeld, geluid en controller zijn klaar. Wachten tot de host start.",
+    "Video, audio, and controller are ready. Waiting for the host to start."
+  ],
+  [
+    "Je controller is klaar. De host kan starten.",
+    "Your controller is ready. The host can start."
+  ],
+  [
+    "Wacht tot speler 2 de stream heeft geopend en klaar is.",
+    "Wait for player 2 to open the stream and get ready."
+  ],
+  [
+    "Je bent klaar. De host kan nu starten.",
+    "You're ready. The host can start now."
+  ],
+  [
+    "Wacht tot speler 2 klaar is.",
+    "Wait for player 2 to be ready."
+  ],
+  [
+    "Het streamgeluid kon niet worden gestart. Probeer opnieuw.",
+    "Could not start stream audio. Try again."
+  ],
+  [
+    "Korte Escape gaat naar DOS. Houd Escape circa twee seconden ingedrukt om de browservergrendeling te verlaten. DOS-menu: Alt+Shift+M of de bovenrand van het beeld.",
+    "A short Escape press goes to DOS. Hold Escape for about two seconds to exit the browser lock. DOS menu: Alt+Shift+M or the top edge of the screen."
+  ],
+  [
+    "De browser kan Escape gebruiken om fullscreen te verlaten. Kies zo nodig een vervangende DOS-Escape-toets. DOS-menu: Alt+Shift+M of de bovenrand van het beeld.",
+    "The browser may use Escape to exit fullscreen. Select a replacement DOS Escape key if needed. DOS menu: Alt+Shift+M or the top edge of the screen."
+  ],
+  [
+    "Volledig scherm is hier niet beschikbaar.",
+    "Fullscreen is unavailable here."
+  ],
+  [
+    "Kamerlink gekopieerd. Tijd om iemand uit te dagen.",
+    "Room link copied. Time to challenge someone."
+  ],
+  [
+    "Selecteer en kopieer de link in het tekstvak.",
+    "Select and copy the link in the text field."
   ]
 ]);
