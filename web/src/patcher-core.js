@@ -103,17 +103,42 @@ function hexBytes(value) {
   if(!hex.length||hex.length%2||!/^[0-9a-f]+$/i.test(hex))throw new Error('Ongeldige hexadecimale bytes in de DOS-patch.');
   return Uint8Array.from(hex.match(/../g),byte=>parseInt(byte,16));
 }
-function digest(value) {return typeof value==='string'&&/^[0-9a-f]{64}$/i.test(value)?value.toLowerCase():null;}
-function applyDosJson(source,patch,sourceHash) {
+function applyDosCopies(source,value) {
+  const size=value.target?.size;outputSize(size,PATCH_LIMITS.dos);
+  if(!Array.isArray(value.operations)||!value.operations.length||value.operations.length>10000)throw new Error('De DOS-kopieerpatch bevat geen geldige lijst met bewerkingen (maximaal 10.000).');
+  const output=new Uint8Array(size);let written=0;
+  for(const operation of value.operations){
+    if(!operation||typeof operation!=='object'||Array.isArray(operation)||Object.keys(operation).length!==1)throw new Error('Onbekende of dubbelzinnige DOS-patchbewerking.');
+    if(Object.hasOwn(operation,'copy')){
+      const copy=operation.copy;
+      if(!Array.isArray(copy)||copy.length!==2||!Number.isSafeInteger(copy[0])||!Number.isSafeInteger(copy[1])||copy[0]<0||copy[1]<1)throw new Error('Ongeldige DOS-kopieerbewerking. Gebruik copy: [positie, lengte].');
+      const [start,length]=copy;
+      if(start>source.length||length>source.length-start)throw new Error('Een DOS-kopieerbewerking leest buiten het gekozen bestand.');
+      if(length>size-written)throw new Error('De DOS-patch schrijft meer bytes dan de opgegeven resultaatgrootte.');
+      output.set(source.subarray(start,start+length),written);written+=length;
+    }else if(Object.hasOwn(operation,'data')){
+      const data=operation.data;
+      if(typeof data!=='string'||data.length%4!==0||!/^[A-Za-z0-9+/]*={0,2}$/.test(data))throw new Error('Ongeldige Base64-gegevens in de DOS-patch.');
+      const length=data.length/4*3-(data.endsWith('==')?2:data.endsWith('=')?1:0);
+      if(length>size-written)throw new Error('De DOS-patch schrijft meer bytes dan de opgegeven resultaatgrootte.');
+      const decoded=atob(data);for(let i=0;i<decoded.length;i++)output[written++]=decoded.charCodeAt(i);
+    }else throw new Error('Onbekende of dubbelzinnige DOS-patchbewerking.');
+  }
+  if(written!==size)throw new Error('De DOS-patch levert minder bytes dan de opgegeven resultaatgrootte.');
+  return output;
+}
+function applyDosJson(source,patch) {
   byteArray(patch,MAX_JSON_PATCH_BYTES,'De JSON-patch');
   let value;
   try{value=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(patch));}
   catch{throw new Error('De JSON-patch is geen geldig UTF-8 JSON-bestand.');}
-  if(!value||value.format!=='RetroRoomBinaryPatch'||value.version!==1||!digest(value.source?.sha256)||!digest(value.target?.sha256)||
-     !Number.isSafeInteger(value.source?.size)||!Array.isArray(value.patches)||!value.patches.length||value.patches.length>10000) {
-    throw new Error('Gebruik het RetroRoomBinaryPatch JSON-formaat versie 1. Bekijk het DOS-voorbeeld.');
-  }
-  if(value.source.size!==source.length||digest(value.source.sha256)!==sourceHash)throw new Error('Deze DOS-patch hoort bij een ander origineel bestand. De grootte of SHA-256 komt niet overeen.');
+  // DOS intentionally applies the recipe to the selected bytes without enforcing
+  // source size/hash, expected original bytes, or a target hash. These fields may
+  // describe a game version, but are not a compatibility gate in RetroRoom.
+  if(value?.format==='hocus-coop-copy-patch-1')return applyDosCopies(source,value);
+  if(value?.format!=='RetroRoomBinaryPatch')throw new Error('Dit DOS-JSON-formaat wordt niet ondersteund. Gebruik RetroRoomBinaryPatch v1 of hocus-coop-copy-patch-1.');
+  if(value.version!==1)throw new Error('Deze RetroRoom JSON-patch gebruikt geen ondersteunde versie (verwacht: 1).');
+  if(!Array.isArray(value.patches)||!value.patches.length||value.patches.length>10000)throw new Error('De DOS-patch bevat geen geldige lijst met wijzigingen (maximaal 10.000).');
   const edits=value.patches.map(edit=>{
     if(!edit||!Number.isSafeInteger(edit.offset)||edit.offset<0)throw new Error('Een DOS-patchpositie moet een positief geheel byteadres zijn, beginnend bij 0.');
     const before=hexBytes(edit.before),after=hexBytes(edit.after);
@@ -124,10 +149,9 @@ function applyDosJson(source,patch,sourceHash) {
   for(const edit of edits){
     if(edit.offset<previousEnd)throw new Error('DOS-patchwijzigingen mogen elkaar niet overlappen.');
     previousEnd=edit.offset+edit.before.length;
-    if(edit.before.some((byte,index)=>source[edit.offset+index]!==byte))throw new Error(`De oorspronkelijke DOS-bytes op positie ${edit.offset} komen niet overeen.`);
   }
   const bytes=source.slice();for(const edit of edits)bytes.set(edit.after,edit.offset);
-  return {bytes,targetHash:digest(value.target.sha256)};
+  return bytes;
 }
 export function preparePatchSource(system,source,stripSnesHeader=false) {
   const limit=PATCH_LIMITS[system];if(!limit)throw new Error('Kies eerst NES, SNES of MS-DOS.');
@@ -148,16 +172,15 @@ export async function inspectPatchSource({system,source,stripSnesHeader=false}) 
 }
 export async function applyGamePatch({system,source,patch,format,stripSnesHeader=false}) {
   const bytes=preparePatchSource(system,source,stripSnesHeader),sourceInfo=await inspectPatchSource({system,source,stripSnesHeader});
-  let output,expectedHash;
+  let output;
   if(system==='dos'){
-    if(format!=='json')throw new Error('Kies voor MS-DOS een RetroRoom JSON-patch.');
-    const result=applyDosJson(bytes,patch,sourceInfo.sha256);output=result.bytes;expectedHash=result.targetHash;
+    if(format!=='json')throw new Error('Kies voor MS-DOS een ondersteunde JSON-patch.');
+    output=applyDosJson(bytes,patch);
   }else if(format==='ips')output=applyIpsPatch(bytes,patch,PATCH_LIMITS[system]);
   else if(format==='bps')output=applyBpsPatch(bytes,patch,PATCH_LIMITS[system]);
   else throw new Error('Kies voor NES/SNES een IPS- of BPS-patch.');
   const sha256=await sha256Hex(output);
-  if(expectedHash&&sha256!==expectedHash)throw new Error('De DOS-resultaatcontrole klopt niet. Controleer het JSON-patchbestand.');
-  return {bytes:output,source:sourceInfo,size:output.length,sha256,crc32:crc32Hex(output),format,verified:format!=='ips'};
+  return {bytes:output,source:sourceInfo,size:output.length,sha256,crc32:crc32Hex(output),format,verified:format==='bps'};
 }
 export function patchedFilename(name,system,stripSnesHeader=false) {
   const clean=String(name).replace(/[\x00-\x1f<>:"/\\|?*]/g,'_').slice(0,160);

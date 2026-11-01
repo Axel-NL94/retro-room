@@ -46,7 +46,9 @@ op beschikbaarheid of onbeperkt gratis gebruik. Zie [GRATIS-HOSTING.md](GRATIS-H
 ## Emulator en mogelijkheden
 
 **Game patcher** rechtsboven maakt lokaal een gepatchte kopie: NES/SNES met
-IPS/BPS, MS-DOS met het eigen RetroRoom JSON-formaat voor losse bestanden.
+IPS/BPS, MS-DOS met RetroRoomBinaryPatch v1 of hocus-coop-copy-patch-1 voor losse bestanden.
+DOS ondersteunt kopieerblokken, Base64-data en bestandsgroei zonder controle op
+de gekozen gameversie of bron-/resultaathashes; patchstructuur en grenzen worden wel gecontroleerd.
 Kies eerst de console en daarna je eigen game en patch. Zie [PATCHER.md](PATCHER.md)
 voor controles, beperkingen, SNES-headers en het DOS-voorbeeld. Besturing en
 verbindingsinformatie staan als kleine tekstlinks onderaan de pagina.

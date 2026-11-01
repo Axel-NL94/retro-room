@@ -79,15 +79,19 @@ test('orchestration limits and formats, IPS result is explicitly unverified',asy
   assert.throws(()=>preparePatchSource('dos',new Uint8Array(PATCH_LIMITS.dos+1)),/te groot/);
   assert.throws(()=>preparePatchSource('dos',new Uint8Array()),/leeg/);
 });
-test('DOS JSON patches validate source/target hashes and bytes without mutating source',async()=>{
+test('DOS JSON replaces bytes without enforcing source/target metadata or expected bytes',async()=>{
   const source=bytes('abcd'),patch=await dosPatch();patch.source.sha256=patch.source.sha256.toUpperCase();
   const result=await applyGamePatch({system:'dos',source,patch:json(patch),format:'json'});
-  assert.equal(text(result.bytes),'aBCd');assert.equal(text(source),'abcd');assert.equal(result.verified,true);
+  assert.equal(text(result.bytes),'aBCd');assert.equal(text(source),'abcd');assert.equal(result.verified,false);
   patch.description='<script>never executed</script>';assert.equal(text((await applyGamePatch({system:'dos',source,patch:json(patch),format:'json'})).bytes),'aBCd');
+  patch.source={size:999,sha256:'wrong source hash'};patch.target={sha256:'wrong target hash'};patch.patches[0].before='00 00';
+  assert.equal(text((await applyGamePatch({system:'dos',source,patch:json(patch),format:'json'})).bytes),'aBCd');
+  delete patch.source;delete patch.target;
+  assert.equal(text((await applyGamePatch({system:'dos',source,patch:json(patch),format:'json'})).bytes),'aBCd');
 });
-test('DOS JSON rejects invalid metadata, unsupported edits, wrong base and corrupt results',async()=>{
+test('DOS JSON still rejects malformed formats and invalid or out-of-bounds edits',async()=>{
   const base=await dosPatch(),source=bytes('abcd');
-  const variants=[null,{}, {...base,version:2},{...base,source:{...base.source,size:9}}, {...base,source:{...base.source,sha256:'a'.repeat(64)}},{...base,target:{sha256:'a'.repeat(64)}},{...base,patches:[]}, {...base,patches:[{offset:-1,before:'62',after:'42'}]}, {...base,patches:[{offset:1.5,before:'62',after:'42'}]}, {...base,patches:[{offset:4,before:'62',after:'42'}]}, {...base,patches:[{offset:1,before:'61',after:'42'}]}, {...base,patches:[{offset:1,before:'62',after:'4243'}]}, {...base,patches:[{offset:1,before:'zz',after:'42'}]}, {...base,patches:[{offset:1,before:'',after:''}]}, {...base,patches:[...base.patches,...base.patches]}];
+  const variants=[null,{}, {...base,version:2},{...base,patches:[]}, {...base,patches:[{offset:-1,before:'62',after:'42'}]}, {...base,patches:[{offset:1.5,before:'62',after:'42'}]}, {...base,patches:[{offset:4,before:'62',after:'42'}]}, {...base,patches:[{offset:1,before:'62',after:'4243'}]}, {...base,patches:[{offset:1,before:'zz',after:'42'}]}, {...base,patches:[{offset:1,before:'',after:''}]}, {...base,patches:[...base.patches,...base.patches]}];
   for(const patch of variants)await assert.rejects(()=>applyGamePatch({system:'dos',source,patch:json(patch),format:'json'}));
   await assert.rejects(()=>applyGamePatch({system:'dos',source,patch:bytes('{bad'),format:'json'}),/geldig UTF-8 JSON/);
   await assert.rejects(()=>applyGamePatch({system:'dos',source,patch:ips(),format:'ips'}),/JSON-patch/);
