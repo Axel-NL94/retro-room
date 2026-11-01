@@ -69,7 +69,9 @@ function localizeNode(node) {
     data = {source: node.nodeValue, rendered: node.nodeValue};
     originals.set(node, data);
   }
-  const target = language === 'nl' ? data.source : translate(data.source);
+  const target = language === 'nl' ? data.source
+    : data.source.trim() === 'Klaar' && node.parentElement.closest('#controls-dialog .controls-footer')
+      ? data.source.replace('Klaar', 'Done') : translate(data.source);
   data.rendered = target;
   if (node.nodeValue !== target) node.nodeValue = target;
 }
