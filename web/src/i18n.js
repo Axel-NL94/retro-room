@@ -128,12 +128,12 @@ function initLanguageMenu() {
   wrapper.dataset.noTranslate = '';
   wrapper.innerHTML = `
     <button type="button" class="language-current" aria-expanded="false" aria-haspopup="true">
-      <span class="language-flag" aria-hidden="true"></span>
+      <span class="language-flag" aria-hidden="true"><img src="./assets/flag-en.svg" alt=""></span>
       <span class="language-caret" aria-hidden="true">⌄</span>
     </button>
     <div class="language-menu" hidden>
-      <button type="button" data-select-language="en" aria-label="English" title="English">🇬🇧</button>
-      <button type="button" data-select-language="nl" aria-label="Nederlands" title="Nederlands">🇳🇱</button>
+      <button type="button" data-select-language="en" aria-label="English" title="English"><img src="./assets/flag-en.svg" alt=""></button>
+      <button type="button" data-select-language="nl" aria-label="Nederlands" title="Nederlands"><img src="./assets/flag-nl.svg" alt=""></button>
     </div>`;
   const actions = header.querySelector('.topbar-actions');
   if (!actions) header.classList.add('language-header-legal');
@@ -142,7 +142,7 @@ function initLanguageMenu() {
   const menu = wrapper.querySelector('.language-menu');
   function close() { menu.hidden = true; toggle.setAttribute('aria-expanded', 'false'); }
   function refresh() {
-    wrapper.querySelector('.language-flag').textContent = language === 'en' ? '🇬🇧' : '🇳🇱';
+    wrapper.querySelector('.language-flag img').setAttribute('src', language === 'en' ? './assets/flag-en.svg' : './assets/flag-nl.svg');
     toggle.setAttribute('aria-label', language === 'en' ? 'Language: English. Change language' : 'Taal: Nederlands. Taal wijzigen');
     wrapper.querySelectorAll('[data-select-language]').forEach(button => {
       button.setAttribute('aria-pressed', String(button.dataset.selectLanguage === language));

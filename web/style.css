@@ -67,9 +67,10 @@ dialog{border:1px solid #464b54;background:var(--panel);color:var(--text);border
 .topbar>.language-switcher{margin-left:auto}
 .language-current{display:flex;align-items:center;justify-content:center;gap:6px;padding:7px 10px;min-width:52px;min-height:38px;border:1px solid var(--line);border-radius:7px;background:var(--panel);color:var(--text);font:650 12px var(--body);cursor:pointer;white-space:nowrap}
 .language-current:hover,.language-current[aria-expanded="true"]{border-color:var(--mint);background:var(--panel-light)}
-.language-flag{font-size:19px;line-height:1}
+.language-flag{display:grid;place-items:center;width:28px;height:20px}
+.language-flag img,.language-menu img{display:block;width:28px;height:20px;object-fit:contain;border-radius:2px}
 .language-menu{position:absolute;right:0;top:calc(100% + 7px);display:flex;gap:5px;width:max-content;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:5px;box-shadow:0 14px 36px #0008}
-.language-menu button{display:grid;place-items:center;width:42px;height:42px;border:0;border-radius:5px;padding:0;background:transparent;color:var(--text);font:22px var(--body);cursor:pointer}
+.language-menu button{display:grid;place-items:center;width:42px;height:42px;border:0;border-radius:5px;padding:0;background:transparent;color:var(--text);cursor:pointer}
 .language-menu button:hover,.language-menu button[aria-pressed="true"]{background:var(--panel-light);color:var(--mint)}
 .language-switcher button:focus-visible{outline:3px solid var(--mint);outline-offset:2px}
 @media(max-width:600px){.topbar.language-header-legal{gap:8px}.topbar.language-header-legal .brand{font-size:18px}.topbar.language-header-legal .brand-icon{display:none}.topbar.language-header-legal>.button{font-size:10px;padding:0 8px;min-height:34px;white-space:nowrap}}
