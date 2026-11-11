@@ -90,7 +90,44 @@ test('Pixel-M8 stream metadata carries no cartridge and unsupported rollback/sav
   assert.equal(canUseSoloSavestates({core:{supportsSavestates:false},game:{system:'p8'},isHost:true,mode:'solo'}),false);
 });
 
-test('Pixel-M8 missing continuation cartridge fails clearly instead of attempting an unavailable server proxy',async()=>{
-  const core=await create();core.load(cart('function _update60() load("#retroroom_missing") end'),'p8');
-  assert.throws(()=>core.run(0,0),/extra cartridge/);core.destroy();
+test('Pixel-M8 waits for a missing BBS continuation without repeating audio, then continues after local import',async()=>{
+  const requests=[];let frames=0,samples=0;
+  const core=await create({onCartridgeRequest:name=>requests.push(name),onFrame:()=>frames++,onAudio:()=>samples++});
+  core.load(cart('function _init() poke(0x4300,42) load("#part2",nil,"from_start") end'),'p8',{name:'start.p8'});
+  core.run(0,0);assert.equal(core.waiting,'#part2');const tick=core.module._pc_ticks(),audio=samples;
+  for(let i=0;i<90;i++)core.run(255,255);
+  assert.equal(core.module._pc_ticks(),tick);assert.equal(samples,audio);assert.equal(frames,91);assert.deepEqual(requests,['#part2']);
+  core.addCartridges([{name:'unrelated.p8',bytes:cart('n=99')}]);assert.equal(core.waiting,'#part2');
+  const extras=core.addCartridges([{name:'part2.p8',bytes:cart('function _init() n=peek(0x4300) params=stat(6) end function _update60() end')}]);
+  assert.equal(core.waiting,'');assert.equal(extras.length,2);core.run(0,0);verify(core,'n==42 and params=="from_start"');
+  assert.deepEqual(requests,['#part2','']);assert.ok(samples>audio);core.destroy();
 });
+
+test('Pixel-M8 preloaded local loads, relative subdirectories and reload data work without a network request',async()=>{
+  const core=await create();
+  const root=cart('function _init() reload(0x100,0,1,"tiles.p8") poke(0x4300,peek(0x100)) load("part2.p8",nil,"local") end');
+  const data=new TextEncoder().encode('pico-8 cartridge // original data\nversion 42\n__lua__\nfunction _update60() end\n__gfx__\n'+'a'+'0'.repeat(127)+'\n');
+  const child=cart('function _init() n=peek(0x4300) params=stat(6) end function _update60() end');
+  core.load(root,'p8',{name:'Display name',cartridgeName:'campaign/start.p8',cartridges:[{name:'campaign/tiles.p8',bytes:data},{name:'campaign/part2.p8',bytes:child}]});
+  for(let i=0;i<4;i++)core.run(0,0);verify(core,'n==10 and params=="local"');assert.equal(core.waiting,'');
+  core.destroy();
+});
+
+test('Pixel-M8 BBS versioned PNG continuations retain shared RAM, cartdata and both controller ports',async()=>{
+  const core=await create();
+  const root=cart('function _init() cartdata("rr_multi") dset(0,123) poke(0x8000,77) load("#part2",nil,"next") end');
+  const code=version=>'function _init() cartdata("rr_multi") saved=dget(0) marker=peek(0x8000) version='+version+' end function _update60() a=btn(4,0) b=btn(5,1) end';
+  const cartridges=[{name:'part2-1.p8.png',bytes:pngCart(code(1))},{name:'part2-2.p8.png',bytes:pngCart(code(2))}];
+  core.load(root,'p8',{name:'start.p8',cartridges});for(let i=0;i<4;i++)core.run(1,2);
+  verify(core,'version==2 and saved==123 and marker==77 and a and b');assert.equal(core.waiting,'');
+  core.load(root,'p8',{name:'start.p8',cartridges});for(let i=0;i<4;i++)core.run(0,0);verify(core,'version==2 and not a and not b');core.destroy();
+});
+
+test('Pixel-M8 can decline a missing request and discards companion files when opening another game',async()=>{
+  const core=await create(),root=cart('tried=false n=0 function _update60() if not tried then tried=true result=load("#missing") end n+=1 end');
+  core.load(root,'p8');core.run(0,0);assert.equal(core.waiting,'#missing');core.cancelCartridge();core.run(0,0);
+  verify(core,'result==false and n>0');assert.equal(core.waiting,'');
+  core.addCartridges([{name:'missing.p8',bytes:cart('found=true')}]);
+  core.load(root,'p8');core.run(0,0);assert.equal(core.waiting,'#missing');assert.equal(core.files.length,1);core.destroy();
+});
+

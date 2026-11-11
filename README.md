@@ -347,7 +347,9 @@ Geen commerciële games of BIOS-bestanden worden meegeleverd.
 The console picker includes Pixel-M8 using the existing web build of Pico Core
 0.11.9. Local `.p8` and `.p8.png` cartridges work in solo and two-player host
 WebRTC video/audio streaming; the guest sends controls and receives no cartridge.
-The original Pixel Duo demo is included. Own-ROM rollback and full savestates
+Local continuation cartridges can be selected before launch or added through
+Cartridges while playing. Pending BBS loads can wait for a host-selected local
+file without dropping the stream. The original Pixel Duo demo is included. Own-ROM rollback and full savestates
 are unavailable because this core has no VM serialization API. Normal cartdata
 progress is saved locally when browser storage is allowed. See [PIXEL-M8.md](PIXEL-M8.md)
 for the exact limits and [LICENSING.md](LICENSING.md) for notices/publication scope.

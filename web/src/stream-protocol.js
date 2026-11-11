@@ -1,5 +1,5 @@
 import {validateDosInput,DosInputAccumulator,emptyDosInput} from './dos-input.js';
-export const STREAM_VERSION = 'retroroom-stream-5-pixel-m8';
+export const STREAM_VERSION = 'retroroom-stream-6-pixel-cartridges';
 export const PLAY_MODES = Object.freeze(['netplay', 'stream']);
 export function playMode(value = 'netplay') {
   if (!PLAY_MODES.includes(value)) throw new Error('Onbekende speelwijze. Vraag om een nieuwe uitnodigingslink.');
@@ -18,6 +18,7 @@ export function streamMessage(channel, data) {
         (data.system==='p8'?data.overclock!==100:![100,200,300,400,500].includes(data.overclock))) throw new Error('Ongeldige streamgegevens.');
     return { type: data.type, version: STREAM_VERSION, token, name: data.name, system: data.system, overclock: data.overclock };
   }
+  if(channel==='control'&&data.type==='stream-cartridge'&&typeof data.request==='string'&&(data.request===''||/^#[a-z0-9_-]{1,64}$/i.test(data.request)))return {type:data.type,token,epoch:streamToken(data.epoch),request:data.request};
   if (channel === 'control' && ['stream-watch', 'stream-ready'].includes(data.type)) return { type: data.type, token };
   if (channel === 'control' && data.type === 'stream-start') {
     if (data.version !== STREAM_VERSION) throw new Error('De streamversies komen niet overeen.');
