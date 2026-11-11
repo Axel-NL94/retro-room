@@ -75,3 +75,11 @@ dialog{border:1px solid #464b54;background:var(--panel);color:var(--text);border
 .language-switcher button:focus-visible{outline:3px solid var(--mint);outline-offset:2px}
 @media(max-width:600px){.topbar.language-header-legal{gap:8px}.topbar.language-header-legal .brand{font-size:18px}.topbar.language-header-legal .brand-icon{display:none}.topbar.language-header-legal>.button{font-size:10px;padding:0 8px;min-height:34px;white-space:nowrap}}
 @media(max-width:390px){.language-current{gap:4px;padding:7px 8px}}
+
+/* The fantasy console has a square native display. Fullscreen fit stays selectable. */
+.play-panel[data-system="p8"] :is(#game,#stream-video){aspect-ratio:1;object-fit:contain}
+.play-panel[data-system="p8"] .touch-middle{display:none}
+.play-panel[data-system="p8"]:fullscreen :is(#game,#stream-video){aspect-ratio:auto}
+.platform-strip>div{flex-wrap:wrap;row-gap:12px}
+
+.play-panel[data-system="p8"] .touch-controls [data-pad="1"]{margin-left:auto}

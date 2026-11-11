@@ -51,6 +51,11 @@ export async function checkLicensing(root) {
   for(const [file,hash] of [['assets/genesis-core.wasm',genesis.wasmSha256],['assets/genesis-core.mjs',genesis.loaderSha256],['assets/'+genesis.sourceArchive,genesis.sourceSha256],['GENESIS-NOTICES.txt',genesis.noticesSha256]]){
     if(sha256(await readFile(path.join(root,'web',file)))!==hash)throw new Error('Mega Drive-build, notices en broncode komen niet overeen: '+file);
   }
+  const pixel = JSON.parse(await readFile(path.join(root,'web/assets/pixel-m8-build.json'),'utf8'));
+  if(pixel.license!=='MIT'||pixel.separateProgram!==true||pixel.sourcePublished!==false)throw new Error('Controleer de Pixel-M8-distributie opnieuw.');
+  for(const [file,hash] of [['assets/pico-core.js',pixel.loaderSha256],['assets/pico-core.wasm',pixel.wasmSha256],['PIXEL-M8-NOTICES.txt',pixel.noticesSha256]]){
+    if(sha256(await readFile(path.join(root,'web',file)))!==hash)throw new Error('Pixel-M8-build en notices komen niet overeen: '+file);
+  }
   const tailcat = JSON.parse(await readFile(path.join(root, 'web/assets/tailcat-build.json'), 'utf8'));
   if (tailcat.revision !== '52fbad323e9d352f1febb623e0975368e9a8cbdd' || tailcat.go !== '1.27.3' || !tailcat.offlineRebuildVerified) throw new Error('Tailcat-build opnieuw controleren.');
   for (const [file, hash] of [['assets/tailcat.wasm.gz', tailcat.wasmGzipSha256], ['vendor/tailcat/wasm_exec.js', tailcat.runtimeSha256], ['assets/' + tailcat.sourceArchive, tailcat.sourceSha256], ['TAILCAT-NOTICES.txt', tailcat.noticesSha256]]) {

@@ -176,3 +176,22 @@ Any future commercial use (including possible advertising/sponsorship/business
 integration) needs a new license assessment and, where necessary, permission
 from the relevant rightsholders. A free website is not by itself proof of
 non-commercial use. Emulator licensing does not establish rights to games.
+
+## Pixel-M8 / Pico Core (2026-11-11)
+
+Pixel-M8 is a separate PICO-8-compatible Wasm program (Pico Core 0.11.9,
+browser build 0.1.0), not linked with Mesen, Genesis Plus GX or DOSBox Pure.
+The original core is MIT, copyright 2026 Pico Core contributors. z8lua/Lua
+is MIT / WTFPL-2.0. The unchanged prebuilt module also includes zlib and
+Emscripten 7.0.0 runtime components. `web/PIXEL-M8-NOTICES.txt` preserves the
+complete own, interpreter and runtime notices. Build metadata pins both browser
+artifacts and notices by SHA-256; the build rejects mismatches.
+
+Only the browser loader, Wasm and license notices from the private repository
+are published. Its private source archive, native code, repository history,
+standalone player and local proxy/server are not included. The permissive core
+licenses do not require publication of that source. The new RetroRoom adapter
+and original Pixel Duo cartridge are MIT and included in the application source
+archive. There is no official PICO-8 code, SDK, font, BIOS or game in this module.
+See `PIXEL-M8.md` for capability and persistence limits. The GPL source grants
+for the separate Mesen and DOSBox Pure programs remain in force.

@@ -6,6 +6,9 @@ Genesis Plus GX is a separately licensed non-commercial program, NOT GPL or MIT;
 see web/GENESIS-NOTICES.txt and native/GENESIS.md. The MIT grant below does not
 cover that core or remove its restrictions.
 
+Pixel-M8 / Pico Core is independently licensed; see web/PIXEL-M8-NOTICES.txt.
+The private core source is not included in the RetroRoom source download.
+
 MIT License
 
 Copyright (c) 2026 RetroRoom contributors

@@ -59,6 +59,7 @@ export function createGamePatcher({onOpen=()=>{}}={}) {
     status('Kies eerst voor welk systeem je wilt patchen.');
   }
   for(const original of document.querySelectorAll('#console-picker .console-tile')){
+    if(original.dataset.console==='p8')continue;
     const tile=original.cloneNode(true),value=tile.dataset.console;delete tile.dataset.console;
     tile.dataset.patchSystem=value;tile.setAttribute('aria-label',`${names[value]} patcher kiezen`);
     tile.querySelector('span').textContent=value==='dos'?'Los bestand · JSON-patch':'ROM · IPS / BPS';

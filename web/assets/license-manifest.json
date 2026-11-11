@@ -387,7 +387,14 @@
       "notices": "../GENESIS-NOTICES.txt",
       "source": "genesis-source.tar.gz",
       "scope": "Separate Mega Drive program; not covered by the Mesen GPL distribution grant."
+    },
+    {
+      "engine": "Pixel-M8 / Pico Core",
+      "license": "MIT",
+      "metadata": "pixel-m8-build.json",
+      "notices": "../PIXEL-M8-NOTICES.txt",
+      "scope": "Independent WebAssembly program, with MIT/WTFPL interpreter and permissive runtime notices. Private core source is not distributed."
     }
   ],
-  "distributionLicenseScope": "Mesen/DOSBox programs only; Genesis Plus GX is a separately licensed non-commercial program. Original RetroRoom UI remains MIT."
+  "distributionLicenseScope": "Mesen/DOSBox programs only; Genesis Plus GX is a separately licensed non-commercial program. Original RetroRoom UI remains MIT. Pixel-M8 is an independent MIT program with its own interpreter/runtime licenses."
 }

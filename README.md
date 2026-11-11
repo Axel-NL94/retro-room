@@ -341,3 +341,13 @@ Broncode en oorspronkelijke voorwaarden worden volledig meegeleverd en zijn op
 de site downloadbaar. Zie [native/GENESIS.md](native/GENESIS.md),
 [LICENSING.md](LICENSING.md) en `web/GENESIS-NOTICES.txt`.
 Geen commerciële games of BIOS-bestanden worden meegeleverd.
+
+### Pixel-M8 / PICO-8 (beta)
+
+The console picker includes Pixel-M8 using the existing web build of Pico Core
+0.11.9. Local `.p8` and `.p8.png` cartridges work in solo and two-player host
+WebRTC video/audio streaming; the guest sends controls and receives no cartridge.
+The original Pixel Duo demo is included. Own-ROM rollback and full savestates
+are unavailable because this core has no VM serialization API. Normal cartdata
+progress is saved locally when browser storage is allowed. See [PIXEL-M8.md](PIXEL-M8.md)
+for the exact limits and [LICENSING.md](LICENSING.md) for notices/publication scope.
