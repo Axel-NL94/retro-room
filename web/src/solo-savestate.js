@@ -1,7 +1,7 @@
 import {emptyDosInput} from './dos-input.js';
 
 export function canUseSoloSavestates({core,game,isHost,roomId,peer,inviteConnection,mode,pausedMode}){
-  return !!core&&!!game&&isHost&&!roomId&&!peer&&!inviteConnection&&mode!=='online'&&!(mode==='paused'&&pausedMode==='online');
+  return !!core&&core.supportsSavestates!==false&&!!game&&isHost&&!roomId&&!peer&&!inviteConnection&&mode!=='online'&&!(mode==='paused'&&pausedMode==='online');
 }
 export async function stageSavestate({CoreClass,game,state,isCurrent=()=>true,onProgress=()=>{}}){
   let candidate,preview;

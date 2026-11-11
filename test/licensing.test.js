@@ -46,7 +46,7 @@ test('complete download is valid tar and retains exact application, native and P
   const files = unpack(sourceTar(await applicationSources(root)));
   for (const file of ['web/src/app.js', 'web/src/controls.js', 'web/src/mesen.js', 'native/mesen-web.cpp', 'scripts/build-mesen.py',
     'scripts/package-mesen-source.py', 'scripts/source-archive.js', 'package.json', 'pnpm-lock.yaml',
-    'LICENSING.md', 'LICENSE', 'web/THIRD-PARTY-NOTICES.txt', 'web/assets/mesen-source.tar.gz', 'web/assets/peerjs-source.tar.gz']) {
+    'LICENSING.md', 'LICENSE', 'web/THIRD-PARTY-NOTICES.txt', 'web/PIXEL-M8-NOTICES.txt', 'web/assets/pico-core.wasm', 'web/assets/pico-core.js', 'web/src/pixel-m8.js', 'web/assets/mesen-source.tar.gz', 'web/assets/peerjs-source.tar.gz']) {
     assert.deepEqual(files.get('retro-room/' + file), await readFile(root + file), file);
   }
   const map = JSON.parse(await readFile(root + 'node_modules/peerjs/dist/peerjs.min.js.map', 'utf8'));
@@ -55,6 +55,7 @@ test('complete download is valid tar and retains exact application, native and P
     assert.equal(files.get('retro-room/vendor-source/peerjs-1.5.5/bundled-sources/' + name).toString(), map.sourcesContent[index]);
   });
   assert.ok(![...files.keys()].some(name => /retro-room\/(?:dist|\.git|node_modules)\//.test(name)));
+  assert.ok(![...files.keys()].some(name => /(?:pico-core-source\.tar|pixel-M8\/linux|web_main\.cpp)/i.test(name)), 'private Pixel-M8 source stays out of the public download');
   assert.ok(!files.has('retro-room/web/assets/retro-room-source.tar.gz'), 'no recursive source archive');
   assert.throws(() => sourceTar(new Map([['../escape.txt', Buffer.from('bad')]])), /bronpad/);
 });

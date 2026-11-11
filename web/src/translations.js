@@ -2731,3 +2731,144 @@ messages.set('MD-gamescherm','Mega Drive game screen');
 
 messages.set('Automatisch · controller 1','Automatic · controller 1');
 messages.set('Automatisch · controller 2','Automatic · controller 2');
+
+// Pixel-M8 integration (11 November 2026).
+for (const [nl,en] of [
+  [
+    "PICO-8 kiezen",
+    "Choose PICO-8"
+  ],
+  [
+    "Of probeer Pixel Duo, onze eigen PICO-8-demo ↗",
+    "Or try Pixel Duo, our original PICO-8 demo ↗"
+  ],
+  [
+    "Pixel Duo · originele PICO-8-demo",
+    "Pixel Duo · original PICO-8 demo"
+  ],
+  [
+    ".p8 / .p8.png · maximaal 8 MB · blijft lokaal",
+    ".p8 / .p8.png · up to 8 MB · stays local"
+  ],
+  [
+    "Pixel-M8 gebruikt de standaard PICO-8-snelheid. CPU-overclock is niet beschikbaar.",
+    "Pixel-M8 runs at the standard PICO-8 speed. CPU overclock is unavailable."
+  ],
+  [
+    "Pixel-M8 ondersteunt alleen de standaard CPU-snelheid.",
+    "Pixel-M8 only supports the standard CPU speed."
+  ],
+  [
+    "Pixel-M8: geen volledige savestates. Games met cartdata/dset bewaren hun voortgang in deze browser als lokale opslag is toegestaan. Andere opslagvormen en backups worden nog niet ondersteund.",
+    "Pixel-M8 has no full save states. Games using cartdata/dset save progress in this browser when local storage is allowed. Other storage formats and backups are not supported yet."
+  ],
+  [
+    "Pixel-M8 ondersteunt online alleen beeld en geluid streamen.",
+    "Pixel-M8 online play only supports video and audio streaming."
+  ],
+  [
+    "Pixel-M8 beta: solo of online via beeld en geluid streamen. Twee spelers met O/X en richtingen. Geen rollback, volledige savestates, muis/toetsenbord-API of extra cartridges. Je eigen .p8- en .p8.png-bestanden blijven lokaal.",
+    "Pixel-M8 beta: solo or online with video and audio streaming. Two players with O/X and directions. No rollback, full save states, mouse/keyboard API, or additional cartridges. Your .p8 and .p8.png files stay local."
+  ],
+  [
+    "Automatisch opgeslagen in deze browser, apart voor NES, SNES, Mega Drive, PICO-8 en DOS.",
+    "Automatically saved in this browser, separately for NES, SNES, Mega Drive, PICO-8 and DOS."
+  ],
+  [
+    "Kies eerst NES, SNES, Mega Drive, PICO-8 of DOS.",
+    "Choose NES, SNES, Mega Drive, PICO-8 or DOS first."
+  ],
+  [
+    "Dit gamebestand is te groot. DOS: maximaal 32 MB; andere systemen: maximaal 8 MB.",
+    "This game file is too large. DOS: up to 32 MB; other systems: up to 8 MB."
+  ],
+  [
+    "Pixel-M8 kon niet worden geladen. Vernieuw de pagina.",
+    "Pixel-M8 could not be loaded. Refresh the page."
+  ],
+  [
+    "Kies een PICO-8-cartridge van maximaal 8 MB (.p8 of .p8.png).",
+    "Choose a PICO-8 cartridge up to 8 MB (.p8 or .p8.png)."
+  ],
+  [
+    "Dit is geen geldige .p8- of .p8.png-cartridge.",
+    "This is not a valid .p8 or .p8.png cartridge."
+  ],
+  [
+    "Pixel-M8 heeft niet genoeg geheugen.",
+    "Pixel-M8 does not have enough memory."
+  ],
+  [
+    "Pixel-M8 ondersteunt nog geen rollback.",
+    "Pixel-M8 does not support rollback yet."
+  ],
+  [
+    "Deze game heeft een extra cartridge nodig. Multi-cartridge-games worden nog niet ondersteund.",
+    "This game needs an additional cartridge. Multi-cartridge games are not supported yet."
+  ],
+  [
+    "SOFTWARELICENTIES · BIJGEWERKT OP 11 NOVEMBER 2026",
+    "SOFTWARE LICENSES · UPDATED 11 NOVEMBER 2026"
+  ],
+  [
+    "RetroRoom gebruikt MesenCE, Genesis Plus GX, Pixel-M8, DOSBox Pure en andere software met afzonderlijke licenties. Hieronder staan de auteurs, de voorwaarden en de broncode van deze versie.",
+    "RetroRoom uses MesenCE, Genesis Plus GX, Pixel-M8, DOSBox Pure and other software under separate licenses. Authors, terms and source availability for this version are listed below."
+  ],
+  [
+    "Samen spelen via uitnodigingslinks, met Mesen voor NES/SNES, Genesis Plus GX voor Mega Drive, Pixel-M8 voor PICO-8 en DOSBox Pure voor DOS.",
+    "Play together using invite links, with Mesen for NES/SNES, Genesis Plus GX for Mega Drive, Pixel-M8 for PICO-8 and DOSBox Pure for DOS."
+  ],
+  [
+    "Pixel-M8-auteurs en volledige licenties",
+    "Pixel-M8 authors and full licenses"
+  ],
+  [
+    "Pixel-M8-auteurs en licenties",
+    "Pixel-M8 authors and licenses"
+  ],
+  [
+    "Pixel-M8-buildmetadata",
+    "Pixel-M8 build metadata"
+  ],
+  [
+    "Private corebroncode is niet inbegrepen.",
+    "Private core source is not included."
+  ],
+  [
+    "Pixel-M8 gebruikt Pico Core 0.11.9, copyright © 2026 Pico Core contributors, onder MIT. De afzonderlijke WebAssembly-module bevat z8lua/Lua (MIT en WTFPL versie 2), zlib en de Emscripten 7.0.0-runtime met hun oorspronkelijke voorwaarden. De volledige auteurs-, toestemmings- en garantieteksten zijn inbegrepen.",
+    "Pixel-M8 uses Pico Core 0.11.9, copyright © 2026 Pico Core contributors, under MIT. Its independent WebAssembly module includes z8lua/Lua (MIT and WTFPL version 2), zlib and the Emscripten 7.0.0 runtime under their original terms. Complete author, permission and warranty notices are included."
+  ],
+  [
+    "Dit is een onafhankelijke PICO-8-compatibele emulator. De officiële PICO-8-runtime, SDK, lettertypen en games worden niet meegeleverd. De broncode van de private Pixel-M8-repository wordt niet gepubliceerd. De MIT- en WTFPL-voorwaarden vereisen behoud van de vermeldingen, geen publicatie van die volledige broncode. De RetroRoom-adapter en de originele Pixel Duo-demo zijn wel onderdeel van de RetroRoom-broncodedownload.",
+    "This is an independent PICO-8-compatible emulator. The official PICO-8 runtime, SDK, fonts and games are not included. Source code from the private Pixel-M8 repository is not published. MIT and WTFPL require preservation of notices, not publication of that complete source. The RetroRoom adapter and original Pixel Duo demo are included in the RetroRoom source download."
+  ]
+]) messages.set(nl,en);
+
+for (const [nl,en] of [["Kies NES, SNES, Mega Drive, PICO-8 of DOS, stel de speelwijze in via het tandwiel en laad je ROM. Houd als host je kamer open.", "Choose NES, SNES, Mega Drive, PICO-8 or DOS, configure play mode using the gear, and load your ROM. As host, keep your room open."], ["PICO-8-gamescherm", "PICO-8 game screen"]]) messages.set(nl,en);
+
+for (const [nl,en] of [
+  [
+    "Kies NES, SNES, Mega Drive, PICO-8 of DOS, stel met het tandwiel de speelwijze in en laad je ROM. Houd als host de kamer open.",
+    "Choose NES, SNES, Mega Drive, PICO-8 or DOS, configure play mode using the gear, and load your ROM. As host, keep the room open."
+  ],
+  [
+    "Mesen · NES · SNES (beta) · Mega Drive / Genesis Plus GX (beta) · Pixel-M8 / PICO-8 (beta: solo en streamen) · DOSBox Pure (beta: solo, streamen en experimentele invoerbuffer) · uitnodigingslinks · controle van eigen ROMs · lokale savestates · lokale emulatie · rollback · WebRTC-streamen · toetsenbord en gamepad",
+    "Mesen · NES · SNES (beta) · Mega Drive / Genesis Plus GX (beta) · Pixel-M8 / PICO-8 (beta: solo and streaming) · DOSBox Pure (beta: solo, streaming and experimental input buffering) · invite links · matching local ROMs · local save states · local emulation · rollback · WebRTC streaming · keyboard and gamepads"
+  ],
+  [
+    "Pixel-M8 / Pico Core 0.11.9: © 2026 Pico Core contributors, MIT. z8lua/Lua en de browserruntime behouden hun eigen licenties. Geen officiële PICO-8-runtime of games inbegrepen.",
+    "Pixel-M8 / Pico Core 0.11.9: © 2026 Pico Core contributors, MIT. z8lua/Lua and the browser runtime retain their own licenses. No official PICO-8 runtime or games are included."
+  ],
+  [
+    "De downloads voor de GPL-programma’s en de RetroRoom-code zijn gratis beschikbaar op dezelfde site als de emulator, zonder account of aanvraag. Ze horen bij deze gepubliceerde versie en bevatten ook de bouwinstructies en onze wijzigingen.",
+    "Downloads for the GPL programs and RetroRoom code are available for free on the same site as the emulator, without an account or request. They accompany this published version and include build instructions and our changes."
+  ],
+  [
+    "Afzonderlijke MIT-emulator met z8lua/Lua en browserruntime; zie de Pixel-M8-sectie en volledige notices hierboven. Private corebroncode is niet inbegrepen.",
+    "Independent MIT emulator with z8lua/Lua and browser runtime; see the Pixel-M8 section and full notices above. Private core source is not included."
+  ],
+  [
+    "RetroRoom is een onafhankelijk project. Namen als Nintendo, NES, SNES, Sega, PlayStation, Mesen, PICO-8 en Libretro worden beschrijvend gebruikt. Er wordt geen officiële samenwerking of goedkeuring geclaimd.",
+    "RetroRoom is an independent project. Names such as Nintendo, NES, SNES, Sega, PlayStation, Mesen, PICO-8 and Libretro are used descriptively. No official partnership or endorsement is claimed."
+  ]
+]) messages.set(nl,en);

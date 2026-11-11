@@ -2,6 +2,7 @@ import { cp, mkdir, writeFile, rm, readdir, readFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { makeDemoRom } from './demo-rom.js';
+import {makePixelDemo} from './demo-pixel-m8.js';
 import {makeGenesisDemo} from './demo-genesis.js';
 import { makeDosDemo } from './demo-dos.js';
 import { checkLicensing } from './licensing.js';
@@ -21,6 +22,7 @@ await cp(root + 'node_modules/peerjs/LICENSE', root + 'dist/vendor/PEERJS-LICENS
 await writeFile(root + 'dist/assets/room-rally.nes', makeDemoRom());
 await writeFile(root + 'dist/assets/dos-duo.com', makeDosDemo());
 await writeFile(root + 'dist/assets/mega-duo.md', makeGenesisDemo());
+await writeFile(root + 'dist/assets/pixel-duo.p8', makePixelDemo());
 await writeFile(root + 'dist/assets/retro-room-source.tar.gz', sourceTar(await applicationSources(root)));
 // Keep all ES modules on the same build when GitHub Pages/browser caches differ.
 const sourceFiles = [];
@@ -37,7 +39,7 @@ for (const file of sourceFiles.sort()) hash.update(await readFile(file));
 const buildId = hash.digest('hex').slice(0, 12);
 for (const file of sourceFiles.filter(f => /\.(js|mjs|html)$/.test(f) && !f.includes('/vendor/'))) {
   const source = await readFile(file, 'utf8');
-  await writeFile(file, source.replace(/((?:\.\/|\.\.\/)[^'"\s<>]+\.(?:js|mjs|wasm|css|nes|svg|json|gz))(?=['"])/g, `$1?v=${buildId}`));
+  await writeFile(file, source.replace(/((?:\.\/|\.\.\/)[^'"\s<>]+\.(?:js|mjs|wasm|css|nes|p8|svg|json|gz))(?=['"])/g, `$1?v=${buildId}`));
 }
 await writeFile(root + 'dist/.nojekyll', '');
 console.log('GitHub Pages-build gereed in dist/');

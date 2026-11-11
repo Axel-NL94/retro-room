@@ -1,0 +1,16 @@
+{
+  "engine": "Pixel-M8 / Pico Core",
+  "coreVersion": "0.11.9",
+  "webVersion": "0.1.0",
+  "build": "pixel-m8-0.11.9-web-1",
+  "license": "MIT",
+  "interpreterLicense": "MIT AND WTFPL-2.0",
+  "separateProgram": true,
+  "compiler": "Emscripten 7.0.0",
+  "sourceManifestGitBlob": "a1f9a874a53b7dacf5f226d178b60039553800a9",
+  "wasmSha256": "4177708b5aba6e82ab80fa081a18eff4a701ff2726c15759c0ada2991fd8a1a9",
+  "loaderSha256": "8eecf9b6517572652bb027440abac602355d8fdc1c60db3b68842806f1c35e58",
+  "noticesSha256": "e7cb484dccb75073aa63a73dd68eebc8cdcc0948efb64bdd19f93ff8fd2461e2",
+  "sourcePublished": false,
+  "gamesBundled": false
+}
