@@ -39,8 +39,8 @@ een nieuwe willekeurige link.
 
 Er is geen eigen server of gebruikersaccount nodig. PeerJS Cloud verzorgt de
 signalering; Google STUN helpt een directe verbinding vinden. Bij samen emuleren is P2P de eerste keuze.
-Lukt dat niet binnen ongeveer 10 seconden, dan schakelen beide spelers automatisch
-over op Tailcat via DERP/WebSockets over TLS. Er is geen TURN-account of betaalde databundel. Externe diensten hebben geen garantie
+Na 15 seconden zonder nieuwe ICE-/kanaalvoortgang (maximaal 45 seconden per
+directe poging) schakelen beide spelers automatisch over op Tailcat via DERP/WebSockets over TLS. Er is geen TURN-account of betaalde databundel. Externe diensten hebben geen garantie
 op beschikbaarheid of onbeperkt gratis gebruik. Zie [GRATIS-HOSTING.md](GRATIS-HOSTING.md).
 
 ## Emulator en mogelijkheden
@@ -268,9 +268,13 @@ browsers en energiebesparing kunnen achtergrondvideo alsnog onderbreken.
 
 Bij samen emuleren maakt de host een tijdelijke Tailcat-listener aan. De volledige
 uitnodigingslink bevat de kamer-id, een AES-GCM-sleutel en het Tailcat-adres uitsluitend
-in het URL-fragment. De gast probeert eerst PeerJS/WebRTC. Pas als dit mislukt of na
-10 seconden nog niet gereed is, laadt de gast Tailcat en verbindt met de host via de
+in het URL-fragment. De gast probeert eerst PeerJS/WebRTC. Pas als dit mislukt of
+15 seconden geen nieuwe ICE-/kanaalvoortgang optreedt, laadt de gast Tailcat en verbindt met de host via de
 publieke DERP-relays. Bij werkend P2P gaat geen spelinvoer of gamemetadata via Tailcat.
+Elke directe poging duurt hoogstens 45 seconden; een daadwerkelijke ICE-fout kan
+al eerder de fallback starten. De verbinding met de PeerJS-signaleringsdienst heeft
+apart maximaal 15 seconden. Bij een werkende signaleringsdienst kan de eerste
+verbinding daardoor in totaal langer dan 45 seconden duren.
 De hostlistener is nodig om ook zonder werkende P2P-handshake bereikbaar te zijn.
 Als de listener niet start, blijft een directe P2P-kamer mogelijk; de kamer meldt dat
 fallback ontbreekt. Bij een onbereikbare P2P-dienst moet de relay wel starten.
@@ -291,8 +295,31 @@ Alleen de bestaande gevalideerde control/input-berichten worden doorgelaten; ROM
 niet verstuurd. TCP-frames zijn begrensd, uitgaande buffers maximaal 128 KiB en invoer
 wordt hoogstens 4 ms gebundeld (maximaal 8 frames). Eén gast kan de kamer bezetten.
 Vertrekken beëindigt de worker en tijdelijke sleutels. Nieuwe sessies hebben nieuwe links.
-Oude uitnodigingen moeten opnieuw worden aangemaakt. Een lopende P2P-game verhuist niet
-stilzwijgend naar een nieuwe sessie: verlaat de kamer en verbind opnieuw na uitval.
+Oude uitnodigingen moeten opnieuw worden aangemaakt.
+
+Tijdens Tailcat-spelverkeer probeert de host automatisch opnieuw P2P, voor het eerst
+na 5 seconden. Na een mislukte poging wacht hij 15, 30 en vervolgens maximaal 60
+seconden; een afzonderlijke achtergrondpoging duurt hoogstens 30 seconden. Tailcat
+blijft ondertussen spelen. Alleen het reeds gekoppelde relaydeelnemerspaar kan via
+de versleutelde verbinding een tijdelijke, willekeurige P2P-probe autoriseren.
+Pas na een tweezijdige kanaaltest en bevestigde overdracht wordt het spelverkeer
+direct verstuurd. Dit start geen nieuwe kamer, ROM of emulatorsessie.
+
+De opgewaardeerde P2P-route gebruikt één betrouwbaar, geordend datakanaal voor beide
+berichttypen. Volgnummers, bevestigingen en begrensde heruitzending zorgen dat invoer
+rond de overgang één keer en op volgorde wordt verwerkt. De logische verbinding
+behoudt maximaal 2048 onbevestigde berichten; een te ver achterlopende verbinding
+stopt met een fout in plaats van onbeperkt geheugen te gebruiken. De oorspronkelijke
+directe verbinding behoudt haar aparte invoerkanaal.
+
+Na de overstap blijft Tailcat alleen stand-by met kleine hartslagen om de 4 seconden;
+spelgegevens gaan via P2P. Valt deze opgewaardeerde P2P-route weg en is Tailcat nog
+bereikbaar, dan gaat dezelfde sessie via Tailcat verder en worden nieuwe P2P-pogingen
+ingepland. Een gezonde P2P-route blijft werken als de stand-byrelay wegvalt. Dit herstel
+geldt alleen voor sessies die via Tailcat begonnen; een gewone, direct gestarte
+P2P-sessie heeft geen ingelogde relaygast en moet na uitval opnieuw verbinden.
+Geen enkele retry kan een blijvend blokkerende firewall omzeilen. Streamen en DOS
+krijgen geen Tailcat- of upgradepad.
 
 De gratis publieke Tailcat-relays hebben snelheids-/misbruiklimieten en geen garantie op
 beschikbaarheid of lagere ping. Ook deze WebSockets kunnen geblokkeerd worden. De browser

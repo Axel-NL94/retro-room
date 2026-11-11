@@ -3,8 +3,8 @@ import {validateDosInput} from './dos-input.js';
 import { romHash } from './emulator.js';
 import { streamMessage } from './stream-protocol.js';
 
-export const NETPLAY_VERSION = 'retroroom-gx-f27655b-dos-sharing-3-tailcat-10';
-export const INVITE_VERSION = 10;
+export const NETPLAY_VERSION = 'retroroom-gx-f27655b-dos-sharing-3-tailcat-11';
+export const INVITE_VERSION = 11;
 export const OVERCLOCK_VALUES = Object.freeze([100, 200, 300, 400, 500]);
 export function validateOverclock(value) {
   if (!OVERCLOCK_VALUES.includes(value)) throw new Error('Kies een CPU-overclock van 100%, 200%, 300%, 400% of 500%.');

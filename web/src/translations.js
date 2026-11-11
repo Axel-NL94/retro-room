@@ -1,4 +1,9 @@
 export const messages = new Map([
+  ['Directe verbinding gelukt. Het spel gaat verder via P2P.', 'Direct connection established. Gameplay continues over P2P.'],
+  ['P2P is weggevallen. Het spel gaat verder via Tailcat.', 'P2P disconnected. Gameplay continues over Tailcat.'],
+  ['Ongeldig spelbericht via de verbinding.', 'Invalid game message received over the connection.'],
+  ['Spelbericht te groot.', 'Game message is too large.'],
+
   [
     "RetroRoom — Oude games. Samen opnieuw.",
     "RetroRoom — Old games. Together again."
@@ -820,8 +825,8 @@ export const messages = new Map([
     "The host chooses the play mode. With shared emulation, each player loads their own ROM and exchanges input and synchronization data. With streaming, only the host runs the game, while player 2 receives video and audio via WebRTC. ROM files are not sent."
   ],
   [
-    "Bij samen emuleren proberen we eerst P2P en daarna Tailcat als fallback. Streamen werkt alleen met directe WebRTC; de videostream kan niet via Tailcat. De route staat in je kamer. De relay kan meer vertraging geven; als ook WebSockets worden geblokkeerd, lukt verbinden mogelijk niet.",
-    "For shared emulation, we try P2P first, then Tailcat as a fallback. Streaming only works over direct WebRTC, not Tailcat. Your room shows the route. Relays may add latency, and connections may fail if WebSockets are blocked too."
+    "Bij samen emuleren proberen we eerst P2P en daarna Tailcat als fallback. Tijdens de fallback blijven we P2P proberen; zodra het lukt, gaat het spel direct verder. Streamen werkt alleen met directe WebRTC; de videostream kan niet via Tailcat. De route staat in je kamer. De relay kan meer vertraging geven; als ook WebSockets worden geblokkeerd, lukt verbinden mogelijk niet.",
+    "For shared emulation, we try P2P first, then Tailcat as a fallback. We keep trying P2P in the background and switch gameplay to the direct route once it works. Streaming only works over direct WebRTC, not Tailcat. Your room shows the route. Relays may add latency, and connections may fail if WebSockets are blocked too."
   ],
   [
     "De uitnodigingslink werkt zolang de host deze kamer openhoudt. Vernieuwen of de kamer verlaten maakt de link ongeldig.",

@@ -5,6 +5,10 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import { InviteConnection, PeerConnection } from '../web/src/connection.js';
 import { RelayRoom, newRelaySecret } from '../web/src/relay.js';
 import { INVITE_VERSION } from '../web/src/protocol.js';
+import { readFile } from 'node:fs/promises';
+import { MesenCore } from '../web/src/mesen.js';
+import { makeDemoRom } from '../scripts/demo-rom.js';
+import { RollbackSession, stateHash } from '../web/src/rollback.js';
 
 // In-memory duplex byte transport. The production adapter uses Tailcat workers.
 class MemoryTransport extends EventTarget {
@@ -49,8 +53,8 @@ async function until(fn, timeout = 1000) {
   const deadline = Date.now() + timeout;
   while (!fn()) { if (Date.now() > deadline) throw new Error('Timed out'); await sleep(5); }
 }
-async function pair(t) {
-  const host = new InviteConnection(Peer, options), guest = new InviteConnection(Peer, options);
+async function pair(t, PeerClass = Peer, overrides = {}) {
+  const host = new InviteConnection(PeerClass, { ...options, ...overrides }), guest = new InviteConnection(PeerClass, { ...options, ...overrides });
   t.after(() => { host.leave(); guest.leave(); });
   let hp, gp;
   host.addEventListener('guest-joined', e => { hp = new PeerConnection(e.detail.connection, true); });
@@ -182,4 +186,122 @@ test('leaving while the Tailcat listener starts cancels creation without resurre
   const host=new InviteConnection(Peer,{...options,RelayRoomClass:SlowRelay});
   const creating=host.create({});await until(()=>host.relayRoom?.cancel);const relay=host.relayRoom;
   host.leave();await creating;assert.equal(host.room,null);assert.equal(host.relayRoom,null);assert.equal(relay.closed,true);
+});
+
+// A real two-ended event wire for negotiation and route-switch tests. Only the
+// initial connection is blocked; background candidates can succeed or fail.
+class DirectWire extends EventEmitter {
+  static held = []; static hold = false;
+  constructor(peer, options) { super(); Object.assign(this, options); this.peer = peer; this.open = false;
+    this.dataChannel = { bufferedAmount: 0 }; this.peerConnection = Object.freeze({ connectionState: 'connected', getStats: async()=>new Map() }); }
+  send(value) {
+    if (!this.open || this.closed) throw new Error('closed');
+    const deliver=()=>{if(!this.other.closed)this.other.emit('data', structuredClone(value));};
+    if(DirectWire.hold && value.wire) DirectWire.held.push(deliver); else queueMicrotask(deliver);
+  }
+  close() { if(this.closed)return;this.closed=true;this.open=false;this.emit('close');this.other?.close(); }
+}
+class RecoveringPeer extends Peer {
+  static peers = new Map(); static blocked = false; static attempts = 0;
+  constructor(id) { super(id); RecoveringPeer.peers.set(id,this); }
+  connect(id, options) {
+    if(options.label!=='retroroom-upgrade')return super.connect();
+    RecoveringPeer.attempts++;
+    if(RecoveringPeer.blocked)return new BlockedConnection();
+    const target=RecoveringPeer.peers.get(id);
+    const out=new DirectWire(id,options), incoming=new DirectWire(this.id,options);out.other=incoming;incoming.other=out;
+    queueMicrotask(()=>{target.emit('connection',incoming);if(out.closed||incoming.closed)return;
+      incoming.open=out.open=true;incoming.emit('open');out.emit('open');});
+    return out;
+  }
+  destroy(){super.destroy();RecoveringPeer.peers.delete(this.id);}
+}
+const retryOptions={upgradeOptions:{delays:[15,25,40],timeout:80}};
+test('a failed background probe leaves Tailcat playable; a later P2P success preserves the session',async t=>{
+  RecoveringPeer.blocked=true;RecoveringPeer.attempts=0;
+  t.after(()=>{RecoveringPeer.blocked=false;});
+  const {host,guest,hp,gp}=await pair(t,RecoveringPeer,retryOptions);
+  const hc=host.connection,gc=guest.connection;let opens=0;hp.addEventListener('open',()=>opens++);gp.addEventListener('open',()=>opens++);
+  await until(()=>RecoveringPeer.attempts>=1);await sleep(100);
+  assert.equal(hp.route,'Tailcat');assert.equal(hp.closed,false);assert.equal(host.connection,hc);
+  const received=[];gp.addEventListener('control',e=>received.push(e.detail));
+  hp.send('control',{type:'ping',time:123});await until(()=>received.length===1);
+  RecoveringPeer.blocked=false;await until(()=>hp.route==='P2P'&&gp.route==='P2P');
+  assert.equal(host.connection,hc);assert.equal(guest.connection,gc);assert.equal(opens,0);
+  const relayCount=MemoryTransport.wires.length;
+  hp.send('control',{type:'ping',time:124});await until(()=>received.length===2);await sleep(20);
+  assert.equal(MemoryTransport.wires.length,relayCount,'game payload bypasses Tailcat');
+  assert.deepEqual(received.map(m=>m.time),[123,124]);
+});
+test('unacknowledged relay input is replayed once in order on P2P, including a paused control message',async t=>{
+  const {host,hp,gp}=await pair(t,RecoveringPeer,{upgradeOptions:{delays:[60000],timeout:1000}});
+  const received=[];gp.addEventListener('input',e=>received.push(e.detail.frame));gp.addEventListener('control',e=>received.push(e.detail.type));
+  // Delay a genuine authenticated relay packet until after the route changes.
+  const relay=host.relayRoom,send=relay.send.bind(relay);const delayed=[];
+  relay.send=(payload,uid)=>{if(payload.kind==='play')delayed.push(()=>send(payload,uid));else send(payload,uid);};
+  hp.send('input',{type:'input',frame:1,buttons:1,epoch:'test'});hp.send('control',{type:'pause',paused:true,epoch:'test'});
+  assert.equal(received.length,0);
+  await host.upgrade.offer();await until(()=>hp.route==='P2P'&&gp.route==='P2P');
+  hp.send('input',{type:'input',frame:2,buttons:2,epoch:'test'});await until(()=>received.length===3);
+  delayed.forEach(fn=>fn());await sleep(30);assert.deepEqual(received,[1,'pause',2]);
+  gp.connection.packet('heartbeat');await until(()=>host.connection.pending.size===0);
+});
+test('a dropped upgraded channel returns to Tailcat and retries, without duplicate or lost input',async t=>{
+  const {host,hp,gp}=await pair(t,RecoveringPeer,{upgradeOptions:{delays:[60000],timeout:1000}});
+  await host.upgrade.offer();await until(()=>hp.route==='P2P'&&gp.route==='P2P');
+  const received=[];gp.addEventListener('input',e=>received.push(e.detail.frame));
+  DirectWire.hold=true;t.after(()=>{DirectWire.hold=false;DirectWire.held=[];});
+  hp.send('input',{type:'input',frame:12,buttons:3,epoch:'test'});await sleep(10);
+  host.connection.direct.close();await until(()=>hp.route==='Tailcat'&&gp.route==='Tailcat');
+  await until(()=>received.length===1);DirectWire.held.splice(0).forEach(fn=>fn());
+  hp.send('input',{type:'input',frame:13,buttons:4,epoch:'test'});await until(()=>received.length===2);
+  assert.deepEqual(received,[12,13]);assert.equal(hp.closed,false);
+  DirectWire.hold=false;await host.upgrade.offer();await until(()=>hp.route==='P2P'&&gp.route==='P2P');
+});
+test('an authenticated P2P upgrade keeps working if the standby relay disappears',async t=>{
+  const {host,guest,hp,gp}=await pair(t,RecoveringPeer,retryOptions);
+  await until(()=>hp.route==='P2P'&&gp.route==='P2P');host.relayRoom.transport.close();
+  await sleep(20);assert.ok(host.connection);assert.ok(guest.connection);
+  const received=[];gp.addEventListener('control',e=>received.push(e.detail));hp.send('control',{type:'ping',time:77});
+  await until(()=>received.length===1);assert.equal(received[0].time,77);
+});
+test('foreign, stale and unauthorized candidates cannot replace the paired relay participant',async t=>{
+  const {host,hp}=await pair(t,RecoveringPeer,{upgradeOptions:{delays:[60000],timeout:1000}});
+  const original=host.connection;
+  for(const metadata of [{},{app:'retroroom',version:INVITE_VERSION,room:host.room.id,attempt:original.attempt,nonce:crypto.randomUUID()}]){
+    const candidate=new DirectWire('rr-'+crypto.randomUUID(),{label:'retroroom-upgrade',serialization:'json',metadata});
+    host.accept(candidate);assert.equal(candidate.closed,true);assert.equal(host.connection,original);
+  }
+  // Even somebody holding the invitation key has a different Tailcat UID/attempt.
+  host.relayRoom.emit('packet',{uid:'stranger',payload:{kind:'upgrade',sequence:99,attempt:original.attempt,ack:-1,
+    signal:{step:'offer',nonce:crypto.randomUUID(),peer:'rr-'+crypto.randomUUID()}}});
+  assert.equal(host.upgrade.nonce,undefined);assert.equal(hp.route,'Tailcat');
+});
+test('leaving cancels scheduled/probing upgrades and late async work cannot resurrect a room',async t=>{
+  const {host,guest}=await pair(t,RecoveringPeer,retryOptions);const upgrade=host.upgrade;
+  const pending=upgrade.offer();host.leave();await pending;guest.leave();await sleep(120);
+  assert.equal(upgrade.closed,true);assert.equal(upgrade.timer,null);assert.equal(upgrade.deadline,null);assert.equal(host.connection,null);
+});
+
+test('two real Mesen rollback instances converge through Tailcat, live P2P upgrade and failback',async t=>{
+  const {host,hp,gp}=await pair(t,RecoveringPeer,{upgradeOptions:{delays:[60000],timeout:1000}});
+  const wasmBinary=new Uint8Array(await readFile(new URL('../web/assets/mesen-core.wasm',import.meta.url)));
+  const a=await MesenCore.create({wasmBinary}),b=await MesenCore.create({wasmBinary});
+  a.load(makeDemoRom());b.load(makeDemoRom());
+  const left=new RollbackSession(a,{player:1,send:m=>hp.send('input',{...m,epoch:'route-test'})});
+  const right=new RollbackSession(b,{player:2,send:m=>gp.send('input',{...m,epoch:'route-test'})});
+  hp.addEventListener('input',({detail:m})=>left.receive(m.frame,m.buttons));gp.addEventListener('input',({detail:m})=>right.receive(m.frame,m.buttons));
+  const routes=[];hp.addEventListener('route',e=>routes.push(e.detail));
+  let probing=false,dropped=false,clock=0;
+  while(left.frame<140||right.frame<140){
+    if(!probing&&left.frame>=40){probing=true;void host.upgrade.offer();}
+    if(!dropped&&left.frame>=90&&hp.route==='P2P'){dropped=true;host.connection.direct.close();}
+    if(left.frame<140)left.tick(left.frame%3===0?1:0);
+    if(right.frame<140)right.tick(right.frame%5===0?1:0);
+    await sleep(1);assert.ok(++clock<1000,'must continue advancing across route changes');
+  }
+  hp.connection.flush();gp.connection.flush();await until(()=>left.confirmed>=139&&right.confirmed>=139);
+  left.reconcile();right.reconcile();
+  assert.deepEqual(routes,['P2P','Tailcat']);assert.equal(dropped,true);
+  assert.equal(stateHash(a.save()),stateHash(b.save()));assert.equal(left.hashAt(120),right.hashAt(120));
 });

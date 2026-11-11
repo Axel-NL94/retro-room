@@ -63,26 +63,22 @@ export class RelayRoom extends EventTarget {
   close() { this.closed = true; this.connected = false; this.transport?.close(); }
 }
 
-// A paired, two-player connection with the same event interface as PeerJS.
+// One stable logical connection survives a change of physical transport. Message IDs
+// and acknowledgements prevent lost/duplicate input when old relay packets arrive late.
 export class RelayConnection {
   constructor(relay, uid, attempt, { version = INVITE_VERSION, name = '' } = {}) {
-    this.relayRoom = relay; this.uid = uid; this.attempt = attempt; this.relay = true;
+    this.relayRoom = relay; this.uid = uid; this.attempt = attempt; this.relay = true; this.route = 'Tailcat'; this.relayAvailable = true;
     this.metadata = { app: 'retroroom', version, name }; this.listeners = new Map();
     this.open = false; this.closed = false; this.sequence = 0; this.received = -1; this.inputs = [];
+    this.next = 0; this.expected = 0; this.pending = new Map(); this.incoming = new Map();
     this.onPacket = ({ detail: { uid: sender, payload } }) => {
       if (this.closed || sender !== this.uid || payload?.attempt !== this.attempt ||
           !Number.isSafeInteger(payload.sequence) || payload.sequence <= this.received) return;
-      this.received = payload.sequence; this.lastSeen = Date.now();
-      if (payload.kind === 'leave') { this.close(false); return; }
-      if (payload.kind !== 'play') return;
-      try {
-        if (!Array.isArray(payload.messages) || payload.messages.length > 8) throw new Error('Ongeldig relaybericht.');
-        const validated = payload.messages.map(m => ({ channel: m.channel, data: peerMessage(m.channel, m.data) }));
-        for (const m of validated) this.emit('data', m);
-      } catch { this.emit('error', new Error('Ongeldig spelbericht via de relay.')); }
+      this.received = payload.sequence; this.lastRelay = Date.now(); this.relayAvailable = true;
+      this.receive(payload);
     };
-    this.onLeft = ({ detail }) => { if (detail === uid) this.close(false); };
-    this.onUnavailable = () => this.close(false);
+    this.onLeft = ({ detail }) => { if (detail !== uid) return; this.relayAvailable = false; if (this.route !== 'P2P') this.close(false); };
+    this.onUnavailable = () => { this.relayAvailable = false; if (this.route !== 'P2P') this.close(false); };
     relay.addEventListener('packet', this.onPacket); relay.addEventListener('left', this.onLeft);
     relay.addEventListener('unavailable', this.onUnavailable);
   }
@@ -91,23 +87,101 @@ export class RelayConnection {
   emit(type, data) { for (const fn of [...(this.listeners.get(type) || [])]) fn(data); }
   activate() {
     if (this.closed) return;
-    this.open = true; this.lastSeen = Date.now();
+    this.open = true; this.lastSeen = this.lastRelay = Date.now();
     this.heartbeat = setInterval(() => {
-      if (Date.now() - this.lastSeen > 15000) { this.close(false); return; }
-      this.packet('heartbeat');
+      if (Date.now() - this.lastSeen > 15000) {
+        if (this.route === 'P2P') this.detachDirect(); else this.close(false);
+        if (this.closed) return;
+      }
+      try {
+        this.packet('heartbeat');
+        // Keep the encrypted fallback available, without sending game input there.
+        if (this.route === 'P2P' && this.relayAvailable && !this.relayRoom.closed) this.packet('standby', undefined, true);
+      } catch (error) { this.emit('error', error); }
     }, 4000);
     this.emit('open');
   }
-  packet(kind, messages) { this.relayRoom.send({ kind, attempt: this.attempt, sequence: this.sequence++, ...(messages ? { messages } : {}) }, this.uid); }
+  receive(payload) {
+    try {
+      if (!Number.isSafeInteger(payload.ack) || payload.ack < -1 || payload.ack >= this.next) throw new Error('Invalid acknowledgement');
+      if (!['play', 'heartbeat', 'standby', 'upgrade', 'leave'].includes(payload.kind)) return;
+      if (payload.kind !== 'standby') this.lastSeen = Date.now();
+      for (const id of this.pending.keys()) if (id <= payload.ack) this.pending.delete(id);
+      if (payload.kind === 'leave') { this.close(false); return; }
+      if (payload.kind === 'upgrade') { this.emit('upgrade', payload.signal); return; }
+      if (payload.kind !== 'play') return;
+      if (!Array.isArray(payload.messages) || payload.messages.length > 8) throw new Error('Invalid batch');
+      const validated = payload.messages.map(m => {
+        if (!Number.isSafeInteger(m.id) || m.id < 0 || m.id >= this.expected + 2048) throw new Error('Invalid message sequence');
+        return { id: m.id, channel: m.channel, data: peerMessage(m.channel, m.data) };
+      });
+      for (const m of validated) if (m.id >= this.expected && !this.incoming.has(m.id)) this.incoming.set(m.id, m);
+      while (this.incoming.has(this.expected)) {
+        const m = this.incoming.get(this.expected); this.incoming.delete(this.expected++);
+        this.emit('data', { channel: m.channel, data: m.data });
+      }
+    } catch { this.emit('error', new Error('Ongeldig spelbericht via de verbinding.')); }
+  }
+  packet(kind, messages, relayOnly = false, signal) {
+    const payload = { kind, attempt: this.attempt, ack: this.expected - 1, ...(messages ? { messages } : {}), ...(signal ? { signal } : {}) };
+    if (!relayOnly && this.route === 'P2P' && this.direct?.open) {
+      if (this.direct.dataChannel?.bufferedAmount > 128 * 1024) throw new Error('De verbinding loopt te ver achter.');
+      this.direct.send({ wire: 'retroroom-route-1', nonce: this.nonce, ...payload });
+    } else this.relayRoom.send({ ...payload, sequence: this.sequence++ }, this.uid);
+  }
+  signal(value) { if (!this.closed && !this.relayRoom.closed) this.packet('upgrade', undefined, true, value); }
+  attachDirect(connection, nonce) {
+    if (this.closed || this.direct) return false;
+    this.direct = connection; this.nonce = nonce;
+    const data = payload => {
+      if (this.direct !== connection || this.closed || payload?.wire !== 'retroroom-route-1' ||
+          payload.nonce !== nonce || payload.attempt !== this.attempt) return;
+      if (JSON.stringify(payload).length > 4096) { this.emit('error', new Error('Spelbericht te groot.')); return; }
+      this.receive(payload);
+    };
+    const lost = () => this.detachDirect(connection);
+    this.directListeners = { data, lost };
+    connection.on('data', data); connection.on('close', lost); connection.on('error', lost);
+    return true;
+  }
+  useDirect() {
+    if (this.closed || !this.direct?.open || this.route === 'P2P') return;
+    clearTimeout(this.flushTimer); this.flushTimer = null; this.inputs = [];
+    this.route = 'P2P'; this.lastSeen = Date.now();
+    try { this.replay(); this.emit('route', this.route); } catch { this.detachDirect(); }
+  }
+  detachDirect(connection = this.direct) {
+    if (!connection || this.direct !== connection) return;
+    const { data, lost } = this.directListeners;
+    connection.off('data', data); connection.off('close', lost); connection.off('error', lost);
+    this.direct = null; this.nonce = null; connection.close();
+    if (this.route !== 'P2P' || this.closed) return;
+    if (!this.relayAvailable || this.relayRoom.closed || Date.now() - this.lastRelay > 15000) { this.close(false); return; }
+    this.route = 'Tailcat'; this.lastSeen = Date.now();
+    try { this.replay(); this.emit('route', this.route); } catch { this.close(false); }
+  }
+  replay() {
+    let batch = [];
+    for (const message of this.pending.values()) {
+      if (batch.length && (batch.length === 8 || JSON.stringify([...batch, message]).length > 3000)) {
+        this.packet('play', batch); batch = [];
+      }
+      batch.push(message);
+    }
+    if (batch.length) this.packet('play', batch);
+    this.packet('heartbeat');
+  }
   send(value) {
     const data = peerMessage(value.channel, value.data); // No generic binary/file API.
     if (!this.open || this.closed) throw new Error('De andere speler is niet verbonden.');
+    if (this.pending.size >= 2048) throw new Error('De verbinding loopt te ver achter.');
+    const message = { id: this.next++, channel: value.channel, data }; this.pending.set(message.id, message);
     if (value.channel === 'input') {
-      this.inputs.push({ channel: 'input', data });
+      this.inputs.push(message);
       if (this.inputs.length >= 8) this.flush();
       else this.flushTimer ||= setTimeout(() => this.flush(), 4);
     } else {
-      this.flush(); this.packet('play', [{ channel: 'control', data }]);
+      this.flush(); this.packet('play', [message]);
     }
   }
   flush() {
@@ -116,8 +190,9 @@ export class RelayConnection {
   }
   close(notify = true) {
     if (this.closed) return;
-    if (notify && !this.relayRoom.closed && this.open) { try { this.packet('leave'); } catch { /* Already offline. */ } }
+    if (notify && this.open) { try { this.packet('leave'); } catch { /* Already offline. */ } }
     this.closed = true; this.open = false; clearTimeout(this.flushTimer); clearInterval(this.heartbeat); this.inputs = [];
+    this.pending.clear(); this.incoming.clear(); this.detachDirect();
     this.relayRoom.removeEventListener('packet', this.onPacket); this.relayRoom.removeEventListener('left', this.onLeft);
     this.relayRoom.removeEventListener('unavailable', this.onUnavailable); this.emit('close');
   }

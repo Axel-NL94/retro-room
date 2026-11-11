@@ -363,6 +363,11 @@ function setupPeer(connection, host) {
       catch (error) { fatal(error); }
     }
   });
+  peer.addEventListener('route', ({ detail }) => {
+    if (current !== peer) return;
+    $('route-value').textContent = detail === 'P2P' ? 'Rechtstreeks' : detail;
+    toast(detail === 'P2P' ? 'Directe verbinding gelukt. Het spel gaat verder via P2P.' : 'P2P is weggevallen. Het spel gaat verder via Tailcat.');
+  });
   peer.addEventListener('input', ({ detail }) => {
     if (current === peer && playStyle === 'stream' && isHost && detail?.type === 'stream-input' &&
         detail.token === streamInfo?.token && mode === 'online') { try{streamInput?.receive(detail);}catch(error){fatal(error);} return; }
@@ -1070,7 +1075,9 @@ setInterval(async () => {
     }
     if (playStyle === 'stream') { $('route-value').textContent = 'WebRTC · stream'; return; }
     if (peer.route === 'Tailcat') { $('route-value').textContent = 'Tailcat'; return; }
-    const stats = await peer.pc.getStats();
+    const measuredPeer = peer, measuredPc = peer.pc;
+    const stats = await measuredPc.getStats();
+    if (peer !== measuredPeer || peer.pc !== measuredPc || peer.route !== 'P2P') return;
     for (const value of stats.values()) {
       if (value.type === 'transport' && value.selectedCandidatePairId) {
         const pair = stats.get(value.selectedCandidatePairId);
