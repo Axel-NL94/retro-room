@@ -3,6 +3,8 @@
 import { INVITE_VERSION, peerMessage } from './protocol.js';
 import { RelayRoom, RelayConnection, newRelaySecret, validRelaySecret } from './relay.js';
 import { playMode } from './stream-protocol.js';
+import { directDeadline } from './direct-deadline.js';
+import { DirectUpgrade } from './direct-upgrade.js';
 export const DIRECT_ICE = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
 const ROOM_ID = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
 export function parseInvitation(value) {
@@ -14,9 +16,9 @@ export function parseInvitation(value) {
 const text = (value, max) => typeof value === 'string' ? value.trim().slice(0, max) : '';
 
 export class InviteConnection extends EventTarget {
-  constructor(PeerClass = globalThis.Peer, { RelayRoomClass = RelayRoom, directTimeout = 10000, relayTimeout = 12000 } = {}) {
+  constructor(PeerClass = globalThis.Peer, { RelayRoomClass = RelayRoom, directTimeout = 15000, directMaximum = directTimeout * 3, relayTimeout = 12000, upgradeOptions = {} } = {}) {
     super(); this.PeerClass = PeerClass; this.RelayRoomClass = RelayRoomClass;
-    this.directTimeout = directTimeout; this.relayTimeout = relayTimeout;
+    this.directTimeout = directTimeout; this.directMaximum = directMaximum; this.relayTimeout = relayTimeout; this.upgradeOptions = upgradeOptions;
     this.endpoint = null; this.pending = null; this.room = null; this.connection = null; this.host = false;
     this.generation = 0;
   }
@@ -117,6 +119,10 @@ export class InviteConnection extends EventTarget {
     this.emit('joining', { connection, id });
   }
   accept(connection) {
+    if (connection.label === 'retroroom-upgrade') {
+      if (this.upgrade) this.upgrade.accept(connection); else connection.close();
+      return;
+    }
     if (!this.host || !this.room || this.connection || connection.label !== 'retroroom' ||
         connection.serialization !== 'json' || connection.metadata?.app !== 'retroroom' || connection.metadata?.version !== INVITE_VERSION ||
         (connection.metadata?.playMode || 'netplay') !== this.room.playMode) {
@@ -138,24 +144,27 @@ export class InviteConnection extends EventTarget {
     this.connection = connection;
     connection.onNetplayReady = () => {
       if (this.connection !== connection) return;
-      clearTimeout(this.joinTimeout); clearTimeout(this.relayJoinTimeout);
+      this.cancelDirect?.(); clearTimeout(this.relayJoinTimeout);
       this.fallbackStarting = false;
       if (!this.host && !connection.relay) { this.relayRoom?.close(); this.relayRoom = null; }
     };
-    if (!connection.relay) this.joinTimeout = setTimeout(() => {
-      if (this.connection !== connection || connection.netplayReady) return;
-      if (this.host && this.room?.playMode === 'stream') this.rejectJoin('De directe WebRTC-verbinding lukt niet. Tailcat ondersteunt geen videostreams.');
-      else if (this.host) this.emit('fallback', { message: 'P2P lukt nog niet. Wachten op de Tailcat-fallback…' });
-      else void this.fallback();
-    }, this.directTimeout);
+    if (!connection.relay) {
+      const timeout = () => {
+        if (this.connection !== connection || connection.netplayReady) return;
+        if (this.host && this.room?.playMode === 'stream') this.rejectJoin('De directe WebRTC-verbinding lukt niet. Tailcat ondersteunt geen videostreams.');
+        else if (this.host) this.emit('fallback', { message: 'P2P lukt nog niet. Wachten op de Tailcat-fallback…' });
+        else void this.fallback();
+      };
+      this.cancelDirect = directDeadline(connection, { idle: this.directTimeout, maximum: this.directMaximum, timeout });
+    }
     connection.on('close', () => {
       if (this.connection !== connection) return;
       if (!connection.netplayReady && !connection.relay) {
         if (!this.host) void this.fallback();
-        else { this.connection = null; clearTimeout(this.joinTimeout); this.emit('guest-left'); }
+        else { this.connection = null; this.cancelDirect?.(); this.emit('guest-left'); }
         return;
       }
-      this.connection = null; clearTimeout(this.joinTimeout);
+      this.connection = null; this.cancelDirect?.();
       this.emit(this.host ? 'guest-left' : 'room-closed');
       if (!this.host) { this.room = null; this.joinInfo = null; this.relayRoom?.close(); this.relayRoom = null; }
     });
@@ -173,7 +182,7 @@ export class InviteConnection extends EventTarget {
     if (this.joinInfo.playMode === 'stream') { this.rejectJoin('De directe WebRTC-verbinding voor streamen lukt niet. Probeer een ander netwerk of maak een kamer met eigen ROMs. Tailcat ondersteunt geen videostreams.'); return; }
     if (this.joinInfo.directOnly) { this.rejectJoin('De directe DOS-verbinding lukt niet. Deze kamer gebruikt geen Tailcat-fallback. Probeer een ander netwerk.'); return; }
     if (!validRelaySecret(this.secret)) { this.rejectJoin('P2P lukt niet. Plak de volledige nieuwe uitnodigingslink om de fallback te gebruiken.'); return; }
-    this.fallbackStarting = true; clearTimeout(this.joinTimeout);
+    this.fallbackStarting = true; this.cancelDirect?.();
     this.emit('fallback', { message: 'P2P lukt niet. Verbinden via Tailcat…' });
     const info = this.joinInfo, generation = this.generation;
     try {
@@ -199,7 +208,7 @@ export class InviteConnection extends EventTarget {
       this.watch(connection);
       this.emit('guest-joined', { connection, name: connection.metadata.name });
       this.relayRoom.send({ kind: 'accepted', version: INVITE_VERSION, attempt: payload.attempt, room: this.room }, uid);
-      connection.activate(); return;
+      connection.activate(); this.startUpgrade(connection); return;
     }
     if (this.host || !this.fallbackStarting || payload.attempt !== this.joinInfo?.attempt) return;
     if (payload.kind === 'rejected') { this.rejectJoin(text(payload.message, 160)); return; }
@@ -209,7 +218,11 @@ export class InviteConnection extends EventTarget {
     this.watch(connection); this.emit('joining', { connection, id: this.joinInfo.id });
     if ((payload.room.playMode || 'netplay') !== 'netplay') { this.rejectJoin('Streamen kan niet via Tailcat.'); return; }
     this.room = { id: this.joinInfo.id, host: text(payload.room.host, 24), title: text(payload.room.title, 48), game: text(payload.room.game, 80), playMode: 'netplay' };
-    this.fallbackStarting = false; this.emit('joined', this.room); connection.activate();
+    this.fallbackStarting = false; this.emit('joined', this.room); connection.activate(); this.startUpgrade(connection);
+  }
+  startUpgrade(connection) {
+    this.upgrade?.close();
+    if (this.room?.playMode === 'netplay' && !this.room.directOnly) this.upgrade = new DirectUpgrade(this, connection, this.upgradeOptions);
   }
   rejectJoin(message) {
     clearTimeout(this.relayJoinTimeout); this.fallbackStarting = false;
@@ -218,7 +231,8 @@ export class InviteConnection extends EventTarget {
     this.emit('rejected', { message });
   }
   dropConnection() {
-    clearTimeout(this.joinTimeout);
+    this.upgrade?.close(); this.upgrade = null;
+    this.cancelDirect?.();
     const connection = this.connection; this.connection = null; connection?.close();
   }
   leave() {
@@ -233,7 +247,12 @@ export class PeerConnection extends EventTarget {
   constructor(connection, host) {
     super(); this.connection = connection; this.host = host; this.closed = false; this.approved = host;
     if (connection.relay) {
-      this.route = 'Tailcat';
+      this.route = connection.route;
+      connection.on('route', route => {
+        if (this.closed) return;
+        this.route = route; this.pc = route === 'P2P' ? connection.direct.peerConnection : { connectionState: 'connected' };
+        this.emit('route', route);
+      });
       this.pc = { connectionState: 'connecting' };
       connection.on('data', ({ channel, data }) => {
         if (this.closed) return;
@@ -244,7 +263,7 @@ export class PeerConnection extends EventTarget {
         this.control = this.input = { readyState: 'open' }; this.ready();
       });
       connection.on('close', () => {
-        this.control = this.input = { readyState: 'closed' }; this.pc.connectionState = 'disconnected';
+        this.control = this.input = { readyState: 'closed' }; this.pc = { connectionState: 'disconnected' };
         if (!this.closed) this.emit('state', 'disconnected');
       });
       connection.on('error', error => { if (!this.closed) this.emit('error', error.message); });

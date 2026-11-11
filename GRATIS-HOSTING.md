@@ -38,7 +38,7 @@ vanuit de website worden geladen.
 | TURN | Uitgeschakeld |
 
 Er is geen betaalde relay of databundel geactiveerd. Sommige mobiele,
-bedrijfsnetwerken en routers kunnen rechtstreeks verbinden blokkeren. Na ongeveer 10 seconden zonder werkende P2P-verbinding probeert de gast automatisch Itty Sockets. De host houdt daarvoor een wachtverbinding open; bij werkend P2P gaat er geen spelverkeer via Itty. Ook de relay kan door een firewall worden geblokkeerd en kan meer vertraging geven. Externe diensten geven geen
+bedrijfsnetwerken en routers kunnen rechtstreeks verbinden blokkeren. Na 15 seconden zonder nieuwe verbindingsvoortgang (maximaal 45 seconden per directe poging) probeert de gast automatisch Tailcat. De host houdt daarvoor een wachtverbinding open. Tijdens de fallback wordt P2P opnieuw geprobeerd; zodra de directe route werkt, gaat het spelverkeer daarover en blijft Tailcat alleen stand-by. Ook de relay kan door een firewall worden geblokkeerd en kan meer vertraging geven. Externe diensten geven geen
 garantie op beschikbaarheid of onbeperkt gratis gebruik.
 
 ROM-bytes blijven in tijdelijk geheugen op het apparaat dat ze lokaal kiest.
