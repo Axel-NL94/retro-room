@@ -1,6 +1,6 @@
 # Pixel-M8 in RetroRoom
 
-Integrated 2026-11-11: existing Pico Core 0.11.9 web build 0.1.0, Emscripten
+Integrated 2026-11-11 (adapter revision 2): existing Pico Core 0.11.9 web build 0.1.0, Emscripten
 7.0.0. Artifacts were checked against the private repository source manifest;
 `web/assets/pixel-m8-build.json` records their hashes and the manifest Git blob.
 Only the unmodified loader/Wasm and complete license notices are redistributed.
@@ -13,6 +13,10 @@ Private source and source archives are intentionally excluded.
 - 22,050 Hz mono audio resampled continuously to RetroRoom's 48,000 Hz stereo.
 - Two players: directions and O/X, browser-local remapping, touch and gamepads.
 - Solo local two-player profiles, or WebRTC video/audio plus guest button input.
+- Preselected local continuation `.p8`/`.p8.png` files (128 files maximum,
+  8 MiB per file, 64 MiB total including the main cartridge). Keep filenames
+  matching the game’s load/reload calls. Files can also be added through
+  Cartridges in the game toolbar. Only the host reads cartridge files.
 - Original Pixel Duo demo; no third-party cartridges or official PICO-8 runtime.
 - In-game `cartdata`/`dset` saves copied from core MEMFS to per-ID localStorage
   entries once per second, before restart/dispose and on pagehide. No ROM bytes
@@ -28,8 +32,19 @@ savestate import/export. These options are disabled explicitly. CPU overclock
 is unavailable; it stays at 100%. Streaming uses the existing direct WebRTC route,
 without a Tailcat video fallback or a new relay service.
 
-One cartridge per load. Games requesting continuation cartridges stop with a
-clear message; the standalone player's server-side BBS proxy is not deployed.
+Local `load()` and `reload()` resolve files already imported into this instance.
+Original root filenames are retained independently of the bounded room title.
+For BBS-style `load("#id")`, exact local filenames are searched first, followed
+by the highest numbered `id-N.p8.png` revision. A pending missing BBS request
+opens the host's local cartridge dialog, keeps the stream connected with the
+last image and no repeated audio, and resumes after the correct local file is
+added. Shared memory, game parameters, cartdata and the original room survive
+this switch. Cancelling declines that load request; it does not restart the VM.
+Manual pause is preserved. A missing ordinary filename is returned as a failed
+load by the existing core (no pending callback): preload these files or add them
+before the game retries. Relative filename case must match the core's lookup.
+
+No BBS download proxy or external cartridge-download service is deployed.
 PICO-8 mouse/full-keyboard/clipboard APIs, custom pause menus, `cstore` ROM-data
 persistence and save backup import/export are not exposed in this first adapter.
 Some cartridges may depend on these features or other core compatibility gaps.

@@ -83,3 +83,8 @@ dialog{border:1px solid #464b54;background:var(--panel);color:var(--text);border
 .platform-strip>div{flex-wrap:wrap;row-gap:12px}
 
 .play-panel[data-system="p8"] .touch-controls [data-pad="1"]{margin-left:auto}
+
+.pixel-file-list{max-height:150px;overflow:auto;padding-left:22px;font-size:11px;line-height:1.8;overflow-wrap:anywhere;color:var(--muted)}
+#pixel-cartridges-dialog{width:min(560px,calc(100vw - 30px));max-height:85vh;overflow:auto}
+#pixel-cartridge-request{display:block;color:var(--mint);overflow-wrap:anywhere}
+.play-panel:fullscreen #pixel-cartridges-dialog{position:fixed;inset:0;margin:auto}

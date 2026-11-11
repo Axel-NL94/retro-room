@@ -2,7 +2,7 @@
   "engine": "Pixel-M8 / Pico Core",
   "coreVersion": "0.11.9",
   "webVersion": "0.1.0",
-  "build": "pixel-m8-0.11.9-web-1",
+  "build": "pixel-m8-0.11.9-web-2",
   "license": "MIT",
   "interpreterLicense": "MIT AND WTFPL-2.0",
   "separateProgram": true,
@@ -12,5 +12,9 @@
   "loaderSha256": "8eecf9b6517572652bb027440abac602355d8fdc1c60db3b68842806f1c35e58",
   "noticesSha256": "e7cb484dccb75073aa63a73dd68eebc8cdcc0948efb64bdd19f93ff8fd2461e2",
   "sourcePublished": false,
-  "gamesBundled": false
+  "gamesBundled": false,
+  "integrationFeatures": [
+    "local continuation cartridges",
+    "runtime import for pending BBS requests"
+  ]
 }

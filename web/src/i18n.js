@@ -12,6 +12,8 @@ try { language = localStorage.getItem(languageKey) === 'nl' ? 'nl' : 'en'; }
 catch { /* Default to English in private browsing too. */ }
 
 const dynamicTranslations = [
+  [/^(\d+) cartridges geladen$/,(_,n)=>`${n} cartridges loaded`],
+  [/^(\d+) cartridges geselecteerd$/,(_,n)=>`${n} cartridges selected`],
   [/^Tweede speler op dit apparaat — (.+)$/, (_,guide) => `Second player on this device — ${translate(guide)}`],
   [/^ (.+) · Besturing instellen via ⚙$/, (_,guide) => `${translate(guide)} · Configure controls via ⚙`],
   [/^Kies jouw (NES|SNES|Mega Drive|MD|PICO-8|DOS)-ROM voor (.+)\. De versie, regio en eventuele hack moeten overeenkomen\.$/, (_, system, name) => `Choose your ${system} ROM for ${name}. The version, region, and any hacks must match.`],

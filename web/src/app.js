@@ -1,3 +1,5 @@
+import {createPixelCartridgeMenu} from './pixel-cartridge-menu.js';
+import {readPixelCartridges,mergePixelCartridges} from './pixel-cartridges.js';
 import {createGamePatcher} from './patcher.js';
 import {canUseSoloSavestates,stageSavestate} from './solo-savestate.js';
 import {defaultDosPolicy,validateDosPolicy,nextDosPolicy,canPassDosControl,validDosReturn,DosPolicyFilter} from './dos-policy.js';
@@ -32,6 +34,8 @@ let mode = 'idle', pausedMode = null, session = null, epoch = null;
 let expectedGame = null, guestLoading = false, nickname = readSetting('name') || '';
 let lastTime = 0, accumulator = 0, fpsCount = 0, fpsTime = 0, lastHash = -1;
 let toastTimer;
+let launchCartridges=[],pixelLaunchLoading=false,pixelLaunchTicket=0,pixelRemoteWaiting='';
+let pixelWaitingOverlay=false;
 let launchMode = 'room', selectedSystem = null, launchGeneration = 0, launchBusy = false, launchCommitted = false, currentGameRequested = false;
 let stateBusy = false;
 let playStyle = 'netplay', gameStream = null, streamInfo = null, streamReady = false;
@@ -59,6 +63,32 @@ const controls = createControls({ pressed, touched, release: releaseButtons,
   currentSystem: () => game?.system || expectedGame?.system || selectedSystem || 'nes',
   localCoop: () => mode === 'solo'
 });
+
+const pixelMenu=createPixelCartridgeMenu({
+  context:()=>({core,host:isHost,system:game?.system,files:core?.files||[],waiting:core?.waiting||''}),
+  release:releaseButtons,
+  add:files=>{if(!isHost||game?.system!=='p8'||!core)return;game.cartridges=core.addCartridges(files);pixelMenu.update();},
+  cancel:()=>{if(isHost&&game?.system==='p8')core?.cancelCartridge();}
+});
+function pixelWaiting(){return game?.system==='p8'?(isHost?core?.waiting||'':pixelRemoteWaiting):'';}
+function updatePixelWaiting(){
+  pixelMenu.update();
+  const request=pixelWaiting();
+  if(request&&['solo','online'].includes(mode)){
+    pixelWaitingOverlay=true;
+    overlay('Vervolgcartridge nodig.',isHost?'Voeg het gevraagde bestand toe via Cartridges.':'De host kiest de ontbrekende cartridge. De stream blijft verbonden.');
+    $('room-status').textContent='Wachten op vervolgcartridge';
+  }else if(!request&&pixelWaitingOverlay){
+    pixelWaitingOverlay=false;
+    if(['solo','online'].includes(mode)){$('screen-overlay').hidden=true;$('room-status').textContent=mode==='online'?'Samen aan het spelen':'Solo aan het spelen';}
+  }
+}
+function onPixelCartridgeRequest(name){
+  if(game?.system!=='p8'||!isHost)return;
+  audio.clear();releaseButtons();
+  pixelMenu.request(name);updatePixelWaiting();
+  if(playStyle==='stream'&&peer?.opened&&streamInfo&&epoch)peer.send('control',{type:'stream-cartridge',token:streamInfo.token,epoch,request:name});
+}
 
 const dosControls=createDosControls({
   enabled:()=>game?.system==='dos'&&!$('room-view').hidden&&['solo','online'].includes(mode),
@@ -128,7 +158,7 @@ function report(error) {
   for (const [dialog, target] of [['create-dialog', 'create-error'], ['join-dialog', 'join-error']]) {
     if ($(dialog).open) $(target).textContent = message;
   }
-  if (!launchBusy) $('create-submit').disabled = false;
+  if (!launchBusy&&!pixelLaunchLoading) $('create-submit').disabled = false;
 }
 function fatal(error) {
   const message = error?.message || String(error);
@@ -191,16 +221,17 @@ function draw(frame, width = 256, height = 240) {
   context.putImageData(image, 0, 0);
   gameStream?.captureFrame();
 }
-async function loadGame(bytes, name, demo = false, system = 'nes', overclock = 100, isCurrent = () => true) {
+async function loadGame(bytes, name, demo = false, system = 'nes', overclock = 100, isCurrent = () => true, pixelOptions = {}) {
   validateOverclock(overclock);
   if (!['nes', 'snes', 'md', 'p8', 'dos'].includes(system)) throw new Error('Dit systeem wordt nog niet ondersteund.');
-  cartridgeSystem(bytes, ['dos','p8'].includes(system) ? name : system === 'md' ? 'game.md' : system === 'snes' ? 'game.sfc' : 'game.nes');
-  const next = await coreClass(system).create({ onFrame: draw, onAudio: (l, r) => audio.push(l, r) });
+  cartridgeSystem(bytes, system==='p8'?pixelOptions.cartridgeName||name:system==='dos' ? name : system === 'md' ? 'game.md' : system === 'snes' ? 'game.sfc' : 'game.nes');
+  const next = await coreClass(system).create({ onFrame: draw, onAudio: (l, r) => audio.push(l, r),onCartridgeRequest:onPixelCartridgeRequest });
   const hash = await romHash(bytes);
   if (!isCurrent()) { next.destroy?.(); return false; }
-  next.load(bytes, system, { overclock, name });
+  const extra=system==='p8'?{cartridgeName:pixelOptions.cartridgeName||name,cartridges:pixelOptions.cartridges||[]}:{};
+  next.load(bytes, system, { ...extra,overclock, name });
   stop(); core?.destroy?.(); core = next;
-  game = { bytes, name: String(name).slice(0, 80), demo, system, overclock, hash };
+  game = { ...extra,bytes, name: String(name).slice(0, 80), demo, system, overclock, hash };
   if(isHost)resetDosSharing();
   audio.clear();
   if(system==='p8')draw(new Uint32Array(128*128),128,128);
@@ -252,6 +283,7 @@ function updateActions() {
   $('start-button').textContent = isHost ? (mode === 'online' ? 'Samen aan het spelen' : mode === 'paused' && (session || playStyle === 'stream') ? 'Verder spelen →' : 'Start samen →') : (mode === 'online' ? 'Samen aan het spelen' : localReady ? 'Wachten op de host…' : 'Ik ben klaar →');
   $('restart-button').hidden = !isHost || !connected || !remoteReady || !(mode === 'online' || mode === 'paused');
   $('guest-state').textContent = (isHost ? remoteReady : localReady) ? 'Klaar' : connected ? 'Verbonden' : '—';
+  updatePixelWaiting();
 }
 function beginOnline(newEpoch) {
   if(game.system==='p8')throw new Error('Pixel-M8 ondersteunt online alleen beeld en geluid streamen.');
@@ -290,7 +322,7 @@ function resume(send = true) {
 }
 function resetPeer() {
   closeGameStream();
-  expectedGame = null; guestLoading = false;
+  expectedGame = null; guestLoading = false;pixelRemoteWaiting='';
   peer?.close(); peer = null; remoteReady = false; localReady = false;
   $('guest-rom-card').hidden = true; $('guest-rom-file').value = ''; $('ping-value').textContent = '—';
   $('route-value').textContent = 'Niet verbonden';
@@ -301,6 +333,7 @@ function leaveRoom() {
   $('stream-guest-card').hidden = true;
   roomId = null; game = null; core = null; pickedGame = null; isHost = true;
   pressed.clear(); touched.clear();dosControls?.release();
+  pixelMenu.close();pixelWaitingOverlay=false;
   $('dos-menu-dialog').close();resetDosSharing();fullscreenKeyboard.release();
   $('home').hidden = false; $('room-view').hidden = true;
   $('player-two').textContent = 'Nog een plekje vrij'; $('guest-detail').textContent = 'Nodig je favoriete rivaal uit';
@@ -454,7 +487,7 @@ async function sendGameStream() {
   } catch (error) { if (current === peer && media === gameStream) fatal(error); }
 }
 function beginStreaming(newEpoch) {
-  epoch = newEpoch; session = null; streamSequence = 0;dosControls.reset();
+  epoch = newEpoch; session = null; streamSequence = 0;pixelRemoteWaiting='';dosControls.reset();
   dosFilter=new DosPolicyFilter(dosPolicy);dosAppliedPolicy=dosPolicy;
   if (isHost) { core.load(game.bytes, game.system, game); audio.clear(); streamInput = new StreamInput(epoch); }
   mode = 'online'; pausedMode = null; accumulator = 0; lastTime = 0;
@@ -493,6 +526,7 @@ function handleControl(message) {
   if (message.type === 'stream-game') { requireStream(message); return; }
   if (message.type.startsWith('stream-')) {
     if (playStyle !== 'stream' || message.token !== streamInfo?.token) throw new Error('De streamsessie komt niet overeen.');
+    if(message.type==='stream-cartridge'&&!isHost&&game?.system==='p8'){if(message.epoch===epoch){pixelRemoteWaiting=message.request;updatePixelWaiting();}return;}
     if (message.type === 'stream-watch' && isHost) { void sendGameStream(); return; }
     if (message.type === 'stream-ready' && isHost && gameStream?.call) {
       remoteReady = true; gameStream.ready(); $('room-message').textContent = 'Speler 2 ontvangt de stream en is klaar. Je kunt starten.'; updateActions(); return;
@@ -643,6 +677,8 @@ invites.addEventListener('room-closed', () => { leaveRoom(); toast('De host heef
 function setLaunchBusy(busy) {
   launchBusy = busy;
   for (const id of ['create-submit', 'rom-file', 'choose-demo', 'back-console-button', 'host-overclock']) $(id).disabled = busy;
+  $('create-submit').disabled=busy||pixelLaunchLoading;
+  $('pixel-launch-files').disabled=$('pixel-clear-files').disabled=busy||pixelLaunchLoading;
   $('host-overclock').disabled=busy||selectedSystem==='p8';
   $('play-mode-settings-button').disabled = busy;
   document.querySelectorAll('input[name="playMode"]').forEach(input => input.disabled = busy || input.value === 'netplay' && (selectedSystem==='p8'||selectedSystem === 'dos' && !DOS_NETPLAY_AVAILABLE) && launchMode !== 'solo');
@@ -658,6 +694,7 @@ function updatePlayModeChoice() {
   $('launch-privacy-note').textContent = launchMode === 'solo' ? 'Je speelt lokaal. Je ROM en savestates worden niet geüpload.' : streaming ? 'Alleen jij laadt de ROM. Je vriend ontvangt gamebeeld en gamegeluid en stuurt knoppen terug. Geen camera, microfoon of ROM-overdracht.' : 'Alleen mensen met je uitnodigingslink kunnen meedoen. Beide spelers kiezen hun eigen ROM.';
   $('dos-limit-note').hidden = selectedSystem !== 'dos';
   $('pixel-m8-note').hidden=selectedSystem!=='p8';
+  $('pixel-extra-picker').hidden=selectedSystem!=='p8';
 }
 $('play-mode-settings-button').onclick = () => {
   const visible = $('play-mode-settings').hidden;
@@ -667,6 +704,7 @@ document.querySelectorAll('input[name="playMode"]').forEach(input => input.oncha
 function openCreate(current = false, type = 'room') {
   if (roomId) { toast('Verlaat eerst je huidige kamer.'); return; }
   if (mode === 'solo') pause();
+  resetLaunchCartridges();
   launchGeneration++; launchMode = type; selectedSystem = null; pickedGame = null;
   currentGameRequested = current && !!game; useCurrentGame = false; launchCommitted = false;
   $('console-picker').hidden = false; $('launch-fields').hidden = true;
@@ -686,6 +724,7 @@ function openCreate(current = false, type = 'room') {
 }
 function chooseConsole(system) {
   if (!['nes', 'snes', 'md', 'p8', 'dos'].includes(system) || launchBusy) return;
+  resetLaunchCartridges();
   launchGeneration++; selectedSystem = system; pickedGame = null; $('rom-file').value = '';
   useCurrentGame = currentGameRequested && game?.system === system;
   if(['dos','p8'].includes(system)&&launchMode!=='solo')document.querySelector('input[name="playMode"][value="stream"]').checked=true;
@@ -693,6 +732,7 @@ function chooseConsole(system) {
   $('launch-heading').textContent = launchMode === 'solo' ? 'Jouw game. Jouw tempo.' : 'Maak het gezellig.';
   $('launch-intro').textContent = `Je kiest ${systemName(system)}. Laad je eigen ${system === 'dos' ? 'gamebestanden' : 'ROM'} en stel de emulator in.`;
   $('host-overclock').disabled=system==='p8';
+  setLaunchBusy(false);
   if(system==='p8')$('host-overclock').value='100';
   $('host-overclock-note').textContent = system === 'p8' ? 'Pixel-M8 gebruikt de standaard PICO-8-snelheid. CPU-overclock is niet beschikbaar.' : system === 'dos' ? 'DOS gebruikt 3000 CPU-cycles bij 100%, tot 15000 bij 500%. De juiste snelheid verschilt per game; hoger kan het spel versnellen.'  : system === 'md' ? 'Mega Drive overclockt de 68000 CPU. De instelling wordt na 100 opstartframes actief; hogere waarden kunnen gamebugs veroorzaken.' : '100% is standaard. Meer CPU-tijd kan slowdown verminderen en vraagt meer van je apparaat. Niet iedere game werkt goed met overclocking.';
   $('launch-console').textContent = system === 'p8' ? 'PICO-8 · PIXEL-M8 · BETA' : system === 'dos' ? 'DOS · EXPERIMENTEEL' : system === 'md' ? 'MEGA DRIVE · BETA' : system === 'snes' ? 'SNES · BETA' : 'NES';
@@ -709,6 +749,7 @@ $('solo-home-button').onclick = () => openCreate(false, 'solo');
 document.querySelectorAll('[data-console]').forEach(button => button.onclick = () => chooseConsole(button.dataset.console));
 $('back-console-button').onclick = () => {
   if (launchBusy) return;
+  resetLaunchCartridges();
   launchGeneration++; selectedSystem = null; pickedGame = null; useCurrentGame = false;
   $('console-picker').hidden = false; $('launch-fields').hidden = true;
   $('launch-heading').textContent = 'Kies je console.'; $('create-error').textContent = '';
@@ -744,6 +785,27 @@ document.querySelectorAll('.brand, .topbar nav a').forEach(link => link.addEvent
 }));
 $('connection-info-button').onclick = () => $('connection-dialog').showModal();
 $('reconnect-button').onclick = () => invites.connect().then(() => toast('Uitnodigingsdienst verbonden.')).catch(report);
+function resetLaunchCartridges(){
+  launchCartridges=[];pixelLaunchLoading=false;pixelLaunchTicket++;
+  $('pixel-launch-files').value='';renderLaunchCartridges();
+}
+function renderLaunchCartridges(){
+  $('pixel-launch-count').textContent=launchCartridges.length?`${launchCartridges.length} cartridges geselecteerd`:'';
+  $('pixel-launch-list').replaceChildren(...launchCartridges.map(file=>{const item=document.createElement('li');item.textContent=file.name;return item;}));
+  $('pixel-clear-files').hidden=!launchCartridges.length;
+}
+$('pixel-clear-files').onclick=()=>{resetLaunchCartridges();setLaunchBusy(false);};
+$('pixel-launch-files').onchange=async event=>{
+  if(launchBusy||selectedSystem!=='p8')return;
+  const ticket=++pixelLaunchTicket,generation=launchGeneration;
+  pixelLaunchLoading=true;setLaunchBusy(false);$('create-error').textContent='';
+  try{
+    const loaded=await readPixelCartridges(event.target.files);
+    if(ticket!==pixelLaunchTicket||generation!==launchGeneration)return;
+    launchCartridges=mergePixelCartridges(launchCartridges,loaded);renderLaunchCartridges();
+  }catch(error){if(ticket===pixelLaunchTicket&&generation===launchGeneration)report(error);}
+  finally{if(ticket===pixelLaunchTicket&&generation===launchGeneration){pixelLaunchLoading=false;event.target.value='';setLaunchBusy(false);}}
+};
 $('rom-file').onchange = async () => {
   try {
     const file = $('rom-file').files[0]; if (!file) return;
@@ -752,7 +814,7 @@ $('rom-file').onchange = async () => {
     const bytes = new Uint8Array(await file.arrayBuffer()); const system = cartridgeSystem(bytes, file.name);
     if (generation !== launchGeneration) return;
     if (system !== selectedSystem) throw new Error(`Dit is een ${systemName(system)}-ROM. Kies een ${systemName(selectedSystem)}-ROM of ga terug naar de consolekeuze.`);
-    pickedGame = { bytes, name: file.name.replace(/\.(nes|sfc|smc|md|bin|gen)$/i, '').slice(0,80), demo: false, system };
+    pickedGame = { bytes, name: file.name.replace(/\.(nes|sfc|smc|md|bin|gen)$/i, '').slice(0,80), demo: false, system, ...(system==='p8'?{cartridgeName:file.name}:{}) };
     $('file-name').textContent = file.name; $('create-error').textContent = '';
   } catch (error) { pickedGame = null; report(error); }
 };
@@ -772,7 +834,7 @@ $('choose-demo').onclick = async () => {
   catch (error) { report(error); }
 };
 $('create-form').onsubmit = async event => {
-  event.preventDefault(); if (launchBusy) return;
+  event.preventDefault(); if (launchBusy||pixelLaunchLoading) return;
   $('create-error').textContent = '';
   const generation = launchGeneration, type = launchMode;
   const isCurrent = () => generation === launchGeneration && $('create-dialog').open;
@@ -791,7 +853,9 @@ $('create-form').onsubmit = async event => {
     if (type === 'solo' || chosenPlayMode === 'stream') await enableAudio();
     if (!isCurrent()) return;
     if (type === 'room') { nickname = String(values.get('name')).trim(); saveSetting('name', nickname); }
-    if (!await loadGame(selected.bytes, selected.name, selected.demo, selected.system, selected.system==='p8'?100:Number(values.get('overclock')), isCurrent)) return;
+    const pixelOptions=selected.system==='p8'?{cartridgeName:selected.cartridgeName||selected.name,cartridges:mergePixelCartridges(selected.cartridges||[],launchCartridges)}:{};
+    if(selected.system==='p8')mergePixelCartridges([{name:pixelOptions.cartridgeName,bytes:selected.bytes}],pixelOptions.cartridges);
+    if (!await loadGame(selected.bytes, selected.name, selected.demo, selected.system, selected.system==='p8'?100:Number(values.get('overclock')), isCurrent,pixelOptions)) return;
     playStyle = chosenPlayMode;
     if (type === 'solo') {
       isHost = true; roomId = null; launchCommitted = true; setLaunchBusy(false); $('create-dialog').close();

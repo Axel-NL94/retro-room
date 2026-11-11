@@ -2872,3 +2872,107 @@ for (const [nl,en] of [
     "RetroRoom is an independent project. Names such as Nintendo, NES, SNES, Sega, PlayStation, Mesen, PICO-8 and Libretro are used descriptively. No official partnership or endorsement is claimed."
   ]
 ]) messages.set(nl,en);
+
+// Local continuation cartridges.
+for (const [nl,en] of [
+  [
+    "Vervolgcartridges",
+    "Continuation cartridges"
+  ],
+  [
+    "Cartridges sluiten",
+    "Close cartridges"
+  ],
+  [
+    "De game wacht op deze cartridge:",
+    "The game is waiting for this cartridge:"
+  ],
+  [
+    "Voeg de bijbehorende .p8- of .p8.png-bestanden toe met hun oorspronkelijke namen. Alleen de host laadt bestanden. Er wordt niets gedownload of naar speler 2 verstuurd.",
+    "Add the matching .p8 or .p8.png files with their original names. Only the host loads files. Nothing is downloaded or sent to player 2."
+  ],
+  [
+    "Cartridges toevoegen",
+    "Add cartridges"
+  ],
+  [
+    "Vervolgcartridges tijdens het spelen toevoegen",
+    "Add continuation cartridges while playing"
+  ],
+  [
+    "Maximaal 128 cartridges, 8 MB per bestand en 64 MB samen. Je kunt ze ook vooraf selecteren. Na bijladen gaat het laadverzoek verder; een handmatige pauze blijft behouden.",
+    "Up to 128 cartridges, 8 MB per file and 64 MB in total. You can also select them before starting. Adding a missing cartridge continues the load request; a manual pause is preserved."
+  ],
+  [
+    "Laden annuleren",
+    "Cancel loading"
+  ],
+  [
+    "Venster sluiten",
+    "Close window"
+  ],
+  [
+    "Vervolgcartridges toevoegen · optioneel",
+    "Add continuation cartridges · optional"
+  ],
+  [
+    "Vervolgcartridges vooraf toevoegen",
+    "Add continuation cartridges before starting"
+  ],
+  [
+    "Kies eerst de startcartridge hierboven. Voeg hier de andere .p8- en .p8.png-bestanden toe met hun oorspronkelijke namen. Maximaal 128 cartridges, 8 MB per bestand en 64 MB samen.",
+    "Choose the starting cartridge above. Add the other .p8 and .p8.png files here with their original names. Up to 128 cartridges, 8 MB per file and 64 MB in total."
+  ],
+  [
+    "Extra selectie wissen",
+    "Clear extra selection"
+  ],
+  [
+    "Vervolgcartridge nodig.",
+    "Continuation cartridge needed."
+  ],
+  [
+    "Voeg het gevraagde bestand toe via Cartridges.",
+    "Add the requested file through Cartridges."
+  ],
+  [
+    "De host kiest de ontbrekende cartridge. De stream blijft verbonden.",
+    "The host is selecting the missing cartridge. The stream stays connected."
+  ],
+  [
+    "Wachten op vervolgcartridge",
+    "Waiting for continuation cartridge"
+  ],
+  [
+    "Gebruik een relatieve cartridgenaam met .p8 of .p8.png, zonder bovenliggende mappen.",
+    "Use a relative .p8 or .p8.png cartridge name without parent directories."
+  ],
+  [
+    "Kies maximaal 128 cartridges, samen maximaal 64 MB.",
+    "Choose up to 128 cartridges, totaling no more than 64 MB."
+  ],
+  [
+    "Er zijn verschillende cartridges met dezelfde bestandsnaam. Kies één versie per naam.",
+    "Different cartridges have the same filename. Choose one version per name."
+  ],
+  [
+    "Een cartridgenaam botst met een mapnaam.",
+    "A cartridge filename conflicts with a directory name."
+  ],
+  [
+    "Open eerst een PICO-8-game.",
+    "Open a PICO-8 game first."
+  ],
+  [
+    "Pixel-M8 kon de vervolgcartridge niet laden.",
+    "Pixel-M8 could not load the continuation cartridge."
+  ],
+  [
+    "Pixel-M8 kon het laadverzoek niet annuleren.",
+    "Pixel-M8 could not cancel the load request."
+  ],
+  [
+    "Pixel-M8 beta: solo of online via beeld en geluid streamen. Twee spelers met O/X en richtingen. Vervolgcartridges kunnen lokaal worden toegevoegd. Geen rollback, volledige savestates of muis/toetsenbord-API. Je eigen .p8- en .p8.png-bestanden blijven lokaal.",
+    "Pixel-M8 beta: solo or online with video and audio streaming. Two players with O/X and directions. Continuation cartridges can be added locally. No rollback, full save states or mouse/keyboard API. Your .p8 and .p8.png files stay local."
+  ]
+]) messages.set(nl,en);
