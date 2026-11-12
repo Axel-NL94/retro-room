@@ -10,5 +10,5 @@ async function check(dir) {
     }
   }
 }
-for (const dir of ['web/src', 'server', 'scripts', 'test']) await check(dir);
+for (const dir of ['web/src', 'server', 'scripts', 'test', 'extensions']) await check(dir);
 console.log('Alle JavaScript-bestanden zijn syntactisch geldig.');

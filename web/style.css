@@ -88,3 +88,11 @@ dialog{border:1px solid #464b54;background:var(--panel);color:var(--text);border
 #pixel-cartridges-dialog{width:min(560px,calc(100vw - 30px));max-height:85vh;overflow:auto}
 #pixel-cartridge-request{display:block;color:var(--mint);overflow-wrap:anywhere}
 .play-panel:fullscreen #pixel-cartridges-dialog{position:fixed;inset:0;margin:auto}
+
+.pixel-helper-notice{padding:16px;border:1px solid var(--coral);border-radius:12px;background:rgba(226,143,118,.07);margin:16px 0;line-height:1.6}
+.pixel-helper-notice a{display:inline-block;margin:5px 8px 5px 0}.pixel-helper-notice p{margin:10px 0}
+.pixel-load-indicator{position:absolute;inset:0;z-index:4;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;background:rgba(8,12,17,.78);color:var(--text);text-align:center;padding:24px;pointer-events:none}
+.pixel-spinner{width:42px;height:42px;border:4px solid rgba(255,255,255,.2);border-top-color:var(--coral);border-radius:50%;animation:pixel-spin 1s linear infinite}
+@keyframes pixel-spin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.pixel-spinner{animation:none;border-style:dotted}}
+.play-panel:fullscreen .pixel-load-indicator{position:fixed;inset:0;z-index:6}
