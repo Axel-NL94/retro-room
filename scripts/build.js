@@ -1,3 +1,4 @@
+import {extensionPackage} from './extension-package.js';
 import { cp, mkdir, writeFile, rm, readdir, readFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
@@ -16,6 +17,10 @@ for (const [file, expected] of [['mesen-core.wasm', native.wasmSha256], ['mesen-
 }
 await rm(root + 'dist', { recursive: true, force: true });
 await cp(root + 'web', root + 'dist', { recursive: true });
+await mkdir(root + 'dist/downloads', { recursive: true });
+const helperZip=await extensionPackage(root);
+await writeFile(root + 'dist/downloads/retro-room-pico-helper-0.1.0.zip',helperZip);
+await writeFile(root + 'dist/downloads/pico-helper.json',JSON.stringify({version:'0.1.0',file:'retro-room-pico-helper-0.1.0.zip',sha256:createHash('sha256').update(helperZip).digest('hex'),size:helperZip.length},null,2));
 await mkdir(root + 'dist/vendor', { recursive: true });
 await cp(root + 'node_modules/peerjs/dist/peerjs.min.js', root + 'dist/vendor/peerjs.min.js');
 await cp(root + 'node_modules/peerjs/LICENSE', root + 'dist/vendor/PEERJS-LICENSE.txt');

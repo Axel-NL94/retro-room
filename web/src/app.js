@@ -66,7 +66,7 @@ const controls = createControls({ pressed, touched, release: releaseButtons,
 
 const pixelMenu=createPixelCartridgeMenu({
   context:()=>({core,host:isHost,system:game?.system,files:core?.files||[],waiting:core?.waiting||''}),
-  release:releaseButtons,
+  release:releaseButtons,changed:()=>updatePixelWaiting(),
   add:files=>{if(!isHost||game?.system!=='p8'||!core)return;game.cartridges=core.addCartridges(files);pixelMenu.update();},
   cancel:()=>{if(isHost&&game?.system==='p8')core?.cancelCartridge();}
 });
@@ -74,9 +74,12 @@ function pixelWaiting(){return game?.system==='p8'?(isHost?core?.waiting||'':pix
 function updatePixelWaiting(){
   pixelMenu.update();
   const request=pixelWaiting();
+  $('pixel-load-indicator').hidden=!request||!['solo','online','paused'].includes(mode);
+  $('pixel-load-indicator').setAttribute('aria-busy',String(!!request));
+  $('pixel-load-text').textContent=isHost?(pixelMenu.loading?'Vervolgcartridge laden…':'Wachten op vervolgcartridge'):'De host laadt een vervolgcartridge…';
   if(request&&['solo','online'].includes(mode)){
     pixelWaitingOverlay=true;
-    overlay('Vervolgcartridge nodig.',isHost?'Voeg het gevraagde bestand toe via Cartridges.':'De host kiest de ontbrekende cartridge. De stream blijft verbonden.');
+    $('screen-overlay').hidden=true;
     $('room-status').textContent='Wachten op vervolgcartridge';
   }else if(!request&&pixelWaitingOverlay){
     pixelWaitingOverlay=false;

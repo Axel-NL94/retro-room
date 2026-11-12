@@ -33,7 +33,7 @@ export async function applicationSources(root) {
       else if (entry.isFile() && file !== 'web/assets/retro-room-source.tar.gz') await add(file);
     }
   }
-  for (const folder of ['web', 'native', 'scripts', 'server', 'test', '.github']) await walk(folder);
+  for (const folder of ['web', 'native', 'scripts', 'server', 'test', '.github', 'extensions']) await walk(folder);
   for (const entry of await readdir(root, { withFileTypes: true })) {
     if (entry.isFile() && (/\.md$/.test(entry.name) || ['LICENSE', 'package.json', 'pnpm-lock.yaml', 'Dockerfile', 'render.yaml', '.gitignore', '.dockerignore', '.env.example'].includes(entry.name))) await add(entry.name);
   }

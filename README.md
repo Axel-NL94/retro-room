@@ -380,3 +380,19 @@ file without dropping the stream. The original Pixel Duo demo is included. Own-R
 are unavailable because this core has no VM serialization API. Normal cartdata
 progress is saved locally when browser storage is allowed. See [PIXEL-M8.md](PIXEL-M8.md)
 for the exact limits and [LICENSING.md](LICENSING.md) for notices/publication scope.
+
+
+## Optional PICO-8 cartridge helper
+
+PICO-8 hosts can install our independent MIT Manifest V3 extension for Chrome/Edge
+desktop. `pico-helper.html` provides the source-only ZIP and manual installation
+instructions. When a continuation is missing, RetroRoom checks its bounded browser
+cache, then the helper; otherwise it shows the download/install prompt. The game stays
+in the current session, with a centered loading indicator for host and streaming guest.
+Only the host downloads; no cartridge bytes go to player 2. Manual import remains
+available. No external proxy or private native source is deployed.
+
+See [PIXEL-M8.md](PIXEL-M8.md) and [helper source/instructions](extensions/pico-helper/README.md)
+for permissions, cache/update behavior, service limitations and browser support. The
+build creates a deterministic ZIP and SHA-256 metadata in `dist/downloads/`; the
+complete matching application source download also includes the helper source.

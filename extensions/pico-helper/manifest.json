@@ -1,0 +1,12 @@
+{
+  "manifest_version": 3,
+  "name": "RetroRoom PICO-8 Cartridge Helper",
+  "version": "0.1.0",
+  "description": "Download missing PICO-8 continuation cartridges for RetroRoom directly from Lexaloffle.",
+  "minimum_chrome_version": "109",
+  "permissions": ["activeTab", "scripting"],
+  "host_permissions": ["https://www.lexaloffle.com/*", "https://lexaloffle.com/*"],
+  "background": {"service_worker": "background.js", "type": "module"},
+  "action": {"default_title": "Activate the cartridge helper on RetroRoom"},
+  "content_scripts": [{"matches": ["https://axel-nl94.github.io/retro-room/*"], "js": ["content.js"], "run_at": "document_start", "all_frames": false}]
+}
